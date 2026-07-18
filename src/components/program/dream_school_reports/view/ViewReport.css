@@ -1,0 +1,51 @@
+.dsr-view {
+  margin-top: var(--spacing-lg, 1.25rem);
+}
+
+.dsr-view__month {
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: 600;
+  margin-bottom: var(--spacing-md, 1rem);
+}
+
+.dsr-block {
+  border: 1px solid var(--color-bg-tertiary, #e5e7eb);
+  border-radius: var(--border-radius-lg, 12px);
+  overflow: hidden;
+  margin-bottom: var(--spacing-lg, 1.25rem);
+  background: var(--color-bg-primary, #fff);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.06));
+}
+
+.dsr-block__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.dsr-block__table th,
+.dsr-block__table td {
+  padding: 10px 12px;
+  border: 1px solid var(--color-bg-tertiary, #e5e7eb);
+  text-align: left;
+}
+
+.dsr-block__header-row th {
+  background: var(--color-bg-tertiary, #e5e7eb);
+  font-weight: 600;
+  color: var(--color-text-primary, #111);
+}
+
+.dsr-block__footer-row td {
+  background: var(--color-bg-secondary, #f9fafb);
+  font-weight: 500;
+}
+
+.dsr-block__footer-label {
+  color: var(--color-text-secondary, #6b7280);
+  font-size: var(--font-size-xs, 0.75rem);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: block;
+  margin-bottom: 2px;
+}

@@ -1,0 +1,47 @@
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.loader-overlay__spinner {
+  width: 64px;
+  height: 64px;
+  position: relative;
+  /* One color per corner: gold, blue, red, green */
+  background-image:
+    linear-gradient(#eaaa00 16px, transparent 0),
+    linear-gradient(#00a3e0 16px, transparent 0),
+    linear-gradient(#e4002b 16px, transparent 0),
+    linear-gradient(#009a44 16px, transparent 0);
+  background-repeat: no-repeat;
+  background-size: 16px 16px;
+  background-position:
+    left top,
+    left bottom,
+    right top,
+    right bottom;
+  animation: loader-overlay-rotate 1s linear infinite;
+}
+
+@keyframes loader-overlay-rotate {
+  0% {
+    width: 64px;
+    height: 64px;
+    transform: rotate(0deg);
+  }
+  50% {
+    width: 30px;
+    height: 30px;
+    transform: rotate(180deg);
+  }
+  100% {
+    width: 64px;
+    height: 64px;
+    transform: rotate(360deg);
+  }
+}

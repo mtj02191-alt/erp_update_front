@@ -1,0 +1,155 @@
+.user-list-container {
+  max-width: 1400px;
+  margin: 0 2rem;
+  padding: 2.5rem 2.5rem 0 2.5rem;
+  background: var(--color-bg-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  /* max-height: calc(100vh - 84px); */
+  /* overflow-y: auto; */
+  /* max-height:100vh; */
+  
+}
+
+/* Desktop Table View */
+.user-list-table-container {
+  overflow-x: hidden;
+  margin-top: var(--spacing-md);
+}
+
+.user-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-bg-primary);
+}
+
+.user-list-table th {
+  background: var(--color-bg-secondary);
+  padding: var(--spacing-sm);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.user-list-table td {
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.user-list-table tr:hover {
+  background: var(--color-bg-secondary);
+}
+
+/* Mobile Card View */
+.user-list-cards {
+  display: none;
+}
+
+.user-card {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-card-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.user-card-department,
+.user-card-role {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.action-buttons {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.action-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.action-button.edit {
+  color: #2196F3;
+}
+
+.action-button.edit:hover {
+  background-color: rgba(33, 150, 243, 0.1);
+}
+
+.action-button.delete {
+  color: #f44336;
+}
+
+.action-button.delete:hover {
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+.action-button.view {
+  color: #4CAF50;
+}
+
+.action-button.view:hover {
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .user-list-container {
+    max-width: 95vw;
+    max-height: calc(100vh - 84px);
+    overflow-y: auto;
+    height: 100vh;
+    padding: 2rem 1.2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .user-list-container {
+    margin: 1rem;
+    padding: 1rem;
+  }
+
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  .user-list-table th,
+  .user-list-table td {
+    padding: 12px 8px;
+  }
+
+  .action-buttons {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-list-container {
+    margin: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .user-list-table th,
+  .user-list-table td {
+    padding: 10px 6px;
+  }
+} 

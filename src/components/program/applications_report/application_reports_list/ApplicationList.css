@@ -1,0 +1,177 @@
+.application-list-container {
+  max-width: 1400px;
+  margin: 2rem;
+  padding: 2.5rem;
+  background: var(--color-bg-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  max-height: calc(100vh - 84px);
+  overflow-y: auto;
+}
+
+.application-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.application-list-filters {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.application-list-filters .form-input {
+  width: 200px;
+}
+
+/* Ensure button and filters are properly aligned in web view */
+.application-list-header .primary_btn {
+  align-self: flex-end;
+}
+
+/* Desktop Table View */
+.application-list-table-container {
+  overflow-x: auto;
+  margin-top: var(--spacing-md);
+}
+
+.application-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-bg-primary);
+}
+
+.application-list-table th {
+  background: var(--color-bg-secondary);
+  padding: var(--spacing-sm);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.application-list-table td {
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.application-list-table tr:hover {
+  background: var(--color-bg-secondary);
+}
+
+/* Project Info Styling */
+.project-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.project-name {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.project-description {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+/* Status Badge Styling */
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--border-radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+/* Mobile Card View */
+.application-list-cards {
+  display: none;
+}
+
+.application-card {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.application-card-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.application-card-status,
+.application-card-budget {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .application-list-container {
+    max-width: 95vw;
+    padding: 2rem 1.2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .application-list-container {
+    margin: 1rem;
+    padding: 1rem;
+  }
+
+  .application-list-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .application-list-filters {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .application-list-filters .form-input {
+    width: 100%;
+  }
+
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  .application-list-table th,
+  .application-list-table td {
+    padding: 12px 8px;
+  }
+
+  .action-buttons {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .application-list-container {
+    margin: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .application-list-table th,
+  .application-list-table td {
+    padding: 10px 6px;
+  }
+} 

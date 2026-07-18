@@ -1,0 +1,116 @@
+.people-container {
+    max-width: 900px;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    border-left: 2px dotted #b4b3b3;
+
+  }
+  
+  .people-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .people-header .col h2 {
+    margin: 0;
+    font-size: 32px;
+  }
+  
+  .people-header .orange {
+    color: #ff8c00;
+  }
+  
+  
+  /* .people-targeted-header{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  } */
+  .people-header .blue {
+    color: #2d8cff;
+  }
+  
+  .people-header .small {
+    font-size: 14px;
+    color: #555;
+  }
+  
+  .people-list {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+  }
+  
+  .people-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+  }
+  
+  .group {
+    width: 80px;
+    font-weight: bold;
+    color: #444;
+  }
+  
+  .numbers {
+    flex: 1;
+  }
+  
+  .target, .reached {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+  
+  .value {
+    margin-right: 10px;
+    font-weight: bold;
+    font-size: 14px;
+  }
+  
+  .icon {
+    font-size: 16px;
+    margin-right: 2px;
+  }
+  
+  .icon.orange {
+    color: #ff8c00;
+  }
+  
+  .icon.blue {
+    color: #2d8cff;
+  }
+  
+  .percent {
+    width: 60px;
+    text-align: right;
+    font-weight: bold;
+    color: #444;
+  }
+  
+  .note {
+    font-size: 12px;
+    color: #777;
+    margin-top: 20px;
+    text-align: center;
+  }
+  
+  @media (max-width: 600px) {
+    .people-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  
+    .percent {
+      margin-top: 5px;
+      text-align: left;
+    }
+  }
+  

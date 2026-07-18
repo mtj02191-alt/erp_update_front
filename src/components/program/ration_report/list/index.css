@@ -1,0 +1,91 @@
+.list-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.ration-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.ration-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.ration-table th, .ration-table td {
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.ration-table th {
+  background: #f5f6fa;
+  font-weight: 600;
+}
+
+.ration-table tr:last-child td {
+  border-bottom: none;
+}
+
+.action-btn {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.4rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-right: 0.5rem;
+  transition: background 0.2s;
+}
+
+.action-btn:hover {
+  background: var(--color-primary-dark);
+}
+
+.hide-on-mobile {
+  display: table-cell;
+}
+.show-on-mobile {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .ration-table th, .ration-table td {
+    padding: 0.25rem 0.15rem;
+    font-size: 0.85rem;
+    min-width: 40px;
+    word-break: break-word;
+    white-space: normal;
+  }
+  .ration-table {
+    min-width: 320px;
+    table-layout: auto;
+  }
+  .primary_btn {
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+  }
+  .hide-on-mobile {
+    display: none !important;
+  }
+  .show-on-mobile {
+    display: table-cell !important;
+  }
+}
+
+@media (max-width: 500px) {
+  .ration-table th, .ration-table td {
+    padding: 0.15rem 0.08rem;
+    font-size: 0.8rem;
+    min-width: 30px;
+  }
+  .ration-table {
+    min-width: 220px;
+  }
+} 

@@ -1,0 +1,181 @@
+.summary-stat-card-shell {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.summary-stat-card-shell__pin-actions {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 1;
+}
+
+/* Calendar is ~34px wide, pinned at right: 18px → occupies 18–52px from the card edge.
+   Content must end before ~52px + gap, so padding-right clears the digit from the icon. */
+.summary-stat-card-shell--has-actions .summary-stat-card--detail-trigger {
+  padding-right: 62px;
+}
+
+button.summary-stat-card.summary-stat-card--detail-trigger {
+  appearance: none;
+  display: block;
+  width: 100%;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+button.summary-stat-card.summary-stat-card--detail-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.summary-stat-card {
+  width: 100%;
+  min-width: 0;
+  background: var(--color-bg-primary);
+  border-radius: 14px;
+  border: 1px solid var(--color-bg-tertiary);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 18px 16px;
+}
+
+.summary-stat-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summary-stat-card--detail-trigger .summary-stat-card__top .summary-stat-card__big {
+  margin: 0 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  text-align: right;
+}
+
+.summary-stat-card__right {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.summary-stat-card__action {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--color-bg-tertiary);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.summary-stat-card__action:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-primary-light, #94a3b8);
+}
+
+.summary-stat-card__action:focus-visible {
+  outline: 2px solid var(--color-primary, #2563eb);
+  outline-offset: 2px;
+}
+
+.summary-stat-card__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  background: var(--ssc-icon-bg, #e2e8f0);
+  color: var(--ssc-icon-fg, #1e293b);
+}
+
+.summary-stat-card__icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.summary-stat-card__big {
+  margin: 0;
+  font-size: clamp(1.35rem, 3.5vw, 1.75rem); 
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  line-height: 1.05;
+}
+
+.summary-stat-card__title {
+  margin: 12px 0 12px;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.summary-stat-card__divider {
+  height: 1px;
+  background: var(--color-bg-tertiary);
+  border: 0;
+  margin: 0 0 14px;
+}
+
+.summary-stat-card__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summary-stat-card__mini {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-bg-tertiary);
+  border-radius: 12px;
+  padding: 12px 12px 10px;
+  text-align: center;
+}
+
+.summary-stat-card__mini-label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+}
+
+.summary-stat-card__mini-value {
+  display: block;
+  margin-top: 6px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.05;
+}
+
+@media (max-width: 420px) {
+  .summary-stat-card {
+    padding: 16px 14px 14px;
+  }
+  .summary-stat-card-shell--has-actions .summary-stat-card--detail-trigger {
+    padding-right: 58px;
+  }
+  .summary-stat-card-shell__pin-actions {
+    top: 16px;
+    right: 14px;
+  }
+  .summary-stat-card__icon {
+    width: 48px;
+    height: 48px;
+  }
+  .summary-stat-card__mini-value {
+    font-size: 1.2rem;
+  }
+}
+

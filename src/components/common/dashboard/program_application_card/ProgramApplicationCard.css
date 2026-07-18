@@ -1,0 +1,516 @@
+.program-application-card-section {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  /* Gap between carousel slides; flex-basis uses (100% - gaps) / columns */
+  --pac-gap: 1rem;
+  /* Minimum slide width — avoids unreadable squeeze when many columns fit in % */
+  --pac-card-min: 220px;
+  /* One full-width slide on narrow viewports */
+  --pac-card-basis: 100%;
+  background: var(--color-bg-primary);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-bg-tertiary);
+  padding: var(--spacing-md) var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.program-application-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.program-application-card__titles {
+  min-width: 0;
+}
+
+.program-application-card__title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.program-application-card__subtitle {
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.program-application-card__nav {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}
+
+.program-application-card__controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.program-application-card__filters {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.program-application-card__filters--desktop {
+  display: flex;
+}
+
+.program-application-card__filters--mobile {
+  display: flex;
+}
+
+.program-application-card__filters-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-bg-tertiary);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.program-application-card__filters-toggle:hover:not(:disabled) {
+  background: var(--color-bg-secondary);
+  color: var(--color-primary);
+  border-color: var(--color-primary-light);
+}
+
+.program-application-card__filters-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.program-application-card__filters-panel {
+  display: none;
+  width: 100%;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: max-height 260ms ease, opacity 180ms ease, transform 180ms ease;
+}
+
+.program-application-card__filters-panel--open {
+  max-height: 220px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.program-application-card__field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.program-application-card__field label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.program-application-card__field input[type='date'] {
+  height: 36px;
+  padding: 0 var(--spacing-sm);
+  border: 1px solid var(--color-bg-tertiary);
+  border-radius: var(--border-radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  min-width: 0;
+}
+
+.program-application-card__apply {
+  height: 36px;
+  padding: 0 var(--spacing-md);
+  border: 1px solid var(--color-bg-tertiary);
+  border-radius: var(--border-radius-md);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.program-application-card__apply:hover:not(:disabled) {
+  border-color: var(--color-primary-light);
+  background: #eef2ff;
+}
+
+.program-application-card__apply:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+  .program-application-card__controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .program-application-card__filters {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .program-application-card__filters--desktop {
+    display: none;
+  }
+
+  .program-application-card__filters-toggle {
+    display: inline-flex;
+  }
+
+  .program-application-card__filters-panel {
+    display: block;
+    flex: 1 1 100%;
+  }
+
+  .program-application-card__nav {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .program-application-card__filters-panel--open {
+    max-height: 260px;
+  }
+
+  .program-application-card__field {
+    flex: 1 1 100%;
+  }
+
+  .program-application-card__field input[type='date'] {
+    width: 100%;
+  }
+
+  .program-application-card__apply {
+    width: 100%;
+  }
+}
+
+.program-application-card__nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-bg-tertiary);
+  border-radius: var(--border-radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.program-application-card__nav-btn:hover:not(:disabled) {
+  background: var(--color-bg-secondary);
+  color: var(--color-primary);
+  border-color: var(--color-primary-light);
+}
+
+.program-application-card__nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.program-application-card__viewport {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: var(--spacing-xs) 0;
+}
+
+.program-application-card__track {
+  display: flex;
+  gap: var(--pac-gap, 1rem);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-bg-tertiary) transparent;
+  padding-bottom: var(--spacing-xs);
+}
+
+.program-application-card__track::-webkit-scrollbar {
+  height: 6px;
+}
+
+.program-application-card__track::-webkit-scrollbar-thumb {
+  background: var(--color-bg-tertiary);
+  border-radius: 3px;
+}
+
+.program-application-card__card-wrap {
+  /* Use the larger of responsive basis and min width; cap at 100% so one-up mode still fits */
+  --pac-slide: min(100%, max(var(--pac-card-basis), var(--pac-card-min)));
+  flex: 0 0 var(--pac-slide);
+  scroll-snap-align: start;
+  min-width: var(--pac-slide);
+  max-width: var(--pac-slide);
+}
+
+.program-application-card__card {
+  min-height: 200px;
+  height: 100%;
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-bg-tertiary);
+  background: var(--color-bg-primary);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+button.program-application-card__card--trigger {
+  width: 100%;
+  margin: 0;
+  font: inherit;
+  /* Explicit text color so nested stat accents (orange/blue/green/red) are not lost to `inherit` quirks. */
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.program-application-card__card--trigger:hover {
+  border-color: var(--color-primary-light, #94a3b8);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.08));
+}
+
+button.program-application-card__card--trigger:focus-visible {
+  outline: 2px solid var(--color-primary, #2563eb);
+  outline-offset: 2px;
+}
+
+.program-application-card__card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.program-application-card__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  flex: 1;
+}
+
+.program-application-card__icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.25rem;
+}
+
+.program-application-card__name {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  line-height: 1.25;
+}
+
+.program-application-card__total-wrap {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  text-align: right;
+}
+
+.program-application-card__total-caption {
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+
+.program-application-card__total {
+  margin: 0;
+  font-size: clamp(1.35rem, 3.5vw, 1.75rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.program-application-card__rate {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.program-application-card__pending-total {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.program-application-card__loading {
+  margin: var(--spacing-md) 0;
+  padding: var(--spacing-lg);
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.program-application-card__fetch-warning {
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-warning);
+}
+
+.program-application-card__bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-bg-tertiary);
+  overflow: hidden;
+}
+
+.program-application-card__bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.35s ease;
+}
+
+.program-application-card__footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  /* margin-top: auto; */
+  /* padding-top: var(--spacing-md); */
+  border-top: 1px solid var(--color-bg-tertiary);
+}
+
+.program-application-card__footer-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.program-application-card__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-bg-tertiary);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.program-application-card__stat-label {
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+}
+
+.program-application-card__stat-value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Chained with base for higher specificity than `.program-application-card__stat-value` alone
+   (avoids ties inside `<button class="...--trigger">` where source order can mute colors). */
+.program-application-card__stat-value.program-application-card__stat-value--investigated {
+  color: #d97706;
+}
+
+.program-application-card__stat-value.program-application-card__stat-value--verified {
+  color: #2563eb;
+}
+
+.program-application-card__stat-value.program-application-card__stat-value--approved {
+  color: var(--color-success-dark);
+}
+
+.program-application-card__stat-value.program-application-card__stat-value--rejected {
+  color: var(--color-error);
+}
+
+/* Inside card trigger `<button>`, `color: inherit` must not flatten stat colors. */
+button.program-application-card__card--trigger .program-application-card__stat-value.program-application-card__stat-value--investigated {
+  color: #d97706;
+}
+
+button.program-application-card__card--trigger .program-application-card__stat-value.program-application-card__stat-value--verified {
+  color: #2563eb;
+}
+
+button.program-application-card__card--trigger .program-application-card__stat-value.program-application-card__stat-value--approved {
+  color: var(--color-success-dark);
+}
+
+button.program-application-card__card--trigger .program-application-card__stat-value.program-application-card__stat-value--rejected {
+  color: var(--color-error);
+}
+
+/* flex + gap: N × width% + (N-1) × gap must not exceed 100% → width = (100% - (N-1)*gap) / N */
+@media (min-width: 480px) {
+  .program-application-card-section {
+    --pac-card-basis: calc((100% - 1 * var(--pac-gap)) / 2);
+  }
+}
+
+@media (min-width: 768px) {
+  .program-application-card-section {
+    --pac-card-basis: calc((100% - 2 * var(--pac-gap)) / 3);
+  }
+}
+
+@media (min-width: 1100px) {
+  .program-application-card-section {
+    --pac-card-basis: calc((100% - 3 * var(--pac-gap)) / 4);
+  }
+}
+
+@media (min-width: 1400px) {
+  .program-application-card-section {
+    --pac-card-basis: calc((100% - 5 * var(--pac-gap)) / 6);
+  }
+}

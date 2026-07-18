@@ -1,0 +1,55 @@
+/* Sheet Actions Styles */
+.pcs-sheet-actions {
+  display: flex;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.pcs-action-view,
+.pcs-action-edit,
+.pcs-action-delete,
+.pcs-action-convert {
+  background: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pcs-action-edit {
+  color: #ED9811;
+}
+
+.pcs-action-delete {
+  color: #f44336;
+}
+
+.pcs-action-view {
+  color: #218838;
+}
+
+.pcs-action-convert {
+  color: #20c997;
+}
+
+.pcs-action-view:hover,
+.pcs-action-edit:hover,
+.pcs-action-convert:hover:not(:disabled) {
+  background-color: #f3f4f6;
+}
+
+.pcs-action-delete:hover {
+  background-color: #fee2e2;
+}
+
+.pcs-action-convert:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: #6c757d;
+}

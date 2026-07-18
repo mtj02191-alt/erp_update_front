@@ -1,0 +1,97 @@
+/* Dropdown Filter Container */
+.dropdown-filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+}
+
+/* Dropdown Filter Label */
+.dropdown-filter-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Dropdown Filter Input Wrapper */
+.dropdown-filter-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Dropdown Filter Select */
+.dropdown-filter-select {
+  width: 100%;
+  padding: 10px 12px;
+  padding-right: 35px; /* Space for arrow */
+  font-size: 14px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  background-color: white;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+}
+
+.dropdown-filter-select:hover {
+  border-color: var(--color-primary, #3b82f6);
+}
+
+.dropdown-filter-select:focus {
+  outline: none;
+  border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.dropdown-filter-select:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Clear Button */
+.dropdown-filter-clear {
+  position: absolute;
+  right: 30px; /* Position before dropdown arrow */
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  z-index: 1;
+}
+
+.dropdown-filter-clear:hover {
+  background-color: #f3f4f6;
+  color: #ef4444;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dropdown-filter-container {
+    min-width: 100%;
+  }
+
+  .dropdown-filter-select {
+    padding: 8px 10px;
+    padding-right: 35px;
+    font-size: 13px;
+  }
+}

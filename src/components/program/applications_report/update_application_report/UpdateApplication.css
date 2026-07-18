@@ -1,0 +1,35 @@
+.update-application-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 80px 20px 20px;
+  overflow-x: hidden;
+}
+
+.update-application-header {
+  margin-bottom: var(--spacing-lg);
+}
+
+.update-application-header .secondary_btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-secondary);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.update-application-header .secondary_btn:hover {
+  background-color: var(--color-secondary-hover);
+  border-color: var(--color-border-hover);
+}
+
+.update-application-header .secondary_btn svg {
+  width: 16px;
+  height: 16px;
+} 

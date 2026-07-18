@@ -1,0 +1,63 @@
+.overview-comparison-chart-container {
+  width: 100%;
+  background: var(--color-bg-primary, #fff);
+  border: 1px solid var(--color-bg-tertiary, #e5e7eb);
+  border-radius: var(--border-radius-lg, 10px);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 0.05));
+  padding: 14px 16px;
+  box-sizing: border-box;
+}
+
+.overview-comparison-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.overview-comparison-chart-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #111827);
+}
+
+.overview-comparison-chart-heading {
+  min-width: 0;
+}
+
+.overview-comparison-chart-subtitle {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.overview-comparison-chart-download-btn {
+  border: 1px solid var(--color-bg-tertiary, #e5e7eb);
+  background: var(--color-bg-primary, #fff);
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-secondary, #4b5563);
+}
+
+.overview-comparison-chart-download-btn:hover {
+  border-color: var(--color-primary, #2563eb);
+  color: var(--color-primary, #2563eb);
+}
+
+.overview-comparison-chart-wrapper {
+  width: 100%;
+}
+
+.overview-comparison-chart-error {
+  color: var(--color-text-secondary, #6b7280);
+  padding: 20px;
+  text-align: center;
+}
+

@@ -1,0 +1,86 @@
+.allocations-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  .allocations-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .icon {
+    font-size: 80px;
+    color: #2d8cff;
+  }
+  
+  .total {
+    font-size: 36px;
+    color: #2d8cff;
+    margin: 0;
+  }
+  
+  .subtitle {
+    margin: 0;
+    color: #555;
+    font-size: 14px;
+  }
+  
+  .allocations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .allocation-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #e5e5e5;
+    padding-top: 10px;
+  }
+  
+  .year {
+    font-weight: bold;
+    color: #2d8cff;
+    width: 60px;
+  }
+  
+  .col {
+    text-align: center;
+    flex: 1;
+  }
+  
+  .col_1 {
+    text-align: left;
+  }
+  .value {
+    display: block;
+    font-weight: bold;
+    font-size: 16px;
+    color: #000;
+  }
+  
+  .label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+  }
+  
+  @media (max-width: 600px) {
+    .allocation-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+    }
+  
+    .col {
+      text-align: left;
+    }
+  }
+  

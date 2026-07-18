@@ -1,0 +1,66 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+#root {
+  margin: 0;
+  padding: 0;
+}
+
+/* App Layout */
+.app-container {
+  min-height: 100vh;
+  background: var(--color-bg-secondary);
+}
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  margin-left: 22%;
+  padding: var(--spacing-lg);
+  background: var(--color-bg-secondary);
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+/* When sidebar is collapsed */
+.sidebar--collapsed + .app-main {
+  margin-left: 5%;
+}
+
+/* Mobile Hamburger Icon */
+.mobile-hamburger {
+  display: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .mobile-hamburger {
+    display: block;
+  }
+
+  .app-main {
+    margin-left: 0;
+    padding: var(--spacing-md);
+    padding-top: 4rem; /* Space for hamburger icon */
+  }
+  
+  .sidebar--collapsed + .app-main {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-main {
+    padding: var(--spacing-sm);
+    padding-top: 4rem;
+  }
+}
+
+/* Existing App.css content can go here */

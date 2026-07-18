@@ -1,0 +1,614 @@
+/* ============================================================
+   CEO DASHBOARD — DESIGN TOKENS
+   A calm, cohesive palette built around one ink color, one
+   accent, and a small set of muted category tints (same
+   saturation/lightness so nothing shouts louder than the rest).
+   ============================================================ */
+
+.ceo-dashboard {
+  --ink: #1e2433;
+  --ink-soft: #5b6478;
+  --ink-faint: #9aa2b1;
+  --line: #e7e9f0;
+  --surface: #ffffff;
+  --canvas: #f6f7fb;
+
+  --accent: #4f5eff;
+  --accent-ink: #ffffff;
+
+  --success: #16a37a;
+  --success-tint: #e6f7f1;
+  --warning: #d68a1c;
+  --warning-tint: #fdf3e2;
+  --danger: #d64545;
+  --danger-tint: #fbeaea;
+  --neutral-tint: #eef0f4;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-card: 0 1px 2px rgba(30, 36, 51, 0.04), 0 6px 16px rgba(30, 36, 51, 0.05);
+  --shadow-card-hover: 0 4px 10px rgba(30, 36, 51, 0.06), 0 14px 28px rgba(30, 36, 51, 0.08);
+
+  font-family: -apple-system, "Inter", "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: var(--canvas);
+  padding: 20px;
+  margin-top: 30px;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  background: var(--surface);
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.dashboard-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+@media (max-width: 992px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  .dashboard-header h3 {
+    text-align: center;
+  }
+  .header-actions {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .ceo-btn-group {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .form-group.category-filter {
+    min-width: auto;
+  }
+}
+
+@media (max-width: 576px) {
+  .ceo-btn-group {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+  .ceo-btn-group a {
+    text-align: center;
+  }
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.form-group.category-filter {
+  margin-bottom: 0;
+  min-width: 200px;
+}
+
+.ceo-select.form-control {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.ceo-btn-group {
+  display: flex;
+  gap: 10px;
+}
+
+/* Action buttons — one accent family, distinguished by weight
+   (solid primary vs. quiet outline) rather than four clashing hues. */
+
+.ceo-quick-note-btn,
+.ceo-instruction-register-btn,
+.ceo-project-command-sheets-btn,
+.ceo-visitors-btn {
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ceo-quick-note-btn:hover,
+.ceo-instruction-register-btn:hover,
+.ceo-project-command-sheets-btn:hover,
+.ceo-visitors-btn:hover {
+  transform: translateY(-1px);
+}
+
+.ceo-quick-note-btn {
+  background-color: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: 0 4px 10px rgba(79, 94, 255, 0.25);
+}
+.ceo-quick-note-btn:hover {
+  box-shadow: 0 6px 14px rgba(79, 94, 255, 0.32);
+}
+
+.ceo-instruction-register-btn {
+  background-color: var(--surface);
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+}
+.ceo-instruction-register-btn:hover {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+}
+
+.ceo-project-command-sheets-btn {
+  background-color: var(--surface);
+  color: var(--accent);
+  border: 1px solid var(--line);
+}
+.ceo-project-command-sheets-btn:hover {
+  border-color: var(--accent);
+}
+
+.ceo-visitors-btn {
+  background-color: var(--surface);
+  color: var(--success);
+  border: 1px solid var(--line);
+}
+.ceo-visitors-btn:hover {
+  border-color: var(--success);
+}
+
+/* ============================================================
+   STAT CARDS
+   ============================================================ */
+
+.ceo-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.stat-card {
+  background: var(--surface);
+  padding: 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 2px;
+  line-height: 1;
+}
+
+.stat-label {
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+@keyframes attention-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(214, 138, 28, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(214, 138, 28, 0);
+  }
+}
+
+.pending-approvals-card {
+  border: 1px solid var(--line);
+}
+
+.pending-approvals-active {
+  animation: attention-pulse 2s ease-in-out infinite;
+  background-color: var(--warning-tint);
+  border-color: #f0d8ab;
+}
+
+.pending-approvals-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.ceo-stat-icon {
+  font-size: 1rem;
+  width: 25px;
+  height: 25px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  border-radius: var(--radius-sm);
+}
+
+.ceo-stat-icon.pending {
+  background-color: var(--warning);
+}
+.ceo-stat-icon.follow_up {
+  background-color: var(--warning);
+}
+.ceo-stat-icon.waiting_response {
+  background-color: var(--ink-faint);
+}
+.ceo-stat-icon.project_notes {
+  background-color: var(--success);
+}
+
+/* ============================================================
+   DASHBOARD SECTIONS (legacy 3-column layout)
+   ============================================================ */
+
+.ceo-dashboard-sections {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.ceo-dashboard-section {
+  background: var(--surface);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.ceo-dashboard-section h2 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.notes-list {
+  display: grid;
+}
+
+.card-note-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 0.15s ease;
+}
+
+.card-note-item.priority-high {
+  border-left: 3px solid var(--danger);
+}
+
+.note-title {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.note-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.dashboard-note-status {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background-color: var(--neutral-tint);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.empty-state-meetings,
+.empty-state-visitors-notes,
+.empty-state-emails-and-approvals,
+.empty-state_waiting-response-notes,
+.empty-state-project-notes,
+.empty-state-completed-notes {
+  justify-content: center;
+  text-align: center;
+  color: var(--ink-faint);
+  padding: 20px 10px;
+  font-size: 13px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 16px;
+  color: var(--ink-soft);
+}
+
+/* ============================================================
+   PRIMARY CARD GRID
+   ============================================================ */
+
+.ceo-dashboard-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.ceo-dashboard-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.ceo-dashboard-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Header: quiet surface + a colored dot + colored left rule.
+   The category color still reads at a glance, but it no longer
+   paints the whole header block, so a page of ten cards stays calm. */
+
+.ceo-dashboard-card-header {
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid var(--category-color, var(--accent));
+}
+
+.ceo-dashboard-card-header h2 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-header-icon {
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  color: var(--category-color, var(--accent));
+}
+
+.card-count-badge {
+  border-radius: 999px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background-color: var(--category-color, var(--accent));
+  color: #fff;
+}
+
+.ceo-dashboard-card-body {
+  flex: 1;
+}
+
+.ceo-dashboard-card-body .notes-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.ceo-dashboard-card .empty-state {
+  text-align: center;
+  padding: 28px 12px;
+  color: var(--ink-faint);
+  font-size: 13px;
+}
+
+.ceo-dashboard-card-footer {
+  padding: 8px 14px;
+  text-align: right;
+  border-top: 1px solid var(--line);
+  background: var(--canvas);
+}
+
+.add-note-link {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* --- Category colors ---------------------------------------
+   One consistent scale (same S/L), assigned via a --category-color
+   custom property picked up by the header/icon/badge above. */
+
+.category-top_priority        { --category-color: #d64545; }
+.category-today_task          { --category-color: #2f7fd6; }
+.category-follow_up           { --category-color: #d68a1c; }
+.category-calls               { --category-color: #1ba796; }
+.category-whatsapp            { --category-color: #16a37a; }
+.category-visitors            { --category-color: #8b5cd6; }
+.category-meetings            { --category-color: #5b6478; }
+.category-ceo_direct_orders   { --category-color: #1e2433; }
+.category-important_decisions { --category-color: #d6741c; }
+.category-emails_and_approvals{ --category-color: #7a4fc2; }
+.category-waiting_response    { --category-color: #9aa2b1; }
+.category-project_notes       { --category-color: #1ba786; }
+.category-project_command_sheets { --category-color: #2f7fd6; }
+.category-completed           { --category-color: #16a37a; }
+
+/* ============================================================
+   NOTE ROWS
+   ============================================================ */
+
+.ceo-dashboard-card .card-note-item * {
+  -webkit-line-clamp: unset !important;
+  line-clamp: unset !important;
+  -webkit-box-orient: unset !important;
+  overflow: visible !important;
+}
+
+.ceo-dashboard-card .card-note-item {
+  -webkit-line-clamp: unset !important;
+  line-clamp: unset !important;
+  overflow: visible !important;
+  text-decoration: none;
+  color: inherit;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 11px 14px !important;
+  border-bottom: 1px solid var(--line) !important;
+  transition: background-color 0.15s ease !important;
+  border-radius: 0 !important;
+}
+
+.ceo-dashboard-card .card-note-item:last-child {
+  border-bottom: none !important;
+}
+
+.ceo-dashboard-card .card-note-item:hover {
+  background-color: var(--canvas) !important;
+}
+
+.ceo-dashboard-card .note-content-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ceo-dashboard-card .note-title {
+  display: block !important;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ceo-dashboard-card .note-date {
+  display: block !important;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* Status pills — semantic colors only (success / warning / danger /
+   neutral) instead of a status-specific hue for every state. */
+
+.ceo-dashboard-card .dashboard-note-status {
+  display: inline-flex !important;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ceo-dashboard-card .dashboard-note-status.unprocessed {
+  background-color: var(--neutral-tint);
+  color: var(--ink-soft);
+}
+.ceo-dashboard-card .dashboard-note-status.pending {
+  background-color: var(--warning-tint);
+  color: var(--warning);
+}
+.ceo-dashboard-card .dashboard-note-status.in_progress {
+  background-color: #eaf1fd;
+  color: #2f7fd6;
+}
+.ceo-dashboard-card .dashboard-note-status.waiting_response {
+  background-color: var(--neutral-tint);
+  color: var(--ink-soft);
+}
+.ceo-dashboard-card .dashboard-note-status.completed,
+.ceo-dashboard-card .dashboard-note-status.closed {
+  background-color: var(--success-tint);
+  color: var(--success);
+}
+.ceo-dashboard-card .dashboard-note-status.rejected {
+  background-color: var(--danger-tint);
+  color: var(--danger);
+}
+.ceo-dashboard-card .dashboard-note-status.cancelled {
+  background-color: var(--neutral-tint);
+  color: var(--ink-soft);
+}
+.ceo-dashboard-card .dashboard-note-status.scheduled {
+  background-color: #eaf1fd;
+  color: #2f7fd6;
+}
+.ceo-dashboard-card .dashboard-note-status.overdue {
+  background-color: var(--danger-tint);
+  color: var(--danger);
+}
+
+.see-more-btn {
+  width: 100%;
+  padding: 9px 12px;
+  background-color: var(--canvas);
+  border: none;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.see-more-btn:hover {
+  background-color: var(--neutral-tint);
+}

@@ -1,0 +1,73 @@
+.cumulative-chart-container {
+  width: 100%;
+  background: var(--color-bg-primary, #fff);
+  border: 1px solid var(--color-bg-tertiary, #e5e7eb);
+  border-radius: var(--border-radius-lg, 10px);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 0.05));
+  padding: 14px 16px;
+  box-sizing: border-box;
+}
+
+.cumulative-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.cumulative-chart-heading {
+  min-width: 0;
+}
+
+.cumulative-chart-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #111827);
+  line-height: 1.2;
+}
+
+.cumulative-chart-subtitle {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.cumulative-chart-download-btn {
+  border: 1px solid var(--color-bg-tertiary, #e5e7eb);
+  background: var(--color-bg-primary, #fff);
+  cursor: pointer;
+  padding: 0;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary, #4b5563);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.cumulative-chart-download-btn:hover {
+  border-color: var(--color-primary, #2563eb);
+  color: var(--color-primary, #2563eb);
+}
+
+.cumulative-chart-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.cumulative-chart-error {
+  padding: 40px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .cumulative-chart-container {
+    padding: 12px 12px;
+  }
+}

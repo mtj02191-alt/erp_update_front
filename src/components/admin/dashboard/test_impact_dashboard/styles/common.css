@@ -1,0 +1,138 @@
+:root {
+    --bg-color: #f9fbfd;
+    --border-color: #d9d9d9;
+    --targeted-color: #f4b567;
+    --reached-color: #3d8ce3;
+    --blue-color: #3d8ce3;
+    --font-color: #333;
+    --title-size: 18px;
+    --label-size: 14px;
+    --icon-color: #bdc3c7;
+    --gray-font: #2c3e50;
+  }
+  
+  .section {
+    background: var(--bg-color);
+    padding: 20px;
+    margin: 20px 0;
+    /* border-bottom: 2px dotted #b4b3b3; */
+  }
+  
+  .section-title {
+    font-size: var(--title-size);
+    font-weight: bold;
+    /* margin-bottom: 10px; */
+    color: var(--font-color);
+    margin-bottom: 0 !important;
+    padding-bottom: 0;
+    text-align: center;
+  }
+  
+  .legend {
+    font-size: var(--label-size);
+    /* margin-bottom: 30px; */
+    text-align: center;
+    margin-top: -7px;
+  }
+
+  .typography {
+    text-align: right;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 12px;
+    color: #2c3e50;
+    margin-bottom: 5px;
+  }
+  .orange{
+    color: var(--targeted-color);
+  }
+
+  .blue{
+    color: var(--reached-color);
+  }
+  
+  .targeted {
+    color: var(--targeted-color);
+  }
+  
+  .bar-container{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .reached {
+    color: var(--reached-color);
+  }
+  
+  .chart-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .chart-label {
+    width: 180px;
+    font-size: var(--label-size);
+    color: var(--font-color);
+    text-align: right;
+  }
+  
+  .chart_label_icon{
+    font-size: 20px;
+    margin: 0 10px;
+    color: var(--blue-color);
+  }
+
+  .chart-bars {
+    flex: 1;
+    margin: 0 10px;
+  }
+  
+  .bar {
+    height: 22px;
+    line-height: 22px;
+    font-size: 12px;
+    font-weight: bold;
+    padding-left: 6px;
+    margin-bottom: 4px;
+    /* color: var(--gray-font); */
+    color: white;
+    text-align: right;
+    /* padding-right: 1%; */
+    border-radius: 3px;
+    padding-right: 7px;
+    /* min-width: 50px; */
+  }
+  
+  .targeted-bar {
+    background: var(--targeted-color);
+    /* text-align: right; */
+  }
+  
+  .reached-bar {
+    background: var(--reached-color);
+  }
+  
+  .chart-percent {
+    width: 60px;
+    text-align: right;
+    font-weight: bold;
+    font-size: var(--label-size);
+  }
+  
+  .bar_graph_target_icon {
+    color: var(--icon-color);
+  }
+
+  .text-center {
+    text-align: center;
+  }
+
+  .text-right {
+    text-align: right;
+  }
+
+  .text-left {
+    text-align: left;
+  }

@@ -1,0 +1,66 @@
+/* All specific styling is now handled by the common DynamicFormSection component */
+/* This file is kept for potential future component-specific overrides */
+
+/* Component-specific styles for marriage gifts add form */
+/* All styling now uses common classes from components.css */ 
+
+.dynamic-form-section {
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  position: relative;
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--spacing-md);
+  align-items: flex-end;
+  margin-bottom: var(--spacing-lg);
+}
+
+.remove-row-btn, .add-row-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  padding: 10px;
+}
+
+.remove-row-btn {
+  color: var(--color-danger);
+  margin-bottom: 10px;
+  justify-self: flex-end;
+}
+
+.remove-row-btn:hover {
+  background-color: var(--color-danger-light);
+  border-radius: var(--border-radius);
+}
+
+.add-row-btn {
+  color: var(--color-primary);
+  border: 1px dashed var(--color-primary);
+  border-radius: var(--border-radius);
+  margin-top: var(--spacing-md);
+}
+
+.add-row-btn:hover {
+  background-color: var(--color-primary-light);
+}
+
+@media (max-width: 768px) {
+  .form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+  .remove-row-btn {
+    justify-self: flex-start;
+    margin-top: var(--spacing-sm);
+    margin-bottom: 0;
+  }
+} 

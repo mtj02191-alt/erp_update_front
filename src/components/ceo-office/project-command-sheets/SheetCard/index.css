@@ -1,0 +1,85 @@
+/* Sheet Card Styles (extends main index.css) */
+.pcs-sheet-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 10px 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+}
+
+.pcs-sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.pcs-sheet-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.pcs-sheet-description {
+  margin: 0 0 8px;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.pcs-sheet-meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pcs-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background-color: #f9fafb;
+}
+
+.pcs-meta-icon {
+  font-size: 14px;
+}
+
+.pcs-meta-text {
+  font-size: 13px;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.pcs-status-badge {
+  padding: 5px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pcs-status-pending {
+  background: #FEF3C7;
+  color: #B45309;
+}
+
+/* .pcs-status-inprogress, */
+.pcs-status-in-progress {
+  background: #DBEAFE;
+  color: #1D4ED8;
+}
+
+/* .pcs-status-onhold, */
+.pcs-status-on-hold {
+  background: #F3F4F6;
+  color: #4B5563;
+}
+
+.pcs-status-completed {
+   background: #DCFCE7;
+  color: #15803D;
+}

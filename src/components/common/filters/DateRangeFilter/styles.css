@@ -1,0 +1,111 @@
+/* Date Range Filter Container */
+.date-range-filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 350px;
+}
+
+/* Date Range Filter Label */
+.date-range-filter-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Date Range Filter Inputs */
+.date-range-filter-inputs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+/* Date Range Filter Input */
+.date-range-filter-input {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  background-color: white;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.date-range-filter-input:hover {
+  border-color: var(--color-primary, #3b82f6);
+}
+
+.date-range-filter-input:focus {
+  outline: none;
+  border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.date-range-filter-input:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Date Range Separator */
+.date-range-separator {
+  font-size: 14px;
+  color: var(--color-text-secondary, #6b7280);
+  font-weight: 500;
+}
+
+/* Clear Button */
+.date-range-filter-clear {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.date-range-filter-clear:hover {
+  background-color: #f3f4f6;
+  color: #ef4444;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .date-range-filter-container {
+    min-width: 100%;
+  }
+
+  .date-range-filter-inputs {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .date-range-filter-input {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .date-range-separator {
+    text-align: center;
+    font-size: 12px;
+  }
+
+  .date-range-filter-clear {
+    align-self: flex-end;
+  }
+}

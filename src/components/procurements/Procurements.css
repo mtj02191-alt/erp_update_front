@@ -1,0 +1,121 @@
+.procurements-container {
+  max-width: 700px;
+  margin: 40px auto 3rem;
+  padding: 2.5rem 2.5rem;
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  max-height: calc(100vh - 84px);
+  overflow-y: auto;
+}
+.procurements-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-column-gap: 2.5rem;
+  grid-row-gap: 1.2rem;
+}
+.procurements-form label {
+  display: flex;
+  flex-direction: column;
+  color: #1e293b;
+  font-weight: 600;
+  margin-bottom: 0;
+}
+.procurements-form label.full-width {
+  grid-column: 1 / -1;
+}
+.procurements-form input, .procurements-form textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.6rem 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  margin-top: 0.3rem;
+  font-size: 1rem;
+  margin-bottom: 0;
+}
+.procurements-success { color: #22c55e; text-align: center; font-weight: 600; margin-top: 1rem; }
+
+/* Summary displays for procurements reports */
+.po-summary, .pi-summary, .amount-summary {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.po-value, .pi-value, .amount-value {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  min-width: 2rem;
+  text-align: center;
+}
+
+.po-generated {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.po-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.po-fulfilled {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.pi-generated {
+  background-color: #e0e7ff;
+  color: #3730a3;
+}
+
+.pi-unpaid {
+  background-color: #fecaca;
+  color: #991b1b;
+}
+
+.amount-paid {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.amount-unpaid {
+  background-color: #fecaca;
+  color: #991b1b;
+}
+
+@media (max-width: 900px) {
+  .procurements-container {
+    max-width: 95vw;
+    padding: 2rem 1.2rem;
+  }
+}
+@media (max-width: 700px) {
+  .procurements-form {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .procurements-form label.full-width {
+    grid-column: 1;
+  }
+  
+  .po-summary, .pi-summary, .amount-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}
+@media (max-width: 500px) {
+  .procurements-container {
+    padding: 1rem 0.3rem;
+  }
+  .procurements-form input, .procurements-form textarea {
+    font-size: 0.98rem;
+    padding: 0.5rem 0.7rem;
+  }
+} 

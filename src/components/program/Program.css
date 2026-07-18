@@ -1,0 +1,4 @@
+.program-container { max-width: 400px; margin: 84px auto 3rem; padding: 2rem; background: #fff; border-radius: 1rem; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+.program-form label { display: block; margin-bottom: 1rem; color: #1e293b; font-weight: 600; }
+.program-form input { width: 100%; padding: 0.6rem 1rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; margin-top: 0.3rem; margin-bottom: 1rem; font-size: 1rem; }
+.program-success { color: #22c55e; text-align: center; font-weight: 600; margin-top: 1rem; } 

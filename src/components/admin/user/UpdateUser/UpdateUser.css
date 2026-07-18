@@ -1,0 +1,111 @@
+/* Empty file - styles removed */
+
+.update-user-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 80px 20px 20px;
+  overflow-x: hidden;
+}
+
+.update-user-form {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.form-group {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Password Change Section Styles */
+.password-change-section {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border: 1px solid var(--color-text-light);
+  border-radius: var(--border-radius-md);
+  background-color: var(--color-bg-secondary);
+}
+
+.password-change-section h3 {
+  margin-bottom: 1rem;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-lg);
+}
+
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* Password Input Styles */
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-container .form-input {
+  padding-right: 80px; /* Space for the toggle button */
+}
+
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--border-radius-sm);
+  transition: background-color 0.2s ease;
+}
+
+.password-toggle:hover {
+  background-color: var(--color-primary-light);
+}
+
+.password-strength {
+  margin-top: 4px;
+  color: var(--color-text-light);
+  font-size: var(--font-size-sm);
+}
+
+.password-strength small {
+  color: var(--color-text-light);
+  font-style: italic;
+}
+
+.required {
+  color: var(--color-error);
+  font-weight: var(--font-weight-bold);
+}
+
+.secondary_btn {
+  padding: var(--spacing-md);
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-text-light);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondary_btn:hover {
+  background-color: var(--color-text-light);
+  color: var(--color-text-white);
+} 

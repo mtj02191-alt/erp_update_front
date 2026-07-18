@@ -1,0 +1,102 @@
+.fundraising-charts-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fundraising-charts-demo__filters {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  align-items: flex-end;
+  box-sizing: border-box;
+}
+
+.fundraising-charts-demo__filters > * {
+  min-width: 150px;
+  flex: 1 1 180px;
+}
+
+.fundraising-charts-demo__filters > .fundraising-filters__actions {
+  min-width: auto;
+  flex: 0 0 auto;
+}
+
+.fundraising-charts-demo__cards {
+  width: 100%;
+}
+
+.fundraising-charts-demo__chart {
+  width: 100%;
+  min-width: 0;
+}
+
+.fundraising-charts-demo__charts-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.fundraising-charts-demo__error {
+  width: 100%;
+  margin-bottom: 0;
+  padding: 10px 14px;
+  background: #fef3cd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.fundraising-charts-demo__loading {
+  width: 100%;
+  padding: 32px;
+  text-align: center;
+  color: #6b7280;
+}
+
+@media (min-width: 900px) {
+  .fundraising-charts-demo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  .fundraising-charts-demo__filters,
+  .fundraising-charts-demo__cards,
+  .fundraising-charts-demo__charts-row,
+  .fundraising-charts-demo__error,
+  .fundraising-charts-demo__loading {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1100px) {
+  .fundraising-charts-demo__charts-row {
+    grid-template-columns: 1.2fr 0.8fr;
+    align-items: start;
+  }
+}
+
+@media (max-width: 600px) {
+  .fundraising-charts-demo {
+    padding: 10px;
+    gap: 14px;
+  }
+
+  .fundraising-charts-demo__filters {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .fundraising-charts-demo__filters > * {
+    min-width: 100%;
+    flex: 1 1 100%;
+  }
+}

@@ -1,0 +1,69 @@
+.dsr-form .dsr-lines {
+  margin-top: var(--spacing-lg, 1.25rem);
+}
+
+.dsr-lines__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md, 1rem);
+  margin-bottom: var(--spacing-md, 1rem);
+}
+
+.dsr-lines__head h3 {
+  margin: 0;
+  font-size: var(--font-size-md, 1rem);
+}
+
+.dsr-lines__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--border-radius-md, 8px);
+  border: 1px solid var(--color-primary, #2563eb);
+  background: var(--color-bg-primary, #fff);
+  color: var(--color-primary, #2563eb);
+  font-size: var(--font-size-sm, 0.875rem);
+  cursor: pointer;
+}
+
+.dsr-lines__add:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dsr-line-card {
+  border: 1px solid var(--color-bg-tertiary, #e5e7eb);
+  border-radius: var(--border-radius-lg, 12px);
+  padding: var(--spacing-md, 1rem);
+  margin-bottom: var(--spacing-md, 1rem);
+  background: var(--color-bg-secondary, #f9fafb);
+}
+
+.dsr-line-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm, 0.75rem);
+}
+
+.dsr-line-card__badge {
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.dsr-line-card__remove {
+  border: none;
+  background: transparent;
+  color: var(--color-error, #b91c1c);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.dsr-line-card__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--spacing-md, 1rem);
+}

@@ -1,0 +1,145 @@
+
+.note-edit-container {
+  width: 100%;
+}
+
+.note-edit-form-group {
+  margin-bottom: 20px;
+}
+
+.note-edit-form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.note-edit-form-control {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.note-edit-form-control:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.note-edit-meta-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+  padding-bottom: 30px;
+  border-bottom: 1px solid #eee;
+}
+
+.note-edit-two-column-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.note-edit-section {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  background-color: #f8f9fa;
+}
+
+.note-edit-section-title {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #212529;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.note-edit-array-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.note-edit-array-item {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  align-items: flex-end;
+}
+
+.note-edit-action-item {
+  display: grid;
+  grid-template-columns: 3fr 1fr 1fr 1fr auto;
+  gap: 8px;
+  margin-bottom: 10px;
+  align-items: end;
+}
+
+.note-edit-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.note-edit-btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.note-edit-btn-primary:hover {
+  background-color: #0056b3;
+}
+
+.note-edit-btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.note-edit-btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+.note-edit-btn-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.note-edit-btn-danger:hover {
+  background-color: #c82333;
+}
+
+.note-edit-btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.note-edit-action-buttons-container {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.flex-3 {
+  flex: 3;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.note-edit-full-width {
+  grid-column: 1 / -1;
+}

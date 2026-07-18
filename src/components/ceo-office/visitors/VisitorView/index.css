@@ -1,0 +1,420 @@
+/* ============================================================
+   VISITOR VIEW — DESIGN TOKENS
+   Same system as the dashboard, instruction register, and note
+   view: one ink, one accent, four semantic tones.
+   ============================================================ */
+
+.visitor-view-container {
+  --ink: #171b2b;
+  --ink-soft: #565f78;
+  --ink-faint: #9aa2b8;
+  --line: #e7e9f3;
+  --line-soft: #f0f1f8;
+  --surface: #ffffff;
+  --canvas: #f5f6fb;
+
+  --accent: #4a4bff;
+  --accent-deep: #2f2fd6;
+  --accent-tint: #eeeeff;
+
+  --success: #0f9d70;
+  --success-tint: #e7f7f0;
+  --warning: #c9820f;
+  --warning-tint: #fbf1de;
+  --danger: #d6455a;
+  --danger-tint: #fbeaee;
+  --info: #2f7fd6;
+  --info-tint: #eaf1fd;
+  --neutral-tint: #eef0f6;
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-card: 0 1px 2px rgba(23, 27, 43, 0.04), 0 6px 16px rgba(23, 27, 43, 0.05);
+
+  padding: 20px;
+  background-color: var(--canvas);
+  margin-top: 24px;
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ============================================================
+   LOADING
+   ============================================================ */
+
+.visitor-view-loading-container {
+  text-align: center;
+  padding: 36px;
+  font-size: 15px;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+/* ============================================================
+   PAGE HEADER
+   ============================================================ */
+
+.visitor-view-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.visitor-view-page-header h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.visitor-view-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ============================================================
+   BUTTONS
+   Primary carries the accent gradient; secondary stays quiet.
+   ============================================================ */
+
+.visitor-view-btn-primary,
+.visitor-view-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.visitor-view-btn-primary {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
+  color: white;
+  box-shadow: 0 4px 10px rgba(74,75,255,0.24);
+}
+
+.visitor-view-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(74,75,255,0.32);
+}
+
+.visitor-view-btn-secondary {
+  background-color: var(--surface);
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+}
+
+.visitor-view-btn-secondary:hover {
+  background-color: var(--canvas);
+  border-color: var(--ink-faint);
+  color: var(--ink);
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.visitor-view-table-wrapper {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.visitor-view-table-container {
+  padding: 16px 20px;
+}
+
+/* ============================================================
+   NOTE DETAILS
+   ============================================================ */
+
+.visitor-view-note-details-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.visitor-view-note-meta-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 14px 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.visitor-view-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.visitor-view-meta-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.visitor-view-meta-item span:nth-child(2) {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.visitor-view-meta-item a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.visitor-view-meta-item a:hover {
+  color: var(--accent-deep);
+  text-decoration: underline;
+}
+
+/* ============================================================
+   FORM GROUPS
+   ============================================================ */
+
+.visitor-view-form-group {
+  margin-bottom: 18px;
+}
+
+.visitor-view-form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.visitor-view-content-text {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ============================================================
+   BADGES
+   Type badges keep distinct identity colors (they're a category,
+   not a status). Status badges follow the shared semantic scale
+   so "completed" here means the same green as everywhere else.
+   ============================================================ */
+
+.visitor-view-type-badge,
+.visitor-view-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.visitor-view-type-visitor { background-color: var(--accent-tint); color: var(--accent-deep); }
+.visitor-view-type-call { background-color: var(--info-tint); color: var(--info); }
+.visitor-view-type-whatsapp { background-color: var(--success-tint); color: var(--success); }
+
+.visitor-view-status-pending { background-color: var(--warning-tint); color: var(--warning); }
+.visitor-view-status-completed { background-color: var(--success-tint); color: var(--success); }
+.visitor-view-status-cancelled { background-color: var(--danger-tint); color: var(--danger); }
+.visitor-view-status-scheduled { background-color: var(--info-tint); color: var(--info); }
+.visitor-view-status-in-progress { background-color: var(--accent-tint); color: var(--accent-deep); }
+
+/* ============================================================
+   DETAIL PAGE — card grid
+   Each section is its own bordered card with a colored header
+   rule, laid out on a real CSS grid so the partitions between
+   "overview", "schedule", "contact", etc. are unambiguous —
+   same pattern as the dashboard's card grid.
+   ============================================================ */
+
+.visitor-view-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--danger) 0%, #b8384b 100%);
+  color: white;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.visitor-view-btn-danger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(214,69,90,0.3);
+}
+
+.visitor-view-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.visitor-view-detail-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.visitor-view-detail-card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid var(--section-color, var(--accent));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.visitor-view-detail-card-header h4 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.visitor-view-detail-card-header .visitor-view-card-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  background: color-mix(in srgb, var(--section-color, var(--accent)) 14%, white);
+  color: var(--section-color, var(--accent));
+}
+
+.visitor-view-detail-card-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
+/* Section color assignments — one accent per card, same idea
+   as the category colors on the dashboard cards. */
+
+.visitor-view-section-overview { --section-color: var(--accent); }
+.visitor-view-section-schedule { --section-color: var(--info); }
+.visitor-view-section-related  { --section-color: #7c4fd6; }
+.visitor-view-section-contact  { --section-color: var(--success); }
+.visitor-view-section-message  { --section-color: var(--warning); }
+
+.visitor-view-detail-card.visitor-view-full-span {
+  grid-column: 1 / -1;
+}
+
+/* Related task, nested inside its own card */
+
+.visitor-view-related-task-card {
+  background: var(--accent-tint);
+  border: 1px solid #d9d9ff;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.visitor-view-related-task-card p {
+  margin: 0 0 3px;
+  font-size: 0.8rem;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.visitor-view-related-task-card a {
+  color: var(--accent-deep);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.visitor-view-related-task-card a:hover {
+  text-decoration: underline;
+}
+
+/* Field rows inside cards */
+
+.visitor-view-field-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.visitor-view-field-list.visitor-view-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px 20px;
+}
+
+.visitor-view-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.visitor-view-field-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.visitor-view-field-value {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.visitor-view-field-value a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.visitor-view-field-value a:hover {
+  color: var(--accent-deep);
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .visitor-view-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,77 @@
+/* Project Command Sheets Container */
+.pcs-container {
+  padding: 20px;
+  margin-top: 30px;
+}
+
+/* Header Section */
+.pcs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  padding: 10px 15px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+}
+
+.pcs-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+
+
+.pcs-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.pcs-add-btn {
+  background-color: #30AEE2;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  /* font-weight: 600; */
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.pcs-add-btn:hover {
+  color: #fff;
+  background: rgba(34, 145, 192, 0.9);
+}
+
+/* Sheets Grid */
+.pcs-sheets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 14px;
+}
+
+/* Loading & Empty States */
+.pcs-loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 16px;
+  color: #6b7280;
+}
+
+.pcs-empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  font-size: 16px;
+  background-color: white;
+  border-radius: 12px;
+}
