@@ -4,7 +4,6 @@ import { toast } from 'react-toastify';
 import { FaUserCheck, FaPhone, FaWhatsapp, FaArrowLeft, FaEdit, FaTrash } from 'react-icons/fa';
 import axios from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
-import EditVisitorModal from '../EditVisitorModal';
 import './index.css';
 
 const getDefaultFormData = () => ({
@@ -484,13 +483,6 @@ const VisitorView = () => {
         </div>
       </div>
 
-      <EditVisitorModal
-        isOpen={isEditing}
-        onClose={() => setIsEditing(false)}
-        formData={formData}
-        setFormData={setFormData}
-        onSubmit={handleUpdate}
-      />
     </div>
     </>
   );

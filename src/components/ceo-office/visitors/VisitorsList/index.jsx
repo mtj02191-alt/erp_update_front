@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FaUsers, FaUserCheck, FaPhone, FaWhatsapp, FaEye, FaEdit, FaTrash,FaPlus,  FaSyncAlt,  FaListAlt } from 'react-icons/fa';
+import { FaUsers, FaUserCheck, FaPhone, FaWhatsapp, FaEye, FaEdit, FaTrash, FaPlus, FaSyncAlt, FaListAlt } from 'react-icons/fa';
 import axios from '../../../../utils/axios';
 import { useAuth } from '../../../../context/AuthContext';
 import Navbar from '../../../Navbar';
 import ConvertToTaskModal from '../../ConvertToTaskModal';
-import AddVisitorModal from '../AddVisitorModal';
-import EditVisitorModal from '../EditVisitorModal';
 import './index.css';
 
 // Helper to get initials from name
@@ -54,9 +52,6 @@ const VisitorsList = () => {
   const [visitors, setVisitors] = useState([]);
   const [filteredVisitors, setFilteredVisitors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingVisitor, setEditingVisitor] = useState(null);
   const [formData, setFormData] = useState(getDefaultFormData());
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -198,7 +193,6 @@ const VisitorsList = () => {
       await axios.post('/visitors', payload);
 
       toast.success('Visitor logged successfully');
-      setShowAddModal(false);
       setFormData(getDefaultFormData());
       fetchVisitors();
     } catch (error) {
@@ -213,46 +207,9 @@ const VisitorsList = () => {
   };
 
   const handleEdit = (visitor) => {
-    console.log('Editing visitor:', visitor);
     if (visitor.related_note_id) {
-      // For records linked to CEO notes, navigate to note view page with edit state
       navigate(`/ceo-office/notes/${visitor.related_note_id}`, { state: { isEditing: true } });
-      return;
     }
-    console.log('Visitor type:', visitor.type);
-    setEditingVisitor(visitor);
-    setFormData({
-      type: (visitor.type || 'visitor').toLowerCase(),
-      status: visitor.status || 'Pending',
-      visitDatetime: visitor.visit_datetime ? visitor.visit_datetime.slice(0, 16) : new Date().toISOString().slice(0, 16),
-      relatedNoteId: visitor.related_note_id ? visitor.related_note_id.toString() : '',
-      remarks: visitor.remarks,
-
-      visitorName: visitor.visitor_name,
-      organization: visitor.organization,
-      purpose: visitor.purpose,
-      meetingWith: visitor.meeting_with,
-      department: visitor.department,
-      protocolRequired: visitor.protocol_required,
-      expectedDuration: visitor.expected_duration,
-      visitorOutcome: visitor.visitor_outcome,
-
-      callerName: visitor.caller_name,
-      phoneNumber: visitor.phone_number,
-      callPurpose: visitor.call_purpose,
-      callSummary: visitor.call_summary,
-      followUpRequired: visitor.follow_up_required,
-      followUpDate: visitor.follow_up_date ? visitor.follow_up_date.slice(0, 16) : '',
-      assignedTo: visitor.assigned_to,
-
-      contactName: visitor.contact_name,
-      whatsappPhoneNumber: visitor.phone_number, // For WhatsApp, use the same phone_number field
-      messageSummary: visitor.message_summary,
-      requiredAction: visitor.required_action,
-      attachmentUrl: visitor.attachment_url,
-      responseStatus: visitor.response_status
-    });
-    setShowEditModal(true);
   };
 
   const handleDelete = async (visitor) => {
@@ -272,26 +229,6 @@ const VisitorsList = () => {
     }
   };
 
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    try {
-      const payload = buildPayload(formData);
-      await axios.patch(`/visitors/${editingVisitor.id}`, payload);
-
-      toast.success('Visitor log updated successfully');
-      setShowEditModal(false);
-      setEditingVisitor(null);
-      fetchVisitors();
-    } catch (error) {
-      console.error('Error updating visitor log:', error);
-      const errorMsg = error.response?.data?.message || error.response?.data?.detail || '';
-      if (errorMsg.includes('foreign key constraint') || errorMsg.includes('not present in table') || errorMsg.includes('Related note')) {
-        toast.error('Error: Related note ID does not exist. Please enter a valid note ID.');
-      } else {
-        toast.error('Failed to update visitor log');
-      }
-    }
-  };
 
   const handleConvertToTask = async () => {
     try {
@@ -422,10 +359,9 @@ const VisitorsList = () => {
                   &nbsp;Clear
                 </button>
               </div>
-              <button onClick={() => setShowAddModal(true)} className="visitors-list-btn-primary">
-                <FaPlus />
-                &nbsp;Log Visitor / Call
-              </button>
+              <Link to="/ceo-office/quick-note" className="visitors-list-btn-primary">
+                <span className="btn-icon">+</span> Quick Note
+              </Link>
               <button onClick={() => navigate('/ceo-office/dashboard')} className="note-view-btn note-view-btn-secondary">
                 Back
               </button>
@@ -468,8 +404,8 @@ const VisitorsList = () => {
                           </span>
                         </div>
                       </td>
-                      <td>{visitor.visitor_organization || '-'}</td>
-                      <td>{visitor.visitor_purpose || visitor.call_purpose || visitor.message_summary || '-'}</td>
+                      <td>{visitor.organization || '-'}</td>
+                      <td>{visitor.purpose || visitor.call_purpose || visitor.message_summary || '-'}</td>
                       <td>{new Date(visitor.visit_datetime).toLocaleDateString()}</td>
                       <td>
                         <span
@@ -492,41 +428,41 @@ const VisitorsList = () => {
                       </td>
                       <td>
                         {(visitor.related_task_id || visitor.related_note?.related_task_id) ? (
-                            <Link
-                                to={`/tasks/view/${visitor.related_task_id || visitor.related_note?.related_task_id}`}
-                                className="visitors-list-related-note"
-                            >
-                                Task #{visitor.related_task_id || visitor.related_note?.related_task_id}
-                            </Link>
+                          <Link
+                            to={`/tasks/view/${visitor.related_task_id || visitor.related_note?.related_task_id}`}
+                            className="visitors-list-related-note"
+                          >
+                            Task #{visitor.related_task_id || visitor.related_note?.related_task_id}
+                          </Link>
                         ) : '-'}
-                    </td>
-                    <td>
+                      </td>
+                      <td>
                         <div className="visitors-list-actions-group">
-                            {visitor.related_note_id ? (
-                                <Link
-                                    to={`/ceo-office/notes/${visitor.related_note_id}`}
-                                    className="visitors-list-action-btn visitors-list-action-view"
-                                    title="View Note"
-                                >
-                                    <FaEye color="#007bff" />
-                                </Link>
-                            ) : (
-                                <Link
-                                    to={`/ceo-office/visitors/${visitor.id}`}
-                                    className="visitors-list-action-btn visitors-list-action-view"
-                                    title="View"
-                                >
-                                    <FaEye color="#007bff" />
-                                </Link>
-                            )}
-                            <button
-                                onClick={() => openConvertModal(visitor)}
-                                className="visitors-list-action-btn visitors-list-action-convert"
-                                disabled={visitor.related_task_id || visitor.related_note?.related_task_id}
-                                title={(visitor.related_task_id || visitor.related_note?.related_task_id) ? "Already converted" : "Convert to Task"}
+                          {visitor.related_note_id ? (
+                            <Link
+                              to={`/ceo-office/notes/${visitor.related_note_id}`}
+                              className="visitors-list-action-btn visitors-list-action-view"
+                              title="View Note"
                             >
-                                <FaSyncAlt color={(visitor.related_task_id || visitor.related_note?.related_task_id) ? "#6c757d" : "#20c997"} />
-                            </button>
+                              <FaEye color="#007bff" />
+                            </Link>
+                          ) : (
+                            <Link
+                              to={`/ceo-office/visitors/${visitor.id}`}
+                              className="visitors-list-action-btn visitors-list-action-view"
+                              title="View"
+                            >
+                              <FaEye color="#007bff" />
+                            </Link>
+                          )}
+                          <button
+                            onClick={() => openConvertModal(visitor)}
+                            className="visitors-list-action-btn visitors-list-action-convert"
+                            disabled={visitor.related_task_id || visitor.related_note?.related_task_id}
+                            title={(visitor.related_task_id || visitor.related_note?.related_task_id) ? "Already converted" : "Convert to Task"}
+                          >
+                            <FaSyncAlt color={(visitor.related_task_id || visitor.related_note?.related_task_id) ? "#6c757d" : "#20c997"} />
+                          </button>
                           <button
                             onClick={() => handleEdit(visitor)}
                             className="visitors-list-action-btn visitors-list-action-edit"
@@ -559,24 +495,6 @@ const VisitorsList = () => {
             </div>
           </div>
         </div>
-
-        {/* Add Modal */}
-        <AddVisitorModal
-          isOpen={showAddModal}
-          onClose={() => setShowAddModal(false)}
-          formData={formData}
-          setFormData={setFormData}
-          onSubmit={handleSubmit}
-        />
-
-        {/* Edit Modal */}
-        <EditVisitorModal
-          isOpen={showEditModal}
-          onClose={() => setShowEditModal(false)}
-          formData={formData}
-          setFormData={setFormData}
-          onSubmit={handleUpdate}
-        />
 
         {/* Convert to Task Modal */}
         <ConvertToTaskModal

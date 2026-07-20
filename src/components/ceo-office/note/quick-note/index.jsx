@@ -146,82 +146,6 @@ const QuickNote = () => {
     return cleaned;
   };
 
-  // Helper function to build visitor payload with correct field names (camelCase to snake_case)
-  const buildVisitorPayload = (data, relatedNoteId = null) => {
-    const type = data.type;
-    // Common fields
-    const payload = {
-      type,
-      status: data.status || 'Pending',
-      visit_datetime: data.visitDatetime,
-      remarks: data.remarks,
-    };
-    if (relatedNoteId) {
-      payload.related_note_id = relatedNoteId;
-    }
-
-    // Type-specific fields
-    if (type === 'visitor') {
-      return {
-        ...payload,
-        visitor_name: data.visitorName,
-        organization: data.organization,
-        purpose: data.purpose,
-        meeting_with: data.meetingWith,
-        department: data.visitorDepartment,
-        protocol_required: data.protocolRequired,
-        expected_duration: data.expectedDuration,
-        visitor_outcome: data.visitorOutcome,
-      };
-    }
-    if (type === 'call') {
-      const callPayload = {
-        ...payload,
-        caller_name: data.callerName,
-        organization: data.organization,
-        phone_number: data.phoneNumber,
-        call_purpose: data.callPurpose,
-        call_summary: data.callSummary,
-        follow_up_required: data.followUpRequired,
-      };
-      if (data.followUpRequired === 'Yes' && data.followUpDate) {
-        callPayload.follow_up_date = data.followUpDate;
-        callPayload.assigned_to = data.assignedTo;
-      }
-      return callPayload;
-    }
-    if (type === 'whatsapp') {
-      return {
-        ...payload,
-        contact_name: data.contactName,
-        phone_number: data.whatsappPhoneNumber,
-        message_summary: data.messageSummary,
-        required_action: data.requiredAction,
-        attachment_url: data.attachmentUrl,
-        response_status: data.responseStatus,
-      };
-    }
-    return payload;
-  };
-
-  // Helper function to build project command sheet payload
-  const buildPcsPayload = (data, relatedNoteId = null) => {
-    return {
-      project_name: data.projectName,
-      project_details: data.projectDetails,
-      discussions: data.discussions,
-      decisions: data.decisions,
-      meeting_notes: data.meetingNotes,
-      pending_items: data.pendingItems || [],
-      action_items: data.actionItems || [],
-      next_steps: data.nextSteps,
-      results: data.results,
-      start_date: data.startDate || null,
-      end_date: data.endDate || null,
-      status: data.pcsStatus || 'Pending'
-    };
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -468,21 +392,19 @@ const QuickNote = () => {
                 </div>
 
                 <div className="form-group">
-                            <label>Department</label>
-                            <select
-                              name="visitor_department"
-                              value={formData.visitor_department}
-                              onChange={handleChange}
-                              className="form-control"
-                            >
-                              <option value="">Select Department</option>
-                              {departments.map(dept => (
-                                <option key={dept} value={dept}>{dept.replace('_', ' ')}</option>
-                              ))}
-                            </select>
-                          </div>
-
-
+                  <label>Department</label>
+                  <select
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    className="form-control"
+                  >
+                    <option value="">Select Department</option>
+                    {departments.map(dept => (
+                      <option key={dept} value={dept}>{dept.replace('_', ' ')}</option>
+                    ))}
+                  </select>
+                </div>
 
                 <div className="form-group">
                   <label>Attachment URL</label>

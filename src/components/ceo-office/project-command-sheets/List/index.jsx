@@ -4,18 +4,14 @@ import { toast } from 'react-toastify';
 import axios from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
 import SheetCard from '../SheetCard';
-import AddSheetModal from '../AddSheetModal';
-import EditSheetModal from '../EditSheetModal';
 import ConvertToTaskModal from '../../ConvertToTaskModal';
 import './index.css';
-import '../ModalStyles/index.css';
+
 
 const ProjectCommandSheets = () => {
   const [sheets, setSheets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingSheet, setEditingSheet] = useState(null);
   const [formData, setFormData] = useState({
     projectName: '',
     projectDetails: '',
@@ -82,7 +78,7 @@ const ProjectCommandSheets = () => {
       // Fetch CEO notes for project_command_sheets category
       const notesResponse = await axios.get('/ceo-notes');
       const notesData = notesResponse.data.data || [];
-      const filteredNotes = notesData.filter(note => 
+      const filteredNotes = notesData.filter(note =>
         note.category === 'project_command_sheets'
       );
       // Convert to project command sheet format
@@ -197,26 +193,8 @@ const ProjectCommandSheets = () => {
 
   const handleEdit = (sheet) => {
     if (sheet.is_ceo_note) {
-      // Navigate to note view with edit state
       navigate(`/ceo-office/notes/${sheet.related_note_id}`, { state: { isEditing: true } });
-      return;
     }
-    setEditingSheet(sheet);
-    setFormData({
-      projectName: sheet.project_name,
-      projectDetails: sheet.project_details,
-      discussions: sheet.discussions,
-      decisions: sheet.decisions,
-      meetingNotes: sheet.meeting_notes,
-      pendingItems: sheet.pending_items || [],
-      actionItems: sheet.action_items || [],
-      nextSteps: sheet.next_steps,
-      results: sheet.results,
-      startDate: sheet.start_date ? sheet.start_date.split('T')[0] : '',
-      endDate: sheet.end_date ? sheet.end_date.split('T')[0] : '',
-      status: sheet.status || 'Pending'
-    });
-    setShowEditModal(true);
   };
 
   const handleDelete = async (sheet) => {
@@ -236,33 +214,6 @@ const ProjectCommandSheets = () => {
     }
   };
 
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.patch(`/project-command-sheets/${editingSheet.id}`, {
-        project_name: formData.projectName,
-        project_details: formData.projectDetails,
-        discussions: formData.discussions,
-        decisions: formData.decisions,
-        meeting_notes: formData.meetingNotes,
-        pending_items: formData.pendingItems,
-        action_items: formData.actionItems,
-        next_steps: formData.nextSteps,
-        results: formData.results,
-        start_date: formData.startDate || null,
-        end_date: formData.endDate || null,
-        status: formData.status
-      });
-      toast.success('Project command sheet updated successfully');
-      setShowEditModal(false);
-      setEditingSheet(null);
-      fetchSheets();
-    } catch (error) {
-      console.error('Error updating project command sheet:', error);
-      toast.error('Failed to update project command sheet');
-    }
-  };
-
   if (loading) {
     return (
       <>
@@ -276,80 +227,43 @@ const ProjectCommandSheets = () => {
     <>
       <Navbar />
       <div className="pcs-container">
-      <div className="pcs-header">
-        <h1 className="pcs-title">📋 Project Command Sheets</h1>
-        <div className="pcs-header-right">
-          {/* <Link to="/ceo-office/quick-note" className="add-instruction-btn">
-                    <span className="btn-icon">+</span> Quick Note
-                  </Link> */}
-          <button onClick={() => {
-          setFormData({
-            projectName: '',
-            projectDetails: '',
-            discussions: '',
-            decisions: '',
-            meetingNotes: '',
-            pendingItems: [],
-            actionItems: [],
-            nextSteps: '',
-            results: '',
-            startDate: '',
-            endDate: '',
-            status: 'Pending'
-          });
-          setShowAddModal(true);
-        }} className="pcs-add-btn">
-          + Add Project
-        </button>
-        <button onClick={() => navigate('/ceo-office/dashboard')} className="note-view-btn note-view-btn-secondary">
-            Back
-          </button>
+        <div className="pcs-header">
+          <h1 className="pcs-title">📋 Project Command Sheets</h1>
+          <div className="pcs-header-right">
+            <Link to="/ceo-office/quick-note" className="pcs-add-btn">
+              <span className="btn-icon">+</span> Quick Note
+            </Link>
+            <button onClick={() => navigate('/ceo-office/dashboard')} className="note-view-btn note-view-btn-secondary">
+              Back
+            </button>
+          </div>
         </div>
+
+        <div className="pcs-sheets-grid">
+          {sheets.length > 0 ? (
+            sheets.map((sheet) => (
+              <SheetCard
+                key={sheet.id}
+                sheet={sheet}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onConvert={openConvertModalForSheet}
+              />
+            ))
+          ) : (
+            <div className="pcs-empty-state">No project command sheets yet</div>
+          )}
+        </div>
+
+        {/* Convert to Task Modal */}
+        <ConvertToTaskModal
+          isOpen={convertModalOpen}
+          onClose={() => setConvertModalOpen(false)}
+          convertData={convertData}
+          setConvertData={setConvertData}
+          onConvert={handleConvertToTask}
+        />
       </div>
-
-      <div className="pcs-sheets-grid">
-        {sheets.length > 0 ? (
-          sheets.map((sheet) => (
-            <SheetCard 
-              key={sheet.id} 
-              sheet={sheet} 
-              onEdit={handleEdit} 
-              onDelete={handleDelete}
-              onConvert={openConvertModalForSheet}
-            />
-          ))
-        ) : (
-          <div className="pcs-empty-state">No project command sheets yet</div>
-        )}
-      </div>
-
-      {/* Add Modal */}
-      <AddSheetModal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        formData={formData}
-        setFormData={setFormData}
-        onSubmit={handleSubmit}
-      />
-
-      {/* Edit Modal */}
-      <EditSheetModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        formData={formData}
-        setFormData={setFormData}
-        onSubmit={handleUpdate}
-      />
-
-      {/* Convert to Task Modal */}
-      <ConvertToTaskModal
-        isOpen={convertModalOpen}
-        onClose={() => setConvertModalOpen(false)}
-        convertData={convertData}
-        setConvertData={setConvertData}
-        onConvert={handleConvertToTask}
-      />
-    </div>
     </>
   );
 };

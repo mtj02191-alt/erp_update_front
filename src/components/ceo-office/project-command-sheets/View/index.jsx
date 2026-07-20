@@ -4,7 +4,6 @@ import { toast } from 'react-toastify';
 import axios from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
 import ConvertToTaskModal from '../../ConvertToTaskModal';
-import EditSheetModal from '../EditSheetModal';
 import './index.css';
 
 const ProjectCommandSheetView = () => {
@@ -372,15 +371,6 @@ const ProjectCommandSheetView = () => {
           </div>
         )}
       </div>
-
-      {/* Edit Modal */}
-      <EditSheetModal
-        isOpen={isEditing}
-        onClose={() => setIsEditing(false)}
-        formData={formData}
-        setFormData={setFormData}
-        onSubmit={handleUpdate}
-      />
 
       {/* Convert to Task Modal */}
       <ConvertToTaskModal

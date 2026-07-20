@@ -62,7 +62,7 @@ const SheetActions = ({ sheet, onEdit, onDelete, onConvert }) => (
       disabled={sheet.related_task_id}
       title={sheet.related_task_id ? 'Already converted' : 'Convert to Task'}
     />
-    <EditAction onClick={() => onEdit(sheet)} />
+    <EditAction onClick={() => onEdit(sheet)} />  
     <DeleteAction onClick={() => onDelete(sheet)} />
   </div>
 );
