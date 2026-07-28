@@ -183,9 +183,6 @@ const CeoDashboard = () => {
               </select>
             </div>
             <div className="ceo-btn-group">
-              <Link to="/ceo-office/quick-note" className="ceo-quick-note-btn">
-                Quick Note
-              </Link>
               <Link to="/ceo-office/instruction-register" className="ceo-instruction-register-btn"> 
                 Instruction Register
               </Link>
@@ -194,6 +191,9 @@ const CeoDashboard = () => {
               </Link>
               <Link to="/ceo-office/visitors" className="ceo-visitors-btn">
                 Visitors / Calls
+              </Link>
+              <Link to="/ceo-office/quick-note" className="ceo-quick-note-btn">
+                Quick Note
               </Link>
             </div>
           </div>

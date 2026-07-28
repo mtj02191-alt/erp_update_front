@@ -28,7 +28,7 @@ const OnlineDonationsList = () => {
   const urlDonorId = searchParams.get('donor_id'); // Get donor_id from URL query param
   const isOnlineRoute = location.pathname.includes('/donations/online_donations');
   const isOfflineRoute = location.pathname.includes('/donations/offline_donations');
-  
+
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -37,7 +37,7 @@ const OnlineDonationsList = () => {
   const [selectedDonor, setSelectedDonor] = useState(null);
   const [totalDonationAmount, setTotalDonationAmount] = useState(0);
   const [workflowTemplates, setWorkflowTemplates] = useState([]);
-  
+
   // Report generation state
   const [generatingReport, setGeneratingReport] = useState(false);
   const [reportMessage, setReportMessage] = useState({ type: '', text: '' });
@@ -47,7 +47,7 @@ const OnlineDonationsList = () => {
     endDate: '',
     type: 'daily'
   });
-  
+
   // Pagination state — persisted so it survives navigation
   const [paginationState, setPaginationState] = usePersistedFilters(
     'donations-online-list:pagination',
@@ -106,7 +106,7 @@ const OnlineDonationsList = () => {
         donor_id: urlDonorId
       }));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlDonorId]);
 
   // Load workflow templates for filtering
@@ -181,7 +181,7 @@ const OnlineDonationsList = () => {
   const handleApplyFilters = () => {
     // Check if filters have changed
     const filtersChanged = JSON.stringify(appliedFilters) !== JSON.stringify(tempFilters);
-    
+
     console.log("Temp filters", tempFilters);
     // return;
     // Always include donor_id from URL if present
@@ -189,7 +189,7 @@ const OnlineDonationsList = () => {
     if (urlDonorId) {
       filtersToApply.donor_id = urlDonorId;
     }
-    
+
     if (filtersChanged) {
       // If filters changed, apply them
       setAppliedFilters(filtersToApply);
@@ -215,12 +215,12 @@ const OnlineDonationsList = () => {
   const fetchDonations = async () => {
     try {
       setLoading(true);
-      
+
       // Always include donor_id from URL if present
       const donorIdForFilter = urlDonorId || appliedFilters.donor_id;
       // Use relationsFilters directly from applied filters
       const relationsFiltersPayload = appliedFilters.relationsFilters || {};
-      
+
       // Prepare filter payload
       const filterPayload = {
         pagination: {
@@ -238,49 +238,49 @@ const OnlineDonationsList = () => {
           donation_source: appliedFilters.donation_source,
           progress_workflow_template_id: appliedFilters.progress_workflow_template_id || undefined,
           orderId: appliedFilters.orderId,
-          
+
           // Date filters
           date: appliedFilters.date,
           start_date: appliedFilters.start_date,
           end_date: appliedFilters.end_date,
-          
+
           // Donor filter - always use URL donor_id if present
           donor_id: donorIdForFilter,
-          
+
           // Future filters can be easily added here
           // amount_range: { min: 1000, max: 50000 },
           // donor_categories: ['premium', 'regular'],
           // payment_status: ['completed', 'pending'],
           // locations: ['karachi', 'lahore', 'islamabad']
         },
-          //multiselect filters like key will col name and value will be in a array and we will use IN operator in Backend 
-          // 1 ref filter
-          multiselectFilters: (() => {
-           if(appliedFilters.ref && appliedFilters.ref.length > 0) {
+        //multiselect filters like key will col name and value will be in a array and we will use IN operator in Backend 
+        // 1 ref filter
+        multiselectFilters: (() => {
+          if (appliedFilters.ref && appliedFilters.ref.length > 0) {
             return {
               ref: appliedFilters.ref,
-              }
             }
-            return {};
-          })(),
+          }
+          return {};
+        })(),
         relationsFilters: relationsFiltersPayload,
-        hybrid_filters:[ {
+        hybrid_filters: [{
           value: appliedFilters.amount,
           operator: appliedFilters.price_operator,
           column: 'amount',
         }
-      ]
+        ]
       };
 
 
       console.log("filterPayload", filterPayload);
       // return;
-      
+
       //  adding endpoint for testing 
       // const test  = await axiosInstance.get('/payfast');
       // console.log("test", test.data?.data);
       // return;
-      const response = await axiosInstance.post('/donations/search', filterPayload); 
+      const response = await axiosInstance.post('/donations/search', filterPayload);
       if (response.data.success) {
         setDonations(response.data.data || []);
         setTotalItems(response.data.pagination?.total || 0);
@@ -339,26 +339,26 @@ const OnlineDonationsList = () => {
     try {
       setGeneratingReport(true);
       setReportMessage({ type: '', text: '' });
-      
+
       const response = await axiosInstance.post('/donations-report/daily', {});
-      
+
       if (response.data.success) {
-        setReportMessage({ 
-          type: 'success', 
-          text: 'Daily report generated and sent successfully via email!' 
+        setReportMessage({
+          type: 'success',
+          text: 'Daily report generated and sent successfully via email!'
         });
         // Clear message after 5 seconds
         setTimeout(() => setReportMessage({ type: '', text: '' }), 5000);
       } else {
-        setReportMessage({ 
-          type: 'error', 
-          text: response.data.message || 'Failed to generate daily report' 
+        setReportMessage({
+          type: 'error',
+          text: response.data.message || 'Failed to generate daily report'
         });
       }
     } catch (err) {
-      setReportMessage({ 
-        type: 'error', 
-        text: err.response?.data?.message || 'Failed to generate daily report' 
+      setReportMessage({
+        type: 'error',
+        text: err.response?.data?.message || 'Failed to generate daily report'
       });
       console.error('Error generating daily report:', err);
     } finally {
@@ -370,25 +370,25 @@ const OnlineDonationsList = () => {
     try {
       setGeneratingReport(true);
       setReportMessage({ type: '', text: '' });
-      
+
       const response = await axiosInstance.post('/donations-report/weekly', {});
-      
+
       if (response.data.success) {
-        setReportMessage({ 
-          type: 'success', 
-          text: 'Weekly report generated and sent successfully via email!' 
+        setReportMessage({
+          type: 'success',
+          text: 'Weekly report generated and sent successfully via email!'
         });
         setTimeout(() => setReportMessage({ type: '', text: '' }), 5000);
       } else {
-        setReportMessage({ 
-          type: 'error', 
-          text: response.data.message || 'Failed to generate weekly report' 
+        setReportMessage({
+          type: 'error',
+          text: response.data.message || 'Failed to generate weekly report'
         });
       }
     } catch (err) {
-      setReportMessage({ 
-        type: 'error', 
-        text: err.response?.data?.message || 'Failed to generate weekly report' 
+      setReportMessage({
+        type: 'error',
+        text: err.response?.data?.message || 'Failed to generate weekly report'
       });
       console.error('Error generating weekly report:', err);
     } finally {
@@ -400,25 +400,25 @@ const OnlineDonationsList = () => {
     try {
       setGeneratingReport(true);
       setReportMessage({ type: '', text: '' });
-      
+
       const response = await axiosInstance.post('/donations-report/monthly', {});
-      
+
       if (response.data.success) {
-        setReportMessage({ 
-          type: 'success', 
-          text: 'Monthly report generated and sent successfully via email!' 
+        setReportMessage({
+          type: 'success',
+          text: 'Monthly report generated and sent successfully via email!'
         });
         setTimeout(() => setReportMessage({ type: '', text: '' }), 5000);
       } else {
-        setReportMessage({ 
-          type: 'error', 
-          text: response.data.message || 'Failed to generate monthly report' 
+        setReportMessage({
+          type: 'error',
+          text: response.data.message || 'Failed to generate monthly report'
         });
       }
     } catch (err) {
-      setReportMessage({ 
-        type: 'error', 
-        text: err.response?.data?.message || 'Failed to generate monthly report' 
+      setReportMessage({
+        type: 'error',
+        text: err.response?.data?.message || 'Failed to generate monthly report'
       });
       console.error('Error generating monthly report:', err);
     } finally {
@@ -428,9 +428,9 @@ const OnlineDonationsList = () => {
 
   const handleGenerateCustomReport = async () => {
     if (!customReportDates.startDate || !customReportDates.endDate) {
-      setReportMessage({ 
-        type: 'error', 
-        text: 'Please select both start and end dates' 
+      setReportMessage({
+        type: 'error',
+        text: 'Please select both start and end dates'
       });
       return;
     }
@@ -438,31 +438,31 @@ const OnlineDonationsList = () => {
     try {
       setGeneratingReport(true);
       setReportMessage({ type: '', text: '' });
-      
+
       const response = await axiosInstance.post('/donations-report/custom', {
         startDate: customReportDates.startDate,
         endDate: customReportDates.endDate,
         type: customReportDates.type
       });
-      
+
       if (response.data.success) {
-        setReportMessage({ 
-          type: 'success', 
-          text: 'Custom report generated and sent successfully via email!' 
+        setReportMessage({
+          type: 'success',
+          text: 'Custom report generated and sent successfully via email!'
         });
         setShowCustomReportModal(false);
         setCustomReportDates({ startDate: '', endDate: '', type: 'daily' });
         setTimeout(() => setReportMessage({ type: '', text: '' }), 5000);
       } else {
-        setReportMessage({ 
-          type: 'error', 
-          text: response.data.message || 'Failed to generate custom report' 
+        setReportMessage({
+          type: 'error',
+          text: response.data.message || 'Failed to generate custom report'
         });
       }
     } catch (err) {
-      setReportMessage({ 
-        type: 'error', 
-        text: err.response?.data?.message || 'Failed to generate custom report' 
+      setReportMessage({
+        type: 'error',
+        text: err.response?.data?.message || 'Failed to generate custom report'
       });
       console.error('Error generating custom report:', err);
     } finally {
@@ -485,7 +485,7 @@ const OnlineDonationsList = () => {
       'cancelled': { class: 'status-cancelled', text: 'Cancelled' },
       'registered': { class: 'status-registered', text: 'Registered' }
     };
-    
+
     const statusInfo = statusMap[status] || { class: 'status-pending', text: status };
     return <span className={`status-badge ${statusInfo.class}`}>{statusInfo.text}</span>;
   };
@@ -510,7 +510,7 @@ const OnlineDonationsList = () => {
       },
       visible: Boolean(
         (Array.isArray(donation?.progress_trackers) && donation.progress_trackers[0]?.id) ||
-          donation?.progress_tracker?.id,
+        donation?.progress_tracker?.id,
       ),
     },
     {
@@ -576,7 +576,7 @@ const OnlineDonationsList = () => {
     { value: 'event', label: 'Event' },
     { value: 'referral', label: 'Referral' },
     { value: 'collection_box', label: 'Collection Box' },
-    {value:'bank', label:'Bank'}
+    { value: 'bank', label: 'Bank' }
   ];
 
   const workflowTemplateOptions = useMemo(() => {
@@ -635,7 +635,7 @@ const OnlineDonationsList = () => {
       const donorName = donation.donor?.name || donation.donor_name || 'Anonymous';
       const donorEmail = donation.donor?.email || donation.donor_email || '-';
       const donorPhone = donation.donor?.phone || donation.donor_phone || '-';
-      
+
       return {
         ...donation,
         // Flatten donor data for CSV
@@ -648,9 +648,9 @@ const OnlineDonationsList = () => {
         donor_phone: donorPhone,
         amount: donation.amount ? parseFloat(donation.amount) : 0,
         currency: donation.currency || 'PKR',
-        donation_type: donation.donation_type === 'zakat' ? 'Zakat' : 
-        donation.donation_type === 'sadqa' ? 'Sadqa' : 
-        donation.donation_type || 'General',
+        donation_type: donation.donation_type === 'zakat' ? 'Zakat' :
+          donation.donation_type === 'sadqa' ? 'Sadqa' :
+            donation.donation_type || 'General',
         donation_method: donation.donation_method?.toUpperCase() || 'N/A',
         status: donation.status || 'pending',
         item_name: donation.item_name || '-',
@@ -674,9 +674,9 @@ const OnlineDonationsList = () => {
       <>
         <Navbar />
         <div className="list-wrapper">
-          <PageHeader 
-            title="Donations Listing" 
-            showBackButton={false} 
+          <PageHeader
+            title="Donations Listing"
+            showBackButton={false}
             showAdd={true}
             addPath=''
           />
@@ -690,17 +690,17 @@ const OnlineDonationsList = () => {
     <>
       <Navbar />
       <div className="list-wrapper">
-        <PageHeader 
-          title="Donations Listing" 
-          showBackButton={urlDonorId ? true :false} 
+        <PageHeader
+          title="Donations Listing"
+          showBackButton={urlDonorId ? true : false}
           backPath={urlDonorId ? `/dms/donors/view/${urlDonorId}` : null}
           showAdd={true}
           addPath='/donations/online_donations/add'
         />
-        
+
         <div className="list-content">
           {error && <div className="status-message status-message--error">{error}</div>}
-          
+
 
 
           {/* Report Message */}
@@ -709,12 +709,12 @@ const OnlineDonationsList = () => {
               {reportMessage.text}
             </div>
           )}
-          
+
           {/* Filters Section */}
-          <div className="filters-section" style={{ 
-            display: 'flex', 
-            gap: '20px', 
-            flexWrap: 'wrap', 
+          <div className="filters-section" style={{
+            display: 'flex',
+            gap: '20px',
+            flexWrap: 'wrap',
             padding: '20px',
             backgroundColor: '#f9fafb',
             borderRadius: '8px'
@@ -729,7 +729,7 @@ const OnlineDonationsList = () => {
                 placeholder="Search by donor name, email, phone..."
               />
             )}
-            
+
             <DropdownFilter
               filterKey="status"
               label="Status"
@@ -757,8 +757,8 @@ const OnlineDonationsList = () => {
               onChange={(value) => handleFilterChange('ref', value)} // value is an array of selected values
               placeholder="Select Campaigns"
             />
-            
-            
+
+
             <DropdownFilter
               filterKey="donation_type"
               label="Donation Type"
@@ -767,7 +767,7 @@ const OnlineDonationsList = () => {
               onFilterChange={handleFilterChange}
               placeholder="All Types"
             />
-            
+
             <DropdownFilter
               filterKey="donation_method"
               label="Payment Method"
@@ -794,7 +794,7 @@ const OnlineDonationsList = () => {
               onFilterChange={handleFilterChange}
               placeholder="All Templates"
             />
-            
+
             {/* <HybridDropdown
               label="Amount"
               placeholder="Type or select amount..."
@@ -803,7 +803,7 @@ const OnlineDonationsList = () => {
               onChange={(value) => handleFilterChange('amount', value)}
               allowCustom={true}
             /> */}
-            
+
             {/* Custom plus specified options */}
             {/* <HybridDropdown
               label="Amount Operator"
@@ -813,7 +813,7 @@ const OnlineDonationsList = () => {
               onChange={(value) => handleFilterChange('price_operator', value)}
               allowCustom={true}
             /> */}
-            
+
             <DateFilter
               filterKey="date"
               label="Specific Date"
@@ -829,7 +829,7 @@ const OnlineDonationsList = () => {
               onFilterChange={handleFilterChange}
               placeholder="Enter transaction ID..."
             />
-            
+
             <DateRangeFilter
               startKey="start_date"
               endKey="end_date"
@@ -837,7 +837,7 @@ const OnlineDonationsList = () => {
               filters={tempFilters}
               onFilterChange={handleFilterChange}
             />
-            
+
             {/* Only show Filter by Donor dropdown if not filtered via URL query param */}
             {!urlDonorId && (
               <SearchableDropdown
@@ -852,11 +852,11 @@ const OnlineDonationsList = () => {
                 minSearchLength={2}
                 allowResearch={true}
                 renderOption={(donor, index) => (
-                  <div 
+                  <div
                     key={donor.id}
                     className="searchable-dropdown__option"
                     onClick={() => handleDonorSelect(donor)}
-                    style={{ 
+                    style={{
                       padding: '12px',
                       borderBottom: index < donor.length - 1 ? '1px solid #eee' : 'none',
                       cursor: 'pointer'
@@ -872,11 +872,11 @@ const OnlineDonationsList = () => {
                 )}
               />
             )}
-            
+
             {/* Filter Action Buttons */}
-            <div style={{ 
-              display: 'flex', 
-              gap: '10px', 
+            <div style={{
+              display: 'flex',
+              gap: '10px',
               alignItems: 'flex-end',
               marginTop: '20px',
               width: '100%',
@@ -893,16 +893,16 @@ const OnlineDonationsList = () => {
               />
             </div>
           </div>
-                        {/* <FiDollarSign style={{ fontSize: '20px', color: '#28a745' }} /> */}
-           <div style={{marginLeft: '10px'}}>
-                <div style={{ fontSize: '14px', color: '#6c757d', marginBottom: '2px' , marginLeft: '10px'}}>
-                  Total Donation Amount
-                </div>
-                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>
-                  PKR {totalDonationAmount.toLocaleString()}
-                </div>
-              </div>
-          <div className="table-container"> 
+          {/* <FiDollarSign style={{ fontSize: '20px', color: '#28a745' }} /> */}
+          <div style={{ marginLeft: '10px' }}>
+            <div style={{ fontSize: '14px', color: '#6c757d', marginBottom: '2px', marginLeft: '10px' }}>
+              Total Donation Amount
+            </div>
+            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>
+              PKR {totalDonationAmount.toLocaleString()}
+            </div>
+          </div>
+          <div className="table-container">
             <table className="data-table">
               <thead>
                 <tr>
@@ -970,10 +970,10 @@ const OnlineDonationsList = () => {
               </tbody>
             </table>
           </div>
-          
-          <div className="list-header" style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
+
+          <div className="list-header" style={{
+            display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
             marginTop: '20px',
             padding: '15px 0'
@@ -989,7 +989,7 @@ const OnlineDonationsList = () => {
             }}>
 
             </div>
-            
+
             {/* <DownloadCSV
               data={prepareCSVData()}
               filename={getCSVFilename()}
@@ -999,7 +999,7 @@ const OnlineDonationsList = () => {
               onDownloadComplete={() => console.log('Download complete!')}
             /> */}
           </div>
-          
+
           {totalItems > 0 && (
             <Pagination
               currentPage={currentPage}
@@ -1014,7 +1014,7 @@ const OnlineDonationsList = () => {
               sortOptions={sortOptions}
             />
           )}
-          
+
           {donations.length === 0 && totalItems === 0 && (
             <div className="empty-state">
               <div className="empty-state-icon">💰</div>
@@ -1024,7 +1024,7 @@ const OnlineDonationsList = () => {
           )}
         </div>
       </div>
-      
+
       <ConfirmationModal
         isOpen={showDeleteModal}
         text={`Are you sure you want to delete the donation from ${donationToDelete?.donor?.name || 'Anonymous'}?`}
@@ -1058,7 +1058,7 @@ const OnlineDonationsList = () => {
             <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#2c5aa0' }}>
               Generate Custom Report
             </h2>
-            
+
             <div style={{ marginBottom: '15px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                 Start Date
@@ -1076,7 +1076,7 @@ const OnlineDonationsList = () => {
                 }}
               />
             </div>
-            
+
             <div style={{ marginBottom: '15px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                 End Date
@@ -1094,7 +1094,7 @@ const OnlineDonationsList = () => {
                 }}
               />
             </div>
-            
+
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                 Report Type
@@ -1115,7 +1115,7 @@ const OnlineDonationsList = () => {
                 <option value="monthly">Monthly</option>
               </select>
             </div>
-            
+
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => {

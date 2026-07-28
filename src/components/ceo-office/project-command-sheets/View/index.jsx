@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -220,167 +222,168 @@ const ProjectCommandSheetView = () => {
     <>
       <Navbar />
       <div className="pcs-view-container">
-      <div className="pcs-view-header">
-        <h3 className="pcs-view-title"> {sheet.project_name}</h3>
-        <div className="pcs-view-header-actions">
-          <button onClick={() => navigate('/ceo-office/project-command-sheets')} className="pcs-view-btn pcs-view-btn-secondary">
-            Back
-          </button>
-          {!sheet.related_task_id && (
-            <button onClick={openConvertModalForSheet} className="pcs-view-btn pcs-view-btn-info">
-              Convert to Task
+        <div className="pcs-view-header">
+          <h3 className="pcs-view-title"> {sheet.project_name}</h3>
+          <div className="pcs-view-header-actions">
+            <button onClick={() => navigate('/ceo-office/project-command-sheets')} className="pcs-view-btn pcs-view-btn-secondary">
+              Back
             </button>
+            {!sheet.related_task_id && (
+              <button onClick={openConvertModalForSheet} className="pcs-view-btn pcs-view-btn-info">
+                Convert to Task
+              </button>
+            )}
+            <button onClick={() => setIsEditing(!isEditing)} className="pcs-view-btn pcs-view-btn-primary">
+              {isEditing ? 'Cancel' : 'Edit'}
+            </button>
+            <button onClick={handleDelete} className="pcs-view-btn pcs-view-btn-danger">
+              Delete
+            </button>
+          </div>
+        </div>
+
+        <div className="pcs-view-details-container">
+          <div className="pcs-view-meta-section">
+            <div className="pcs-view-meta-item">
+              <span className="pcs-view-meta-label">Created On</span>
+              <span className="pcs-view-meta-value">{new Date(sheet.created_at).toLocaleString()}</span>
+            </div>
+            <div className="pcs-view-meta-item">
+              <span className="pcs-view-meta-label">Updated On</span>
+              <span className="pcs-view-meta-value">{new Date(sheet.updated_at).toLocaleString()}</span>
+            </div>
+          </div>
+
+          {sheet.related_task_id && (
+            <div className="pcs-view-form-group">
+              <h4 className="pcs-view-subtitle">Related Task</h4>
+              <p className="pcs-view-content-text">
+                <a
+                  href="#"
+                  className="pcs-view-task-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate(`/tasks/view/${sheet.related_task_id}`);
+                  }}
+                >
+                  Task #{sheet.related_task_id}
+                </a>
+              </p>
+            </div>
           )}
-          <button onClick={() => setIsEditing(!isEditing)} className="pcs-view-btn pcs-view-btn-primary">
-            {isEditing ? 'Cancel' : 'Edit'}
-          </button>
-          <button onClick={handleDelete} className="pcs-view-btn pcs-view-btn-danger">
-            Delete
-          </button>
+
+          {sheet.project_details && (
+            <div className="pcs-view-form-group">
+              <label className="pcs-view-form-label">Project Details</label>
+              <p className="pcs-view-content-text">{sheet.project_details}</p>
+            </div>
+          )}
+
+          {sheet.discussions && (
+            <div className="pcs-view-form-group">
+              <label className="pcs-view-form-label">Discussions</label>
+              <p className="pcs-view-content-text">{sheet.discussions}</p>
+            </div>
+          )}
+
+          {sheet.decisions && (
+            <div className="pcs-view-form-group">
+              <label className="pcs-view-form-label">Decisions</label>
+              <p className="pcs-view-content-text">{sheet.decisions}</p>
+            </div>
+          )}
+
+          {sheet.meeting_notes && (
+            <div className="pcs-view-form-group">
+              <label className="pcs-view-form-label">Meeting Notes</label>
+              <p className="pcs-view-content-text">{sheet.meeting_notes}</p>
+            </div>
+          )}
+
+          {sheet.pending_items?.length > 0 && (
+            <div className="pcs-view-pending-items">
+              <h4 className="pcs-view-subtitle">Pending Items</h4>
+              <ul className="pcs-view-items-list">
+                {sheet.pending_items.map((item, idx) => (
+                  <li key={idx} className={`pcs-view-item ${item.status === 'completed' ? 'pcs-view-item-completed' : ''}`}>
+                    {item.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {sheet.action_items?.length > 0 && (
+            <div className="pcs-view-action-items">
+              <h4 className="pcs-view-subtitle">Action Items</h4>
+              <ul className="pcs-view-items-list">
+                {sheet.action_items.map((item) => {
+                  const assignedUserName = getAssignedUserName(item.assigned_to_id);
+                  return (
+                    <li key={item.id} className={`pcs-view-item ${item.status === 'completed' ? 'pcs-view-item-completed' : ''}`}>
+                      <span className="pcs-view-item-text">{item.text}</span>
+                      <div className="pcs-view-item-meta-section">
+                        {assignedUserName && (
+                          <span className="pcs-view-item-meta">• Assigned to: {assignedUserName}</span>
+                        )}
+                        {item.due_date && (
+                          <span className="pcs-view-item-meta">• Due: {new Date(item.due_date).toLocaleDateString()}</span>
+                        )}
+                        {item.related_task_id ? (
+                          <span className="pcs-view-item-meta">
+                            • Converted to{' '}
+                            <a
+                              href="#"
+                              className="pcs-view-task-link"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                navigate(`/tasks/view/${item.related_task_id}`);
+                              }}
+                            >
+                              Task #{item.related_task_id}
+                            </a>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => openConvertModal(item)}
+                            className="pcs-view-btn pcs-view-btn-sm pcs-view-btn-info"
+                          >
+                            Convert to Task
+                          </button>
+
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )}
+
+          {sheet.next_steps && (
+            <div className="pcs-view-form-group">
+              <label className="pcs-view-form-label">Next Steps</label>
+              <p className="pcs-view-content-text">{sheet.next_steps}</p>
+            </div>
+          )}
+
+          {sheet.results && (
+            <div className="pcs-view-form-group">
+              <label className="pcs-view-form-label">Results</label>
+              <p className="pcs-view-content-text">{sheet.results}</p>
+            </div>
+          )}
         </div>
+
+        {/* Convert to Task Modal */}
+        <ConvertToTaskModal
+          isOpen={convertModalOpen}
+          onClose={() => setConvertModalOpen(false)}
+          convertData={convertData}
+          setConvertData={setConvertData}
+          onConvert={handleConvertToTask}
+        />
       </div>
-
-      <div className="pcs-view-details-container">
-        <div className="pcs-view-meta-section">
-          <div className="pcs-view-meta-item">
-            <span className="pcs-view-meta-label">Created On</span>
-            <span className="pcs-view-meta-value">{new Date(sheet.created_at).toLocaleString()}</span>
-          </div>
-          <div className="pcs-view-meta-item">
-            <span className="pcs-view-meta-label">Updated On</span>
-            <span className="pcs-view-meta-value">{new Date(sheet.updated_at).toLocaleString()}</span>
-          </div>
-        </div>
-
-        {sheet.related_task_id && (
-          <div className="pcs-view-form-group">
-            <h4 className="pcs-view-subtitle">Related Task</h4>
-            <p className="pcs-view-content-text">
-              <a
-                href="#"
-                className="pcs-view-task-link"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate(`/tasks/view/${sheet.related_task_id}`);
-                }}
-              >
-                Task #{sheet.related_task_id}
-              </a>
-            </p>
-          </div>
-        )}
-
-        {sheet.project_details && (
-          <div className="pcs-view-form-group">
-            <label className="pcs-view-form-label">Project Details</label>
-            <p className="pcs-view-content-text">{sheet.project_details}</p>
-          </div>
-        )}
-
-        {sheet.discussions && (
-          <div className="pcs-view-form-group">
-            <label className="pcs-view-form-label">Discussions</label>
-            <p className="pcs-view-content-text">{sheet.discussions}</p>
-          </div>
-        )}
-
-        {sheet.decisions && (
-          <div className="pcs-view-form-group">
-            <label className="pcs-view-form-label">Decisions</label>
-            <p className="pcs-view-content-text">{sheet.decisions}</p>
-          </div>
-        )}
-
-        {sheet.meeting_notes && (
-          <div className="pcs-view-form-group">
-            <label className="pcs-view-form-label">Meeting Notes</label>
-            <p className="pcs-view-content-text">{sheet.meeting_notes}</p>
-          </div>
-        )}
-
-        {sheet.pending_items?.length > 0 && (
-          <div className="pcs-view-pending-items">
-            <h4 className="pcs-view-subtitle">Pending Items</h4>
-            <ul className="pcs-view-items-list">
-              {sheet.pending_items.map((item, idx) => (
-                <li key={idx} className={`pcs-view-item ${item.status === 'completed' ? 'pcs-view-item-completed' : ''}`}>
-                  {item.text}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {sheet.action_items?.length > 0 && (
-          <div className="pcs-view-action-items">
-            <h4 className="pcs-view-subtitle">Action Items</h4>
-            <ul className="pcs-view-items-list">
-              {sheet.action_items.map((item) => {
-                const assignedUserName = getAssignedUserName(item.assigned_to_id);
-                return (
-                <li key={item.id} className={`pcs-view-item ${item.status === 'completed' ? 'pcs-view-item-completed' : ''}`}>
-                  <span className="pcs-view-item-text">{item.text}</span>
-                  <div className="pcs-view-item-meta-section">
-                    {assignedUserName && (
-                      <span className="pcs-view-item-meta">• Assigned to: {assignedUserName}</span>
-                    )}
-                    {item.due_date && (
-                      <span className="pcs-view-item-meta">• Due: {new Date(item.due_date).toLocaleDateString()}</span>
-                    )}
-                    {item.related_task_id ? (
-                      <span className="pcs-view-item-meta">
-                        • Converted to{' '}
-                        <a
-                          href="#"
-                          className="pcs-view-task-link"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            navigate(`/tasks/view/${item.related_task_id}`);
-                          }}
-                        >
-                          Task #{item.related_task_id}
-                        </a>
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => openConvertModal(item)}
-                        className="pcs-view-btn pcs-view-btn-sm pcs-view-btn-info"
-                      >
-                        Convert to Task
-                      </button>
-                      
-                    )}
-                  </div>
-                </li>
-              )})}
-            </ul>
-          </div>
-        )}
-
-        {sheet.next_steps && (
-          <div className="pcs-view-form-group">
-            <label className="pcs-view-form-label">Next Steps</label>
-            <p className="pcs-view-content-text">{sheet.next_steps}</p>
-          </div>
-        )}
-
-        {sheet.results && (
-          <div className="pcs-view-form-group">
-            <label className="pcs-view-form-label">Results</label>
-            <p className="pcs-view-content-text">{sheet.results}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Convert to Task Modal */}
-      <ConvertToTaskModal
-        isOpen={convertModalOpen}
-        onClose={() => setConvertModalOpen(false)}
-        convertData={convertData}
-        setConvertData={setConvertData}
-        onConvert={handleConvertToTask}
-      />
-    </div>
     </>
   );
 };
