@@ -63,7 +63,7 @@ const QuickNote = () => {
     organization: '',
     purpose: '',
     visitor_meeting_with: '',
-    visitor_department: '',
+    // visitor_department: '',
     protocol_required: '',
     expected_duration: '',
     visitor_outcome: '',
@@ -677,7 +677,7 @@ const QuickNote = () => {
                                 placeholder="Enter action item"
                               />
                             </div>
-                            <div className="form-group flex-1">
+                            {/* <div className="form-group flex-1">
                               <label>Assigned To</label>
                               <input
                                 type="text"
@@ -686,7 +686,7 @@ const QuickNote = () => {
                                 className="form-control"
                                 placeholder="Assigned to"
                               />
-                            </div>
+                            </div> */}
                             <div className="form-group flex-1">
                               <label>Due Date</label>
                               <input
@@ -1005,7 +1005,7 @@ const QuickNote = () => {
                               className="form-control"
                             />
                           </div>
-                          <div className="form-group">
+                          {/* <div className="form-group">
                             <label>Department</label>
                             <select
                               name="visitor_department"
@@ -1018,7 +1018,7 @@ const QuickNote = () => {
                                 <option key={dept} value={dept}>{dept.replace('_', ' ')}</option>
                               ))}
                             </select>
-                          </div>
+                          </div> */}
                           <div className="form-group">
                             <label>Protocol Required</label>
                             <select

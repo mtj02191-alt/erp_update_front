@@ -216,6 +216,7 @@ const App = () => {
 
                                 {/* CEO Office Routes */}
                                 <Route path="/ceo-office/dashboard" element={<CeoDashboard />} />
+                                <Route path="/ceo-office/quick-note" element={<QuickNote />} />
                                 <Route path="/ceo-notes" element={<QuickNote />} />
                                 <Route path="/ceo-office/instruction-register" element={<InstructionRegister />} />
                                 <Route path="/ceo-office/notes/:id" element={<CeoNoteView />} />
