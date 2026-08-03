@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from '../../../../utils/axios';
@@ -81,6 +81,7 @@ const QuickNote = () => {
     response_status: '',
     relatedNoteId: null,
     remarks: '',
+    assigned_user_ids: [],
     // Project Command Sheet fields
     project_name: '',
     project_details: '',
@@ -96,6 +97,16 @@ const QuickNote = () => {
     results: ''
   });
   const [loading, setLoading] = useState(false);
+  const [assignedUsers, setAssignedUsers] = useState([]);
+
+  const searchAssignees = useMemo(() => {
+    return async (searchTerm) => {
+      try {
+        const response = await axios.get('/users/options', { params: { search: searchTerm, active: true } });
+        return Array.isArray(response.data) ? response.data : response.data.data || [];
+      } catch { return []; }
+    };
+  }, []);
 
   // Update type when category changes
   useEffect(() => {
@@ -158,6 +169,15 @@ const QuickNote = () => {
       cleanedNoteData.meeting_decisions = formData.meeting_decisions.filter(d => d.content.trim());
       cleanedNoteData.meeting_action_items = formData.meeting_action_items.filter(a => a.content.trim());
 
+      // Map camelCase relatedNoteId to snake_case
+      if (formData.relatedNoteId) {
+        cleanedNoteData.related_note_id = formData.relatedNoteId;
+      }
+      delete cleanedNoteData.relatedNoteId;
+
+      // Include assigned users
+      cleanedNoteData.assigned_user_ids = formData.assigned_user_ids;
+
       // For categories that correspond to visitor types, set the type appropriately
       if (formData.category === 'visitors') {
         cleanedNoteData.type = 'visitor';
@@ -172,7 +192,8 @@ const QuickNote = () => {
       toast.success('Note created successfully');
 
       navigate('/ceo-office/dashboard');
-    } catch (error) {
+    } 
+    catch (error) {
       console.error('Error creating record:', error);
       toast.error('Failed to create record');
     } finally {
@@ -1348,7 +1369,6 @@ const QuickNote = () => {
               </>
             )}
           </div>
-
           <div className="form-actions">
             <button type="button" onClick={() => navigate('/ceo-office/dashboard')} className="quick-note-cancel-btn">
               Cancel

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { FaUserCheck, FaPhone, FaWhatsapp, FaArrowLeft, FaEdit, FaTrash } from 'react-icons/fa';
 import axios from '../../../../utils/axios';
@@ -38,10 +38,17 @@ const getDefaultFormData = () => ({
 const VisitorView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [visitor, setVisitor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(getDefaultFormData());
+
+  useEffect(() => {
+    if (location.state?.isEditing) {
+      setIsEditing(true);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (id) {
@@ -53,7 +60,6 @@ const VisitorView = () => {
     try {
       setLoading(true);
       const response = await axios.get(`/visitors/${id}`);
-      console.log('Fetched visitor data:', response.data);
       setVisitor(response.data);
       setFormData({
         type: (response.data.type || 'visitor').toLowerCase(),
@@ -163,7 +169,6 @@ const VisitorView = () => {
     e.preventDefault();
     try {
       const payload = buildPayload(formData);
-      console.log('Updating visitor with payload:', payload);
       await axios.patch(`/visitors/${id}`, payload);
       toast.success('Visitor log updated successfully');
       setIsEditing(false);
@@ -240,8 +245,146 @@ const VisitorView = () => {
         <div className="visitor-view-table-wrapper">
           <div className="visitor-view-table-container">
             <div className="visitor-view-note-details-container">
-              <>
-                <div className="visitor-view-note-meta-section">
+              {isEditing ? (
+                <form onSubmit={handleUpdate} className="visitor-view-edit-form">
+                  <div className="visitor-view-form-group">
+                    <label>Status</label>
+                    <select name="status" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="visitor-view-form-input">
+                      <option value="Pending">Pending</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+
+                  <div className="visitor-view-form-group">
+                    <label>Date & Time</label>
+                    <input type="datetime-local" name="visitDatetime" value={formData.visitDatetime} onChange={(e) => setFormData({ ...formData, visitDatetime: e.target.value })} className="visitor-view-form-input" />
+                  </div>
+
+                  {formData.type === 'visitor' && (
+                    <>
+                      <div className="visitor-view-form-group">
+                        <label>Visitor Name</label>
+                        <input type="text" name="visitorName" value={formData.visitorName || ''} onChange={(e) => setFormData({ ...formData, visitorName: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Organization</label>
+                        <input type="text" name="organization" value={formData.organization || ''} onChange={(e) => setFormData({ ...formData, organization: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Purpose</label>
+                        <textarea name="purpose" value={formData.purpose || ''} onChange={(e) => setFormData({ ...formData, purpose: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Meeting With</label>
+                        <input type="text" name="meetingWith" value={formData.meetingWith || ''} onChange={(e) => setFormData({ ...formData, meetingWith: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Department</label>
+                        <input type="text" name="department" value={formData.department || ''} onChange={(e) => setFormData({ ...formData, department: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Protocol Required</label>
+                        <input type="text" name="protocolRequired" value={formData.protocolRequired || ''} onChange={(e) => setFormData({ ...formData, protocolRequired: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Expected Duration</label>
+                        <input type="text" name="expectedDuration" value={formData.expectedDuration || ''} onChange={(e) => setFormData({ ...formData, expectedDuration: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Visitor Outcome</label>
+                        <textarea name="visitorOutcome" value={formData.visitorOutcome || ''} onChange={(e) => setFormData({ ...formData, visitorOutcome: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                    </>
+                  )}
+
+                  {formData.type === 'call' && (
+                    <>
+                      <div className="visitor-view-form-group">
+                        <label>Caller Name</label>
+                        <input type="text" name="callerName" value={formData.callerName || ''} onChange={(e) => setFormData({ ...formData, callerName: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Organization</label>
+                        <input type="text" name="organization" value={formData.organization || ''} onChange={(e) => setFormData({ ...formData, organization: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Phone Number</label>
+                        <input type="text" name="phoneNumber" value={formData.phoneNumber || ''} onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Call Purpose</label>
+                        <input type="text" name="callPurpose" value={formData.callPurpose || ''} onChange={(e) => setFormData({ ...formData, callPurpose: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Call Summary</label>
+                        <textarea name="callSummary" value={formData.callSummary || ''} onChange={(e) => setFormData({ ...formData, callSummary: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Follow-up Required</label>
+                        <select name="followUpRequired" value={formData.followUpRequired || 'No'} onChange={(e) => setFormData({ ...formData, followUpRequired: e.target.value })} className="visitor-view-form-input">
+                          <option value="No">No</option>
+                          <option value="Yes">Yes</option>
+                        </select>
+                      </div>
+                      {formData.followUpRequired === 'Yes' && (
+                        <>
+                          <div className="visitor-view-form-group">
+                            <label>Follow-up Date</label>
+                            <input type="datetime-local" name="followUpDate" value={formData.followUpDate || ''} onChange={(e) => setFormData({ ...formData, followUpDate: e.target.value })} className="visitor-view-form-input" />
+                          </div>
+                          <div className="visitor-view-form-group">
+                            <label>Assigned To</label>
+                            <input type="text" name="assignedTo" value={formData.assignedTo || ''} onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })} className="visitor-view-form-input" />
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {formData.type === 'whatsapp' && (
+                    <>
+                      <div className="visitor-view-form-group">
+                        <label>Contact Name</label>
+                        <input type="text" name="contactName" value={formData.contactName || ''} onChange={(e) => setFormData({ ...formData, contactName: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Phone Number</label>
+                        <input type="text" name="whatsappPhoneNumber" value={formData.whatsappPhoneNumber || ''} onChange={(e) => setFormData({ ...formData, whatsappPhoneNumber: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Message Summary</label>
+                        <textarea name="messageSummary" value={formData.messageSummary || ''} onChange={(e) => setFormData({ ...formData, messageSummary: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Required Action</label>
+                        <textarea name="requiredAction" value={formData.requiredAction || ''} onChange={(e) => setFormData({ ...formData, requiredAction: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Attachment URL</label>
+                        <input type="text" name="attachmentUrl" value={formData.attachmentUrl || ''} onChange={(e) => setFormData({ ...formData, attachmentUrl: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                      <div className="visitor-view-form-group">
+                        <label>Response Status</label>
+                        <input type="text" name="responseStatus" value={formData.responseStatus || ''} onChange={(e) => setFormData({ ...formData, responseStatus: e.target.value })} className="visitor-view-form-input" />
+                      </div>
+                    </>
+                  )}
+
+                  <div className="visitor-view-form-group">
+                    <label>Remarks</label>
+                    <textarea name="remarks" value={formData.remarks || ''} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} className="visitor-view-form-input" />
+                  </div>
+
+                  <div className="visitor-view-form-actions">
+                    <button type="submit" className="visitor-view-btn-primary">Save Changes</button>
+                    <button type="button" onClick={() => { setIsEditing(false); fetchVisitor(); }} className="visitor-view-btn-secondary">Cancel</button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <div className="visitor-view-note-meta-section">
                   <div className="visitor-view-meta-item">
                     <span className="visitor-view-meta-label">Type</span>
                     <span>
@@ -479,6 +622,7 @@ const VisitorView = () => {
                   </div>
                 </div>
               </>
+              )}
             </div>
           </div>
         </div>

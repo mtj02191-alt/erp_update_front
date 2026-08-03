@@ -85,7 +85,6 @@ const ProjectCommandSheets = () => {
       const noteRecords = filteredNotes.map(noteToPcsFormat);
       // Combine
       const combinedData = [...sheetsData, ...noteRecords];
-      console.log('Fetched combined data:', combinedData);
       setSheets(combinedData);
     } catch (error) {
       console.error('Error fetching project command sheets:', error);

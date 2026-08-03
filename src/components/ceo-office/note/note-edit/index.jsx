@@ -131,16 +131,38 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
 
   const handleSubmit = async () => {
     try {
-      let cleanedData = { ...formData };
+      // Only send fields relevant to the current category
+      const commonFields = ['date', 'category', 'title', 'details', 'related_person', 'department', 'priority', 'due_date', 'status', 'attachment', 'voice_note', 'pa_remarks', 'ceo_remarks'];
+      
+      const categoryFieldMap = {
+        follow_up: ['follow_up_requested_from', 'follow_up_requested_date', 'follow_up_last_date', 'follow_up_next_date', 'follow_up_current_response', 'follow_up_remarks', 'follow_up_history'],
+        meetings: ['meeting_date', 'meeting_with', 'meeting_subject', 'meeting_discussion_points', 'meeting_decisions', 'meeting_action_items'],
+        emails_and_approvals: ['approval_type', 'approval_requested_by', 'approval_subject', 'approval_reference_number', 'approval_amount', 'approval_decision', 'approval_decision_remarks'],
+        waiting_response: ['waiting_response_requested_from', 'waiting_response_request_date', 'waiting_response_expected_date', 'waiting_response_last_reminder_date', 'waiting_response_status', 'waiting_response_remarks', 'waiting_response_reminders'],
+        visitors: ['type', 'visit_datetime', 'visitor_name', 'organization', 'purpose', 'meeting_with', 'department', 'protocol_required', 'expected_duration', 'visitor_outcome'],
+        calls: ['type', 'visit_datetime', 'caller_name', 'organization', 'phone_number', 'call_purpose', 'call_summary', 'follow_up_required', 'follow_up_date', 'assigned_to'],
+        whatsapp: ['type', 'visit_datetime', 'contact_name', 'phone_number', 'message_summary', 'required_action', 'attachment_url', 'response_status'],
+        project_command_sheets: ['project_name', 'project_details', 'discussions', 'decisions', 'meeting_notes', 'pending_items', 'action_items', 'start_date', 'end_date', 'pcs_status', 'next_steps', 'results'],
+      };
+
+      const relevantFields = [...commonFields, ...(categoryFieldMap[formData.category] || [])];
+      let cleanedData = {};
+      for (const key of relevantFields) {
+        if (formData.hasOwnProperty(key)) {
+          cleanedData[key] = formData[key];
+        }
+      }
       cleanedData = cleanEmptyStrings(cleanedData);
+
+      // Clean array fields
       if (cleanedData.meeting_discussion_points) {
-        cleanedData.meeting_discussion_points = cleanedData.meeting_discussion_points.filter(p => p.content.trim());
+        cleanedData.meeting_discussion_points = cleanedData.meeting_discussion_points.filter(p => p.content?.trim());
       }
       if (cleanedData.meeting_decisions) {
-        cleanedData.meeting_decisions = cleanedData.meeting_decisions.filter(d => d.content.trim());
+        cleanedData.meeting_decisions = cleanedData.meeting_decisions.filter(d => d.content?.trim());
       }
       if (cleanedData.meeting_action_items) {
-        cleanedData.meeting_action_items = cleanedData.meeting_action_items.filter(a => a.content.trim());
+        cleanedData.meeting_action_items = cleanedData.meeting_action_items.filter(a => a.content?.trim());
       }
 
       const response = await axios.patch(`/ceo-notes/${note.id}`, cleanedData);

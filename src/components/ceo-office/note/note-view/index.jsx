@@ -44,16 +44,38 @@ const CeoNoteView = () => {
     try {
       setLoading(true);
       const response = await axios.get(`/ceo-notes/${id}`);
-      setNote(response.data);
+      const raw = response.data;
+
+      // Flatten nested detail objects into the note for flat field access
+      const detailKeys = [
+        'meeting_detail', 'approval_detail', 'follow_up_detail',
+        'waiting_response_detail', 'project_command_sheet_detail',
+        'visitor_detail', 'call_detail', 'whatsapp_detail',
+      ];
+      const flattened = { ...raw };
+      for (const key of detailKeys) {
+        if (raw[key] && typeof raw[key] === 'object') {
+          Object.assign(flattened, raw[key]);
+          // Keep the detail reference too for backward compat
+          flattened[key] = raw[key];
+        }
+      }
+      // Derive 'type' from category for visitor/call/whatsapp sections
+      if (['visitors', 'calls', 'whatsapp'].includes(raw.category)) {
+        const typeMap = { visitors: 'visitor', calls: 'call', whatsapp: 'whatsapp' };
+        flattened.type = flattened.type || typeMap[raw.category];
+      }
+
+      setNote(flattened);
 
       setConvertData({
-        task_title: response.data.title,
-        task_description: response.data.details,
-        task_department: response.data.department,
-        task_priority: response.data.priority,
-        task_due_date: response.data.due_date ? response.data.due_date.split('T')[0] : '',
-        assigned_users: response.data.assigned_user_ids?.length > 0 
-          ? response.data.assigned_user_ids 
+        task_title: flattened.title,
+        task_description: flattened.details,
+        task_department: flattened.department,
+        task_priority: flattened.priority,
+        task_due_date: flattened.due_date ? flattened.due_date.split('T')[0] : '',
+        assigned_users: flattened.assigned_user_ids?.length > 0 
+          ? flattened.assigned_user_ids 
           : [],
       });
     } catch (error) {
@@ -224,18 +246,6 @@ const CeoNoteView = () => {
         );
         break;
 
-      case 'top_priority':
-      case 'today_task':
-      case 'ceo_direct_orders':
-        if (!note.related_task_id) {
-          buttons.push(
-            <button key="convert-to-task" onClick={() => setConvertModalOpen(true)} className="note-view-btn note-view-btn-info">
-              Convert to Task
-            </button>
-          );
-        }
-        break;
-
       case 'follow_up':
       case 'waiting_response':
         buttons.push(
@@ -279,7 +289,6 @@ const CeoNoteView = () => {
       case 'important_decisions':
         buttons.push(
           <button key="view-decision" onClick={() => {
-            // Scroll to meeting decisions section if available
             const decisionsSection = document.querySelector('.note-view-section');
             if (decisionsSection) {
               decisionsSection.scrollIntoView({ behavior: 'smooth' });
@@ -292,6 +301,15 @@ const CeoNoteView = () => {
 
       default:
         break;
+    }
+
+    // Show Convert to Task for any note that hasn't been converted yet
+    if (!note.related_task_id && note.category !== 'emails_and_approvals' && note.category !== 'project_command_sheets') {
+      buttons.push(
+        <button key="convert-to-task" onClick={() => setConvertModalOpen(true)} className="note-view-btn note-view-btn-info">
+          Convert to Task
+        </button>
+      );
     }
 
     // Always keep Audit History
@@ -1061,6 +1079,31 @@ const CeoNoteView = () => {
             <div className="note-view-action-buttons-container">
               {renderCategorySpecificButtons()}
             </div>
+
+            {/* Approval History Timeline */}
+            {note.approval_detail?.approval_history?.length > 0 && (
+              <div className="note-view-approval-history-section" style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                <h3 style={{ marginBottom: '15px', fontSize: '16px', fontWeight: '600' }}>Approval History</h3>
+                <div style={{ position: 'relative', paddingLeft: '24px' }}>
+                  {note.approval_detail.approval_history.map((entry, idx) => (
+                    <div key={idx} style={{ position: 'relative', paddingBottom: '16px', borderLeft: '2px solid #dee2e6', paddingLeft: '16px', marginLeft: '8px' }}>
+                      <div style={{
+                        position: 'absolute', left: '-7px', top: '4px', width: '12px', height: '12px', borderRadius: '50%',
+                        backgroundColor: entry.decision === 'approved' ? '#28a745' : entry.decision === 'rejected' ? '#dc3545' : '#ffc107'
+                      }} />
+                      <div style={{ fontWeight: '600', textTransform: 'capitalize', color: entry.decision === 'approved' ? '#28a745' : entry.decision === 'rejected' ? '#dc3545' : '#856404' }}>
+                        {entry.decision === 'clarification_requested' ? 'Clarification Requested' : entry.decision}
+                      </div>
+                      {entry.remarks && <div style={{ fontSize: '13px', color: '#555', marginTop: '2px' }}>{entry.remarks}</div>}
+                      <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+                        {entry.decision_date ? new Date(entry.decision_date).toLocaleString() : ''}
+                        {entry.decision_by_id ? ` • By User #${entry.decision_by_id}` : ''}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Audit History Section */}
             {showAuditHistory && (

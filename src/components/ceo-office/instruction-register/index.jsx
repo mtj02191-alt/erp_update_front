@@ -6,12 +6,18 @@ import {
   FaExclamationTriangle, FaLightbulb, FaHourglassHalf, FaProjectDiagram,
   FaCheckDouble, 
   FaEnvelope,
-  FaArrowUp
+  FaArrowUp,
+  FaRedo,
+  FaPrint,
+  FaCheck,
+  FaTimes,
+  FaLock
 } from 'react-icons/fa';          
 import { toast } from 'react-toastify';
 import axios from '../../../utils/axios';
 import Navbar from '../../Navbar';
 import ConvertToTaskModal from '../ConvertToTaskModal';
+import EmptyState from '../common/EmptyState';
 import './index.css';
 
 const InstructionRegister = () => {
@@ -30,6 +36,8 @@ const InstructionRegister = () => {
     search: '',
   });
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [convertModalOpen, setConvertModalOpen] = useState(false);
   const [convertData, setConvertData] = useState({
     task_title: '',
@@ -45,14 +53,18 @@ const InstructionRegister = () => {
   const [currentConvertProjectSheetId, setCurrentConvertProjectSheetId] = useState(null);
 
   useEffect(() => {
-    Promise.all([fetchAllNotes(), fetchAllUsers()]);
+    fetchAllUsers();
   }, []);
+
+  // Fetch notes from server whenever filters or pagination change
+  useEffect(() => {
+    fetchAllNotes();
+  }, [filters.category, filters.department, filters.status, filters.priority, filters.search, pagination.page, pagination.pageSize]);
 
   const fetchAllUsers = async () => {
     try {
       const response = await axios.get('/users/options');
       const users = response.data.data || response.data || [];
-      console.log('All users from options endpoint:', users);
       setAllUsers(users);
       
       // Create a map from user ID to user object
@@ -71,152 +83,104 @@ const InstructionRegister = () => {
   const fetchAllNotes = async () => {
     try {
       setLoading(true);
-      // Fetch ceo-notes, visitors, AND project command sheets
-      const [notesResponse, visitorsResponse, projectSheetsResponse] = await Promise.all([
-        axios.get('/ceo-notes', { params: { pageSize: 1000 } }),
-        axios.get('/visitors', { params: { pageSize: 1000 } }),
-        axios.get('/project-command-sheets', { params: { pageSize: 1000 } }),
-      ]);
-      const notes = notesResponse.data.data || [];
-      const visitorsRecords = visitorsResponse.data.data || [];
-      const projectSheets = projectSheetsResponse.data.data || [];
-      
-      // Combine notes and visitors records, avoiding duplicates
-      const noteIds = new Set(notes.map(note => note.id));
-      const filteredVisitorRecords = visitorsRecords.filter(
-        record => !record.related_note_id || !noteIds.has(record.related_note_id)
-      );
+      const params = {
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        sortOrder: 'DESC',
+      };
+      if (filters.category) params.category = filters.category;
+      if (filters.department) params.department = filters.department;
+      if (filters.status) params.status = filters.status;
+      if (filters.search) params.search = filters.search;
 
-      // Convert visitor records to note-like objects for display
-      const convertedVisitorRecords = filteredVisitorRecords.map(record => {
-        const category = record.type === 'call' ? 'calls' : record.type === 'whatsapp' ? 'whatsapp' : 'visitors';
-        let title;
-        if (record.type === 'call') {
-          title = record.caller_name || record.title || 'Call Record';
-        } else if (record.type === 'whatsapp') {
-          title = record.contact_name || record.title || 'WhatsApp Record';
-        } else {
-          title = record.visitor_name || record.title || 'Visitor Record';
+      const response = await axios.get('/ceo-notes/instruction-register', { params });
+      const records = response.data.data || [];
+
+      // Normalize records to a common format for display
+      const normalized = records.map(record => {
+        const item = record.item || record;
+        const type = record.type || 'note';
+        
+        if (type === 'note') {
+          return { ...item, source: 'ceo-note', id: item.id };
         }
-        return {
-          ...record,
-          id: record.id,
-          source: 'visitor-record',
-          category: category,
-          title: title,
-          details: record.purpose || record.call_purpose || record.message_summary || '',
-          department: record.department || null,
-          priority: 'medium',
-          status: record.status || 'pending',
-          due_date: record.follow_up_date || null,
-          date: record.visit_datetime || new Date().toISOString(),
-          related_task_id: record.related_task_id || null,
-        };
+        if (type === 'visitor') {
+          return {
+            ...item,
+            id: item.id,
+            source: 'visitor-record',
+            category: 'visitors',
+            title: item.visitor_name || 'Visitor Record',
+            details: item.purpose || '',
+            status: item.status || 'pending',
+            date: item.visit_datetime || item.created_at,
+          };
+        }
+        if (type === 'call') {
+          return {
+            ...item,
+            id: item.id,
+            source: 'visitor-record',
+            category: 'calls',
+            title: item.caller_name || 'Call Record',
+            details: item.call_purpose || '',
+            status: item.status || 'pending',
+            date: item.visit_datetime || item.created_at,
+          };
+        }
+        if (type === 'whatsapp') {
+          return {
+            ...item,
+            id: item.id,
+            source: 'visitor-record',
+            category: 'whatsapp',
+            title: item.contact_name || 'WhatsApp Record',
+            details: item.message_summary || '',
+            status: item.status || 'pending',
+            date: item.visit_datetime || item.created_at,
+          };
+        }
+        if (type === 'project_command_sheet') {
+          return {
+            ...item,
+            id: item.id,
+            source: 'project-command-sheet',
+            category: 'project_command_sheets',
+            title: item.project_name || 'Project Sheet',
+            details: item.project_details || '',
+            status: item.status || 'pending',
+            date: item.created_at,
+          };
+        }
+        return { ...item, source: type, id: item.id };
       });
 
-      // Convert project command sheets to note-like objects
-      const convertedProjectSheets = projectSheets.map(sheet => ({
-        ...sheet,
-        id: sheet.id,
-        source: 'project-command-sheet',
-        category: 'project_command_sheets',
-        title: sheet.project_name,
-        details: sheet.project_details || sheet.meeting_notes || sheet.next_steps || '',
-        department: null, // We can leave this null for now or add later if needed
-        priority: 'medium', // Default priority for project sheets
-        status: sheet.status || 'pending',
-        due_date: sheet.end_date || null,
-        date: sheet.created_at || new Date().toISOString(),
-        related_task_id: sheet.related_task_id || null,
-        assigned_user_ids: sheet.assigned_user_ids || [],
-        assigned_users: sheet.assigned_users || []
+      setNotes(normalized);
+
+      // Update pagination from server response
+      const serverPagination = response.data.pagination || {};
+      setPagination(prev => ({
+        ...prev,
+        total: serverPagination.total || normalized.length,
       }));
 
-      const combinedData = [...notes, ...convertedVisitorRecords, ...convertedProjectSheets];
-      // Sort by date descending
-      combinedData.sort((a, b) => {
-        const dateA = new Date(a.date || a.visit_datetime || a.created_at);
-        const dateB = new Date(b.date || b.visit_datetime || b.created_at);
-        return dateB.getTime() - dateA.getTime();
+      // Update stats from counts
+      const counts = response.data.counts || {};
+      setStats({
+        total: serverPagination.total || normalized.length,
+        completed: 0,
+        inProgress: 0,
+        pending: 0,
+        critical: 0,
       });
-      console.log('Combined data:', combinedData);
-      setAllNotes(combinedData);
+
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Error fetching notes:', error);
       toast.error('Failed to load instructions');
     } finally {
       setLoading(false);
     }
-  };
-
-  // Apply filters whenever they change
-  useEffect(() => {
-    if (allNotes.length > 0) {
-      applyFilters();
-    }
-  }, [allNotes, filters, pagination.page, pagination.pageSize]);
-
-  const applyFilters = () => {
-    let filtered = [...allNotes];
-    
-    // Apply category filter
-    if (filters.category) {
-      filtered = filtered.filter(note => note.category === filters.category);
-    }
-    
-    // Apply department filter
-    if (filters.department) {
-      filtered = filtered.filter(note => note.department === filters.department);
-    }
-    
-    // Apply status filter
-    if (filters.status) {
-      filtered = filtered.filter(note => note.status === filters.status);
-    }
-    
-    // Apply priority filter
-    if (filters.priority) {
-      filtered = filtered.filter(note => note.priority === filters.priority);
-    }
-    
-    // Apply search filter
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(note => {
-        const assignedUserNames = [
-            ...(note.assigned_users?.map(u => `${u.first_name} ${u.last_name}`) || [])
-          ].join(' ').toLowerCase();
-        return (
-          note.title.toLowerCase().includes(searchLower) ||
-          note.department?.replace('_', ' ').toLowerCase().includes(searchLower) ||
-          note.category?.replace('_', ' ').toLowerCase().includes(searchLower) ||
-          assignedUserNames.includes(searchLower)
-        );
-      });
-    }
-    
-    // Update statistics based on filtered data
-    const completed = filtered.filter(n => n.status === 'completed' || n.status === 'closed').length;
-    const inProgress = filtered.filter(n => n.status === 'in_progress').length;
-    const pending = filtered.filter(n => n.status === 'pending').length;
-    const critical = filtered.filter(n => n.priority === 'critical').length;
-    setStats({ 
-      total: filtered.length, 
-      completed, 
-      inProgress, 
-      pending, 
-      critical 
-    });
-    
-    // Update pagination total
-    setPagination(p => ({ ...p, total: filtered.length }));
-    
-    // Paginate the results
-    const start = (pagination.page - 1) * pagination.pageSize;
-    const end = start + pagination.pageSize;
-    const paginated = filtered.slice(start, end);
-    
-    setNotes(paginated);
   };
 
   const handleFilterChange = (e) => {
@@ -233,6 +197,15 @@ const InstructionRegister = () => {
       search: '',
     });
     setPagination({ ...pagination, page: 1 });
+  };
+
+  const refreshInstructions = async () => {
+    try {
+      setRefreshing(true);
+      await fetchAllNotes();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleConvertToTask = async () => {
@@ -341,6 +314,34 @@ const InstructionRegister = () => {
     }
   };
 
+  const handleApprove = async (noteId) => {
+    if (!window.confirm('Approve this note?')) return;
+    try {
+      await axios.post(`/ceo-notes/${noteId}/approve`, { decision: 'approved', remarks: 'Approved from Instruction Register' });
+      toast.success('Note approved successfully');
+      await fetchAllNotes();
+    } catch (error) {
+      console.error('Error approving note:', error);
+      toast.error('Failed to approve note');
+    }
+  };
+
+  const handleClose = async (noteId) => {
+    if (!window.confirm('Close this note?')) return;
+    try {
+      await axios.patch(`/ceo-notes/${noteId}`, { status: 'closed' });
+      toast.success('Note closed successfully');
+      await fetchAllNotes();
+    } catch (error) {
+      console.error('Error closing note:', error);
+      toast.error('Failed to close note');
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   const categories = [
     { value: '', label: 'All Categories' },
     { value: 'top_priority', label: 'Top Priority' },
@@ -436,10 +437,6 @@ const InstructionRegister = () => {
   };
 
   const getAssignedUserNames = (note) => {
-    console.log('=== getAssignedUserNames ===');
-    console.log('note:', note);
-    console.log('usersMap:', usersMap);
-    
     // Collect all unique user objects and ids
     const userMap = new Map(); // Map id (number) to user object
     
@@ -451,7 +448,6 @@ const InstructionRegister = () => {
     
     // 1. From assigned_users relation (array of user objects)
     if (note.assigned_users && Array.isArray(note.assigned_users)) {
-      console.log('note.assigned_users:', note.assigned_users);
       note.assigned_users.forEach(user => {
         const normalizedId = normalizeId(user.id);
         if (normalizedId && !userMap.has(normalizedId)) {
@@ -462,7 +458,6 @@ const InstructionRegister = () => {
     
     // 2. From assigned_user_ids array
     if (note.assigned_user_ids && Array.isArray(note.assigned_user_ids)) {
-      console.log('note.assigned_user_ids:', note.assigned_user_ids);
       note.assigned_user_ids.forEach(id => {
         const normalizedId = normalizeId(id);
         if (normalizedId && !userMap.has(normalizedId)) {
@@ -471,18 +466,14 @@ const InstructionRegister = () => {
       });
     }
     
-    console.log('userMap entries:', [...userMap.entries()]);
-    
     // If no users found
     if (userMap.size === 0) {
-      console.log('No users found, returning -');
       return '-';
     }
     
     // Get user names
     const names = [];
     userMap.forEach((user, id) => {
-      console.log('Processing id:', id, 'user:', user);
       let finalUser = user;
       
       // If we don't have the user object, look it up in usersMap
@@ -506,11 +497,12 @@ const InstructionRegister = () => {
       }
     });
     
-    console.log('names array:', names, 'joined:', names.join(', '));
     return names.join(', ');
   };
 
   const totalPages = Math.ceil(pagination.total / pagination.pageSize);
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const hasActiveFilters = activeFilterCount > 0;
   const getPageNumbers = () => {
     const pages = [];
     for (let i = 1; i <= totalPages; i++) {
@@ -532,9 +524,12 @@ const InstructionRegister = () => {
           <h2>Instruction Register</h2>
         </div>
         <div className="instruction-page-header-right">
-        {/* <button onClick={() => window.print()} className="btn btn-info">
-          Print
+        {/* <button onClick={handlePrint} className="instruction-btn btn-print" title="Print Register">
+          <FaPrint /> Print
         </button> */}
+        <Link to="/ceo-office/reports" className="instruction-btn btn-reports" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <FaClipboard /> Reports
+        </Link>
         <Link to="/ceo-office/quick-note" className="add-instruction-btn">
           <span className="btn-icon">+</span> Quick Note
         </Link>
@@ -542,6 +537,26 @@ const InstructionRegister = () => {
             Back
           </button>
         </div>
+      </div>
+
+      <div className="instruction-toolbar">
+        <div className="instruction-toolbar-meta">
+          <span className="instruction-summary-pill">
+            {stats.total} visible {stats.total === 1 ? 'item' : 'items'}
+          </span>
+          <span className={`instruction-summary-pill ${hasActiveFilters ? 'active' : 'neutral'}`}>
+            {hasActiveFilters ? `${activeFilterCount} active filter${activeFilterCount > 1 ? 's' : ''}` : 'All filters cleared'}
+          </span>
+          {lastUpdated && (
+            <span className="instruction-summary-pill secondary">
+              Updated {lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+            </span>
+          )}
+        </div>
+        <button type="button" className="instruction-refresh-btn" onClick={refreshInstructions} disabled={refreshing}>
+          <FaRedo className={refreshing ? 'instruction-refresh-spin' : ''} />
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
       </div>
 
       {/* Stats Cards */}
@@ -781,6 +796,24 @@ const InstructionRegister = () => {
                         >
                           <FaSyncAlt color={note.related_task_id ? "#6c757d" : "#20c997"} />
                         </button>
+                        {note.source === 'ceo-note' && !['completed', 'closed', 'cancelled', 'approved', 'rejected'].includes(note.status) && (
+                          <button
+                            onClick={() => handleApprove(note.id)}
+                            className="instruction-action-btn btn-approve"
+                            title="Approve"
+                          >
+                            <FaCheck color="#28a745" />
+                          </button>
+                        )}
+                        {note.source === 'ceo-note' && !['completed', 'closed', 'cancelled'].includes(note.status) && (
+                          <button
+                            onClick={() => handleClose(note.id)}
+                            className="instruction-action-btn btn-close"
+                            title="Close"
+                          >
+                            <FaLock color="#6c757d" />
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             if (note.source === 'visitor-record') {
@@ -802,7 +835,15 @@ const InstructionRegister = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="11" className="empty-state">No notes found</td>
+                  <td colSpan="11">
+                    <EmptyState
+                      title="No instructions match these filters"
+                      message="Try clearing a filter or adding a fresh note from the quick note form."
+                      actionLabel="Create quick note"
+                      actionHref="/ceo-office/quick-note"
+                      compact
+                    />
+                  </td>
                 </tr>
               )}
             </tbody>

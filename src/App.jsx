@@ -11,6 +11,7 @@ import CeoNoteView from './components/ceo-office/note/note-view';
 import { List as ProjectCommandSheets, View as ProjectCommandSheetView } from './components/ceo-office/project-command-sheets';
 import VisitorsList from './components/ceo-office/visitors/VisitorsList';
 import VisitorView from './components/ceo-office/visitors/VisitorView';
+import Reports from './components/ceo-office/reports';
 import Store from './components/store/Store';
 import Procurements from './components/procurements/Procurements';
 import Program from './components/program/Program';
@@ -215,13 +216,14 @@ const App = () => {
 
                                 {/* CEO Office Routes */}
                                 <Route path="/ceo-office/dashboard" element={<CeoDashboard />} />
-                                <Route path="/ceo-office/quick-note" element={<QuickNote />} />
+                                <Route path="/ceo-notes" element={<QuickNote />} />
                                 <Route path="/ceo-office/instruction-register" element={<InstructionRegister />} />
                                 <Route path="/ceo-office/notes/:id" element={<CeoNoteView />} />
                                 <Route path="/ceo-office/project-command-sheets" element={<ProjectCommandSheets />} />
                                 <Route path="/ceo-office/project-command-sheets/:id" element={<ProjectCommandSheetView />} />
                                 <Route path="/ceo-office/visitors" element={<VisitorsList />} />
                                 <Route path="/ceo-office/visitors/:id" element={<VisitorView />} />
+                                <Route path="/ceo-office/reports" element={<Reports />} />
                                 <Route path="/ceo-office" element={<Navigate to="/ceo-office/dashboard" replace />} />
 
                                 {/* User Management Routes */}

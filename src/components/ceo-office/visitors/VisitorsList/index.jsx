@@ -69,7 +69,6 @@ const VisitorsList = () => {
 
   useEffect(() => {
     if (!authLoading && user) {
-      console.log('Auth loaded, fetching visitors...');
       fetchVisitors();
     }
   }, [authLoading, user]);
@@ -106,15 +105,12 @@ const VisitorsList = () => {
   const fetchVisitors = async () => {
     try {
       setLoading(true);
-      console.log('Fetching visitors...');
       // Fetch from /visitors - this already includes all records, including those linked to CEO notes
       const visitorsResponse = await axios.get('/visitors');
       const visitorsData = visitorsResponse.data.data || [];
-      console.log('Fetched visitors data:', visitorsData);
       setVisitors(visitorsData);
     } catch (error) {
       console.error('Error fetching visitors:', error);
-      console.error('Error details:', error.response);
       toast.error('Failed to load visitors');
     } finally {
       setLoading(false);
@@ -209,6 +205,8 @@ const VisitorsList = () => {
   const handleEdit = (visitor) => {
     if (visitor.related_note_id) {
       navigate(`/ceo-office/notes/${visitor.related_note_id}`, { state: { isEditing: true } });
+    } else {
+      navigate(`/ceo-office/visitors/${visitor.id}`, { state: { isEditing: true } });
     }
   };
 

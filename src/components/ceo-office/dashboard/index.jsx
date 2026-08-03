@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from '../../../utils/axios';
 import Navbar from '../../Navbar';
@@ -11,17 +11,21 @@ import {
   FaArrowUp, FaCheckCircle, FaRegClock, FaExclamationTriangle, 
   FaPhone, FaWhatsapp, FaUsers, FaHandshake, FaBullhorn, 
   FaGavel, FaEnvelope, FaHourglassHalf, FaFileAlt, FaCheck,
-  FaClipboardList, FaUserCheck, FaReplyAll, FaStickyNote
+  FaClipboardList, FaUserCheck, FaReplyAll, FaStickyNote, FaRedo
 } from 'react-icons/fa';
 
+import EmptyState from '../common/EmptyState';
 import './index.css';
 
 const CeoDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [expandedCategories, setExpandedCategories] = useState({});
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Toggle expanded state for a category
   const toggleExpandCategory = (catKey) => {
@@ -130,30 +134,34 @@ const CeoDashboard = () => {
     }
   };
 
-  useEffect(() => {
-    fetchDashboardStats();
-    
-    // Poll every 30 seconds
-    const intervalId = setInterval(fetchDashboardStats, 30000);
-    
-    return () => clearInterval(intervalId);
-  }, [selectedCategory]);
-
-  const fetchDashboardStats = async () => {
+  const fetchDashboardStats = async (showToast = false) => {
     try {
       setLoading(true);
+      setRefreshing(true);
       const params = selectedCategory ? { category: selectedCategory } : {};
-      console.log('Fetching dashboard stats with params:', params);
       const response = await axios.get('/ceo-notes/dashboard/stats', { params });
-      console.log('Dashboard response:', response.data);
       setStats(response.data);
+      setLastUpdated(new Date());
+      if (showToast) {
+        toast.success('Dashboard refreshed');
+      }
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
+      // Silently handle error
       toast.error('Failed to load dashboard stats');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  useEffect(() => {
+    fetchDashboardStats();
+
+    // Poll every 60 seconds
+    const intervalId = setInterval(() => fetchDashboardStats(), 60000);
+
+    return () => clearInterval(intervalId);
+  }, [selectedCategory]);
 
   if (loading) {
     return (
@@ -199,6 +207,28 @@ const CeoDashboard = () => {
           </div>
         </div>
 
+      <div className="ceo-dashboard-toolbar">
+        <div className="ceo-dashboard-toolbar-meta">
+          <span className="ceo-dashboard-meta-pill">
+            {selectedCategory ? `Focused on ${categoryConfig[selectedCategory]?.label || 'selected category'}` : 'Showing all categories'}
+          </span>
+          {lastUpdated && (
+            <span className="ceo-dashboard-meta-pill secondary">
+              Updated {lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          className="ceo-refresh-btn"
+          onClick={() => fetchDashboardStats(true)}
+          disabled={refreshing}
+        >
+          <FaRedo className={refreshing ? 'ceo-refresh-spin' : ''} />
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
+      </div>
+
       {/* Stats Cards */}
       <div className="ceo-stats-grid">
         {(user?.department === 'ceo' || user?.department === 'admin') && (
@@ -212,7 +242,7 @@ const CeoDashboard = () => {
             <div className="stat-value">{stats?.summary?.pending_approvals || 0}</div>
           </div>
         )}
-        <div className="stat-card warning">
+        <div className={`stat-card warning ${(stats?.summary?.overdue_follow_ups || 0) > 0 ? 'stat-card-overdue' : ''}`}>
           <FaExclamationTriangle className="ceo-stat-icon follow_up" />
           <div className="stat-label">Overdue Follow-ups</div>
           <div className="stat-value">{stats?.summary?.overdue_follow_ups || 0}</div>
@@ -238,6 +268,21 @@ const CeoDashboard = () => {
           <div className="stat-value">{stats?.summary?.total_visitors || 0}</div>
         </div>
       </div>
+
+      {/* Project Alerts Section - shows overdue items */}
+      {(stats?.summary?.overdue_follow_ups || 0) > 0 && (
+        <div className="ceo-dashboard-card category-project_alerts" style={{ borderLeft: '4px solid #dc3545', marginBottom: '16px' }}>
+          <div className="ceo-dashboard-card-header" style={{ cursor: 'pointer' }} onClick={() => navigate('/ceo-office/instruction-register')}>
+            <h2><span className="card-header-icon"><FaExclamationTriangle /></span> Project Alerts</h2>
+            <span className="card-count-badge" style={{ backgroundColor: '#dc3545' }}>{stats.summary.overdue_follow_ups}</span>
+          </div>
+          <div className="ceo-dashboard-card-body">
+            <p style={{ color: '#dc3545', fontWeight: '500', padding: '8px 0' }}>
+              {stats.summary.overdue_follow_ups} overdue item{stats.summary.overdue_follow_ups > 1 ? 's' : ''} requiring attention.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Dashboard Card Grid */}
       <div className="ceo-dashboard-card-grid">
@@ -328,10 +373,11 @@ const CeoDashboard = () => {
                       </button>
                     )}
                   </>
-                ) : (
-                  <div className="empty-state">
-                    No {config.label.toLowerCase()}
-                  </div>
+                ) : 
+                (
+                  <EmptyState
+                    title={`No ${config.label.toLowerCase()} yet`}
+                  />
                 )}
               </div>
 

@@ -170,6 +170,91 @@
 }
 
 /* ============================================================
+   TOOLBAR / SUMMARY
+   ============================================================ */
+
+.instruction-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--line);
+}
+
+.instruction-toolbar-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.instruction-summary-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--canvas);
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.instruction-summary-pill.active {
+  background: var(--accent-tint);
+  color: var(--accent);
+}
+
+.instruction-summary-pill.neutral {
+  background: var(--neutral-tint);
+  color: var(--ink-soft);
+}
+
+.instruction-summary-pill.secondary {
+  background: var(--success-tint);
+  color: var(--success);
+}
+
+.instruction-refresh-btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-soft);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.instruction-refresh-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.instruction-refresh-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.instruction-refresh-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
    STAT CARDS
    Semantic colors only — five cards, five distinct meanings,
    no arbitrary color repetition.
@@ -327,7 +412,7 @@
   background: var(--surface);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
-  overflow: hidden;
+  overflow-x: auto;
   border: 1px solid var(--line);
 }
 
@@ -584,16 +669,21 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .instruction-toolbar,
   .instruction-filters-bar {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .instruction-refresh-btn {
+    justify-content: center;
   }
 
   .filter-group, .filter-group.search {
     min-width: 100%;
   }
 
-  .pagination-wrapper {
+  .instruction-pagination-wrapper {
     flex-direction: column;
     gap: 12px;
   }
@@ -617,6 +707,11 @@
 
   .instruction-register {
     padding: 12px;
+  }
+
+  .instruction-toolbar-meta {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

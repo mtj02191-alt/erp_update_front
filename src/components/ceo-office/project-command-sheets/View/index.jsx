@@ -37,7 +37,8 @@ const ProjectCommandSheetView = () => {
     task_department: '',
     task_priority: '',
     task_due_date: '',
-    assigned_users: []
+    assigned_users: [],
+    mov_items: []
   });
   const [currentConvertActionItemId, setCurrentConvertActionItemId] = useState(null);
   const [isConvertingActionItem, setIsConvertingActionItem] = useState(false);
@@ -169,7 +170,8 @@ const ProjectCommandSheetView = () => {
       task_department: '',
       task_priority: '',
       task_due_date: '',
-      assigned_users: []
+      assigned_users: [],
+      mov_items: []
     });
     setConvertModalOpen(true);
   };
@@ -183,7 +185,8 @@ const ProjectCommandSheetView = () => {
       task_department: '',
       task_priority: '',
       task_due_date: actionItem.due_date ? actionItem.due_date.split('T')[0] : '',
-      assigned_users: actionItem.assigned_to_id ? [actionItem.assigned_to_id] : []
+      assigned_users: actionItem.assigned_to_id ? [actionItem.assigned_to_id] : [],
+      mov_items: []
     });
     setConvertModalOpen(true);
   };
@@ -271,6 +274,61 @@ const ProjectCommandSheetView = () => {
               </p>
             </div>
           )}
+
+          {isEditing ? (
+            <form onSubmit={handleUpdate} className="pcs-view-edit-form">
+              <div className="pcs-view-form-group">
+                <label className="pcs-view-form-label">Project Name</label>
+                <input type="text" name="projectName" value={formData.projectName} onChange={handleInputChange} className="pcs-view-form-input" />
+              </div>
+              <div className="pcs-view-form-group">
+                <label className="pcs-view-form-label">Project Details</label>
+                <textarea name="projectDetails" value={formData.projectDetails} onChange={handleInputChange} className="pcs-view-form-input" rows={3} />
+              </div>
+              <div className="pcs-view-form-group">
+                <label className="pcs-view-form-label">Discussions</label>
+                <textarea name="discussions" value={formData.discussions} onChange={handleInputChange} className="pcs-view-form-input" rows={3} />
+              </div>
+              <div className="pcs-view-form-group">
+                <label className="pcs-view-form-label">Decisions</label>
+                <textarea name="decisions" value={formData.decisions} onChange={handleInputChange} className="pcs-view-form-input" rows={3} />
+              </div>
+              <div className="pcs-view-form-group">
+                <label className="pcs-view-form-label">Meeting Notes</label>
+                <textarea name="meetingNotes" value={formData.meetingNotes} onChange={handleInputChange} className="pcs-view-form-input" rows={3} />
+              </div>
+              <div className="pcs-view-form-group">
+                <label className="pcs-view-form-label">Next Steps</label>
+                <textarea name="nextSteps" value={formData.nextSteps} onChange={handleInputChange} className="pcs-view-form-input" rows={2} />
+              </div>
+              <div className="pcs-view-form-group">
+                <label className="pcs-view-form-label">Results</label>
+                <textarea name="results" value={formData.results} onChange={handleInputChange} className="pcs-view-form-input" rows={2} />
+              </div>
+              <div className="pcs-view-form-group">
+                <label className="pcs-view-form-label">Start Date</label>
+                <input type="date" name="startDate" value={formData.startDate} onChange={handleInputChange} className="pcs-view-form-input" />
+              </div>
+              <div className="pcs-view-form-group">
+                <label className="pcs-view-form-label">End Date</label>
+                <input type="date" name="endDate" value={formData.endDate} onChange={handleInputChange} className="pcs-view-form-input" />
+              </div>
+              <div className="pcs-view-form-group">
+                <label className="pcs-view-form-label">Status</label>
+                <select name="status" value={formData.status} onChange={handleInputChange} className="pcs-view-form-input">
+                  <option value="Pending">Pending</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+              <div className="pcs-view-form-actions" style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                <button type="submit" className="pcs-view-btn pcs-view-btn-primary">Save Changes</button>
+                <button type="button" onClick={() => { setIsEditing(false); fetchSheet(); }} className="pcs-view-btn pcs-view-btn-secondary">Cancel</button>
+              </div>
+            </form>
+          ) : (
+            <>
 
           {sheet.project_details && (
             <div className="pcs-view-form-group">
@@ -372,6 +430,8 @@ const ProjectCommandSheetView = () => {
               <label className="pcs-view-form-label">Results</label>
               <p className="pcs-view-content-text">{sheet.results}</p>
             </div>
+          )}
+            </>
           )}
         </div>
 
