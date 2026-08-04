@@ -59,7 +59,7 @@ const VisitorView = () => {
   const fetchVisitor = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`/visitors/${id}`);
+      const response = await axios.get(`/ceo-notes/visitors/${id}`);
       setVisitor(response.data);
       setFormData({
         type: (response.data.type || 'visitor').toLowerCase(),
@@ -169,7 +169,7 @@ const VisitorView = () => {
     e.preventDefault();
     try {
       const payload = buildPayload(formData);
-      await axios.patch(`/visitors/${id}`, payload);
+      await axios.patch(`/ceo-notes/visitors/${id}`, payload);
       toast.success('Visitor log updated successfully');
       setIsEditing(false);
       fetchVisitor();
@@ -187,7 +187,7 @@ const VisitorView = () => {
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this visitor log?')) return;
     try {
-      await axios.delete(`/visitors/${id}`);
+      await axios.delete(`/ceo-notes/visitors/${id}`);
       toast.success('Visitor log deleted successfully');
       navigate('/ceo-office/visitors');
     } catch (error) {

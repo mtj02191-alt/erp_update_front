@@ -72,20 +72,9 @@ const ProjectCommandSheets = () => {
   const fetchSheets = async () => {
     try {
       setLoading(true);
-      // Fetch from project-command-sheets endpoint
-      const pcsResponse = await axios.get('/project-command-sheets');
+      const pcsResponse = await axios.get('/ceo-notes/project-command-sheets');
       const sheetsData = pcsResponse.data.data || [];
-      // Fetch CEO notes for project_command_sheets category
-      const notesResponse = await axios.get('/ceo-notes');
-      const notesData = notesResponse.data.data || [];
-      const filteredNotes = notesData.filter(note =>
-        note.category === 'project_command_sheets'
-      );
-      // Convert to project command sheet format
-      const noteRecords = filteredNotes.map(noteToPcsFormat);
-      // Combine
-      const combinedData = [...sheetsData, ...noteRecords];
-      setSheets(combinedData);
+      setSheets(sheetsData);
     } catch (error) {
       console.error('Error fetching project command sheets:', error);
       toast.error('Failed to load project command sheets');
@@ -97,7 +86,7 @@ const ProjectCommandSheets = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/project-command-sheets', {
+      await axios.post('/ceo-notes/project-command-sheets', {
         project_name: formData.projectName,
         project_details: formData.projectDetails,
         discussions: formData.discussions,
@@ -143,10 +132,10 @@ const ProjectCommandSheets = () => {
         toast.success('Note converted to task successfully');
       } else {
         if (isConvertingActionItem) {
-          await axios.post(`/project-command-sheets/${currentConvertSheetId}/action-items/${currentConvertActionItemId}/convert-to-task`, convertData);
+          await axios.post(`/ceo-notes/project-command-sheets/${currentConvertSheetId}/action-items/${currentConvertActionItemId}/convert-to-task`, convertData);
           toast.success('Action item converted to task successfully');
         } else {
-          await axios.post(`/project-command-sheets/${currentConvertSheetId}/convert-to-task`, convertData);
+          await axios.post(`/ceo-notes/project-command-sheets/${currentConvertSheetId}/convert-to-task`, convertData);
           toast.success('Sheet converted to task successfully');
         }
       }
@@ -203,7 +192,7 @@ const ProjectCommandSheets = () => {
         await axios.delete(`/ceo-notes/${sheet.related_note_id}`);
         toast.success('Note deleted successfully');
       } else {
-        await axios.delete(`/project-command-sheets/${sheet.id}`);
+        await axios.delete(`/ceo-notes/project-command-sheets/${sheet.id}`);
         toast.success('Project command sheet deleted successfully');
       }
       fetchSheets();

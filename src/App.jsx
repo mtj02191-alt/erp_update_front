@@ -220,8 +220,8 @@ const App = () => {
                                 <Route path="/ceo-notes" element={<QuickNote />} />
                                 <Route path="/ceo-office/instruction-register" element={<InstructionRegister />} />
                                 <Route path="/ceo-office/notes/:id" element={<CeoNoteView />} />
-                                <Route path="/ceo-office/project-command-sheets" element={<ProjectCommandSheets />} />
-                                <Route path="/ceo-office/project-command-sheets/:id" element={<ProjectCommandSheetView />} />
+                                {/* <Route path="/ceo-office/project-command-sheets" element={<ProjectCommandSheets />} /> */}
+                                {/* <Route path="/ceo-office/project-command-sheets/:id" element={<ProjectCommandSheetView />} /> */}
                                 <Route path="/ceo-office/visitors" element={<VisitorsList />} />
                                 <Route path="/ceo-office/visitors/:id" element={<VisitorView />} />
                                 <Route path="/ceo-office/reports" element={<Reports />} />

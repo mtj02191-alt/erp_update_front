@@ -105,8 +105,7 @@ const VisitorsList = () => {
   const fetchVisitors = async () => {
     try {
       setLoading(true);
-      // Fetch from /visitors - this already includes all records, including those linked to CEO notes
-      const visitorsResponse = await axios.get('/visitors');
+      const visitorsResponse = await axios.get('/ceo-notes/visitors');
       const visitorsData = visitorsResponse.data.data || [];
       setVisitors(visitorsData);
     } catch (error) {
@@ -186,7 +185,7 @@ const VisitorsList = () => {
     e.preventDefault();
     try {
       const payload = buildPayload(formData);
-      await axios.post('/visitors', payload);
+      await axios.post('/ceo-notes/visitors', payload);
 
       toast.success('Visitor logged successfully');
       setFormData(getDefaultFormData());
@@ -217,7 +216,7 @@ const VisitorsList = () => {
         await axios.delete(`/ceo-notes/${visitor.related_note_id}`);
         toast.success('Note deleted successfully');
       } else {
-        await axios.delete(`/visitors/${visitor.id}`);
+        await axios.delete(`/ceo-notes/visitors/${visitor.id}`);
         toast.success('Visitor log deleted successfully');
       }
       fetchVisitors();
@@ -236,7 +235,7 @@ const VisitorsList = () => {
         await axios.post(`/ceo-notes/${visitor.related_note_id}/convert-to-task`, convertData);
         toast.success('Note converted to task successfully');
       } else {
-        await axios.post(`/visitors/${currentConvertVisitorId}/convert-to-task`, convertData);
+        await axios.post(`/ceo-notes/visitors/${currentConvertVisitorId}/convert-to-task`, convertData);
         toast.success('Visitor log converted to task successfully');
       }
       setConvertModalOpen(false);

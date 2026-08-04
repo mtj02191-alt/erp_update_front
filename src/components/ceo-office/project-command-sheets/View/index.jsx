@@ -90,7 +90,7 @@ const ProjectCommandSheetView = () => {
   const fetchSheet = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`/project-command-sheets/${id}`);
+      const response = await axios.get(`/ceo-notes/project-command-sheets/${id}`);
       setSheet(response.data);
       setFormData({
         projectName: response.data.project_name,
@@ -121,7 +121,7 @@ const ProjectCommandSheetView = () => {
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      await axios.patch(`/project-command-sheets/${id}`, {
+      await axios.patch(`/ceo-notes/project-command-sheets/${id}`, {
         project_name: formData.projectName,
         project_details: formData.projectDetails,
         discussions: formData.discussions,
@@ -147,10 +147,10 @@ const ProjectCommandSheetView = () => {
   const handleConvertToTask = async () => {
     try {
       if (isConvertingActionItem) {
-        await axios.post(`/project-command-sheets/${id}/action-items/${currentConvertActionItemId}/convert-to-task`, convertData);
+        await axios.post(`/ceo-notes/project-command-sheets/${id}/action-items/${currentConvertActionItemId}/convert-to-task`, convertData);
         toast.success('Action item converted to task successfully');
       } else {
-        await axios.post(`/project-command-sheets/${id}/convert-to-task`, convertData);
+        await axios.post(`/ceo-notes/project-command-sheets/${id}/convert-to-task`, convertData);
         toast.success('Sheet converted to task successfully');
       }
       setConvertModalOpen(false);
@@ -194,7 +194,7 @@ const ProjectCommandSheetView = () => {
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this project command sheet?')) return;
     try {
-      await axios.delete(`/project-command-sheets/${id}`);
+      await axios.delete(`/ceo-notes/project-command-sheets/${id}`);
       toast.success('Project command sheet deleted successfully');
       navigate('/ceo-office/project-command-sheets');
     } catch (error) {

@@ -211,10 +211,10 @@ const InstructionRegister = () => {
   const handleConvertToTask = async () => {
     try {
       if (currentConvertVisitorId) {
-        await axios.post(`/visitors/${currentConvertVisitorId}/convert-to-task`, convertData);
+        await axios.post(`/ceo-notes/visitors/${currentConvertVisitorId}/convert-to-task`, convertData);
         toast.success('Record converted to task successfully');
       } else if (currentConvertProjectSheetId) {
-        await axios.post(`/project-command-sheets/${currentConvertProjectSheetId}/convert-to-task`, convertData);
+        await axios.post(`/ceo-notes/project-command-sheets/${currentConvertProjectSheetId}/convert-to-task`, convertData);
         toast.success('Project command sheet converted to task successfully');
       } else {
         await axios.post(`/ceo-notes/${currentConvertNoteId}/convert-to-task`, convertData);
@@ -293,7 +293,7 @@ const InstructionRegister = () => {
   const handleVisitorDelete = async (visitorId) => {
     if (!window.confirm('Are you sure you want to delete this record?')) return;
     try {
-      await axios.delete(`/visitors/${visitorId}`);
+      await axios.delete(`/ceo-notes/visitors/${visitorId}`);
       toast.success('Record deleted successfully');
       await fetchAllNotes();
     } catch (error) {
@@ -305,7 +305,7 @@ const InstructionRegister = () => {
   const handleProjectSheetDelete = async (sheetId) => {
     if (!window.confirm('Are you sure you want to delete this project command sheet?')) return;
     try {
-      await axios.delete(`/project-command-sheets/${sheetId}`);
+      await axios.delete(`/ceo-notes/project-command-sheets/${sheetId}`);
       toast.success('Project command sheet deleted successfully');
       await fetchAllNotes();
     } catch (error) {
