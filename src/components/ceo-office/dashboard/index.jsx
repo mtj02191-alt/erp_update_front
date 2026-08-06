@@ -194,12 +194,6 @@ const CeoDashboard = () => {
               <Link to="/ceo-office/instruction-register" className="ceo-instruction-register-btn"> 
                 Instruction Register
               </Link>
-              <Link to="/ceo-office/project-command-sheets" className="ceo-project-command-sheets-btn">
-                Project Command Sheets
-              </Link>
-              <Link to="/ceo-office/visitors" className="ceo-visitors-btn">
-                Visitors / Calls
-              </Link>
               <Link to="/ceo-office/quick-note" className="ceo-quick-note-btn">
                 Quick Note
               </Link>
@@ -292,34 +286,36 @@ const CeoDashboard = () => {
           const items = getCategoryData(catKey);
           const count = items.length;
 
-          const getLinkTo = (item) => {
+          const getLinkTo = (item, catKey) => {
             if (catKey === 'project_command_sheets') {
-              return `/ceo-office/project-command-sheets/${item.id}`;
+              const noteId = item.note_id || item.related_note_id || item.noteId || item.id;
+              return `/ceo-office/notes/${noteId}`;
             }
-            if (item.source === 'visitor-record') {
-              return `/ceo-office/visitors/${item.id}`;
+            if (catKey === 'visitors') {
+              const noteId = item.related_note_id || item.noteId || item.id;
+              return `/ceo-office/notes/${noteId}`;
             }
-            return `/ceo-office/notes/${item.id}`;
+            if (catKey === 'calls') {
+              const noteId = item.related_note_id || item.noteId || item.id;
+              return `/ceo-office/notes/${noteId}`;
+            }
+            if (catKey === 'whatsapp') {
+              const noteId = item.related_note_id || item.noteId || item.id;
+              return `/ceo-office/notes/${noteId}`;
+            }
+            const noteId = item.related_note_id || item.noteId || item.id;
+            return `/ceo-office/notes/${noteId}`;
           };
 
           const getItemTitle = (item) => {
-        return item.project_name || 
-               item.caller_name || 
-               item.contact_name || 
-               item.visitor_name || 
-               item.title;
-      };
-
-          const getAddLink = () => {
-            if (catKey === 'project_command_sheets') {
-              return '/ceo-office/project-command-sheets';
-            }
-            if (catKey === 'visitors') {
-              return '/ceo-office/visitors';
-            }
-            // Pass the category as a query parameter for quick note
-            return `/ceo-office/quick-note?category=${catKey}`;
+            return item.project_name || 
+                   item.caller_name || 
+                   item.contact_name || 
+                   item.visitor_name || 
+                   item.title;
           };
+
+          const getAddLink = () => `/ceo-office/quick-note?category=${catKey}`;
 
           return (
             <div 
@@ -346,7 +342,7 @@ const CeoDashboard = () => {
                     <div className="notes-list">
                       {(expandedCategories[catKey] ? items : items.slice(0, 3)).map(item => (
                         <Link
-                          to={getLinkTo(item)}
+                          to={getLinkTo(item, catKey)}
                           key={item.id}
                           className="card-note-item"
                         >

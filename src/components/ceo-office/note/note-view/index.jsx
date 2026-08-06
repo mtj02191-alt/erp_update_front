@@ -55,7 +55,34 @@ const CeoNoteView = () => {
       const flattened = { ...raw };
       for (const key of detailKeys) {
         if (raw[key] && typeof raw[key] === 'object') {
-          Object.assign(flattened, raw[key]);
+          const detail = { ...raw[key] };
+          delete detail.id;
+          delete detail.note_id;
+          delete detail.related_note_id;
+          delete detail.created_by_id;
+          delete detail.related_task_id;
+          delete detail.created_at;
+          delete detail.updated_at;
+          delete detail.category;
+          delete detail.date;
+          delete detail.title;
+          delete detail.details;
+          delete detail.related_person;
+          delete detail.department;
+          delete detail.priority;
+          delete detail.due_date;
+          delete detail.attachment;
+          delete detail.voice_note;
+          delete detail.pa_remarks;
+          delete detail.ceo_remarks;
+          delete detail.status;
+
+          Object.assign(flattened, detail);
+
+          if (key === 'project_command_sheet_detail' && raw[key]?.status) {
+            flattened.pcs_status = raw[key].status;
+          }
+
           // Keep the detail reference too for backward compat
           flattened[key] = raw[key];
         }

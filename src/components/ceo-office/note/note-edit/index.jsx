@@ -58,8 +58,8 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
     visitor_name: note.visitor_name || '',
     organization: note.organization || '',
     purpose: note.purpose || '',
-    visitor_meeting_with: note.visitor_meeting_with || '',
-    visitor_department: note.visitor_department || '',
+    visitor_meeting_with: note.visitor_meeting_with || note.meeting_with || '',
+    visitor_department: note.visitor_department || note.department || '',
     protocol_required: note.protocol_required || '',
     expected_duration: note.expected_duration || '',
     visitor_outcome: note.visitor_outcome || '',
@@ -152,6 +152,18 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
           cleanedData[key] = formData[key];
         }
       }
+
+      if (formData.category === 'visitors') {
+        if (formData.visitor_meeting_with) {
+          cleanedData.meeting_with = formData.visitor_meeting_with;
+        }
+        if (formData.visitor_department) {
+          cleanedData.department = formData.visitor_department;
+        }
+      }
+
+      // For project command sheets, send PCS status separately.
+      // Do not overwrite CeoNote.status with PCS status values like "Pending" or "In Progress".
       cleanedData = cleanEmptyStrings(cleanedData);
 
       // Clean array fields
@@ -165,12 +177,16 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
         cleanedData.meeting_action_items = cleanedData.meeting_action_items.filter(a => a.content?.trim());
       }
 
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Note update payload:', cleanedData);
+      }
       const response = await axios.patch(`/ceo-notes/${note.id}`, cleanedData);
       toast.success('Note updated successfully');
       onSave(response.data);
     } catch (error) {
-      console.error('Error updating note:', error);
-      toast.error('Failed to update note');
+      const serverMessage = error.response?.data?.message || error.response?.data?.error;
+      console.error('Error updating note:', error.response?.data || error);
+      toast.error(serverMessage || 'Failed to update note');
     }
   };
 
@@ -411,8 +427,8 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
               <label>Meeting With</label>
               <input
                 type="text"
-                name="visitor_meeting_with"
-                value={formData.visitor_meeting_with}
+                name="meeting_with"
+                value={formData.meeting_with}
                 onChange={handleInputChange}
                 className="note-edit-form-control"
               />

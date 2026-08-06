@@ -27,7 +27,7 @@ const InstructionRegister = () => {
   const [usersMap, setUsersMap] = useState(new Map()); // Map user ID to user
   const [notes, setNotes] = useState([]); // Filtered notes to display
   const [stats, setStats] = useState({ total: 0, completed: 0, inProgress: 0, pending: 0, critical: 0 });
-  const [pagination, setPagination] = useState({ page: 1, pageSize: 10, total: 0 });
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 10, total: 0, totalPages: 0 });
   const [filters, setFilters] = useState({
     category: '',
     department: '',
@@ -91,83 +91,151 @@ const InstructionRegister = () => {
       if (filters.category) params.category = filters.category;
       if (filters.department) params.department = filters.department;
       if (filters.status) params.status = filters.status;
+      if (filters.priority) params.priority = filters.priority;
       if (filters.search) params.search = filters.search;
 
       const response = await axios.get('/ceo-notes/instruction-register', { params });
       const records = response.data.data || [];
+      const serverPagination = response.data.pagination || {};
 
-      // Normalize records to a common format for display
-      const normalized = records.map(record => {
+      // Two-pass normalization + deduplication:
+      // Pass 1: Separate notes from child records and build the note index first.
+      //         This ensures that even if a project_command_sheet (or visitor/call/whatsapp)
+      //         appears BEFORE its parent CeoNote in the UNION ALL result, we still merge.
+      const notesOut = [];
+      const noteIndexById = new Map();
+      const childSheets = [];
+      const childVisitors = [];
+      const childCalls = [];
+      const childWhatsapp = [];
+
+      for (const record of records) {
         const item = record.item || record;
         const type = record.type || 'note';
-        
+
         if (type === 'note') {
-          return { ...item, source: 'ceo-note', id: item.id };
+          const noteObj = { ...item, source: 'ceo-note', id: item.id };
+          noteIndexById.set(item.id, notesOut.length);
+          notesOut.push(noteObj);
+        } else if (type === 'project_command_sheet') {
+          childSheets.push(item);
+        } else if (type === 'visitor') {
+          childVisitors.push(item);
+        } else if (type === 'call') {
+          childCalls.push(item);
+        } else if (type === 'whatsapp') {
+          childWhatsapp.push(item);
+        } else {
+          // Fallback: add raw unknown item
+          notesOut.push({ ...item, id: item.id, source: type || 'note' });
         }
-        if (type === 'visitor') {
-          return {
-            ...item,
-            id: item.id,
-            source: 'visitor-record',
-            category: 'visitors',
-            title: item.visitor_name || 'Visitor Record',
-            details: item.purpose || '',
-            status: item.status || 'pending',
-            date: item.visit_datetime || item.created_at,
-          };
+      }
+
+      // Pass 2: Merge child records into their parent CeoNote (when linked).
+      //         Only add standalone rows when no parent note exists.
+      for (const item of childSheets) {
+        const parentNoteId = item.note_id || item.related_note_id || null;
+        if (parentNoteId && noteIndexById.has(parentNoteId)) {
+          const idx = noteIndexById.get(parentNoteId);
+          const parent = notesOut[idx];
+          parent.project_command_sheet_detail = item;
+          parent.project_name = parent.project_name || item.project_name;
+          parent.project_details = parent.project_details || item.project_details;
+          parent.category = parent.category || 'project_command_sheets';
+          // ensure due_date on the parent reflects the PCS end_date if not set
+          if (!parent.due_date && item.end_date) {
+            parent.due_date = item.end_date;
+          }
+          // inherit related_task_id if parent has none
+          if (!parent.related_task_id && item.related_task_id) {
+            parent.related_task_id = item.related_task_id;
+          }
+          continue; // don't add a separate row
         }
-        if (type === 'call') {
-          return {
-            ...item,
-            id: item.id,
-            source: 'visitor-record',
-            category: 'calls',
-            title: item.caller_name || 'Call Record',
-            details: item.call_purpose || '',
-            status: item.status || 'pending',
-            date: item.visit_datetime || item.created_at,
-          };
+
+        const sheetObj = {
+          ...item,
+          id: item.id,
+          source: 'project-command-sheet',
+          category: 'project_command_sheets',
+          title: item.project_name || 'Project Sheet',
+          details: item.project_details || '',
+          status: item.status || 'pending',
+          date: item.created_at,
+        };
+        notesOut.push(sheetObj);
+      }
+
+      for (const item of childVisitors) {
+        const relatedNoteId = item.related_note_id || item.note_id || null;
+        if (relatedNoteId && noteIndexById.has(relatedNoteId)) {
+          continue; // parent note row already covers this
         }
-        if (type === 'whatsapp') {
-          return {
-            ...item,
-            id: item.id,
-            source: 'visitor-record',
-            category: 'whatsapp',
-            title: item.contact_name || 'WhatsApp Record',
-            details: item.message_summary || '',
-            status: item.status || 'pending',
-            date: item.visit_datetime || item.created_at,
-          };
+        notesOut.push({
+          ...item,
+          id: item.id,
+          source: 'visitor-record',
+          category: 'visitors',
+          title: item.visitor_name || 'Visitor Record',
+          details: item.purpose || '',
+          status: item.status || 'pending',
+          date: item.visit_datetime || item.created_at,
+        });
+      }
+
+      for (const item of childCalls) {
+        const relatedNoteId = item.related_note_id || item.note_id || null;
+        if (relatedNoteId && noteIndexById.has(relatedNoteId)) {
+          continue;
         }
-        if (type === 'project_command_sheet') {
-          return {
-            ...item,
-            id: item.id,
-            source: 'project-command-sheet',
-            category: 'project_command_sheets',
-            title: item.project_name || 'Project Sheet',
-            details: item.project_details || '',
-            status: item.status || 'pending',
-            date: item.created_at,
-          };
+        notesOut.push({
+          ...item,
+          id: item.id,
+          source: 'call',
+          category: 'calls',
+          title: item.caller_name || 'Call Record',
+          details: item.call_purpose || '',
+          status: item.status || 'pending',
+          date: item.created_at,
+        });
+      }
+
+      for (const item of childWhatsapp) {
+        const relatedNoteId = item.related_note_id || item.note_id || null;
+        if (relatedNoteId && noteIndexById.has(relatedNoteId)) {
+          continue;
         }
-        return { ...item, source: type, id: item.id };
+        notesOut.push({
+          ...item,
+          id: item.id,
+          source: 'whatsapp',
+          category: 'whatsapp',
+          title: item.contact_name || 'WhatsApp Record',
+          details: item.message_summary || '',
+          status: item.status || 'pending',
+          date: item.created_at,
+        });
+      }
+
+      setNotes(notesOut);
+
+      // Update pagination from server response (server is the source of truth)
+      const serverTotalPages = serverPagination.totalPages ?? (serverPagination.total > 0 ? Math.ceil((serverPagination.total ?? 0) / (serverPagination.pageSize ?? pagination.pageSize)) : 0);
+      const serverPage = serverPagination.page ?? pagination.page;
+      const serverTotal = serverPagination.total ?? pagination.total;
+      const serverPageSize = serverPagination.pageSize ?? pagination.pageSize;
+      const safePage = Math.min(Math.max(1, serverPage), serverTotalPages || 1);
+      setPagination({
+        page: safePage,
+        pageSize: serverPageSize,
+        total: serverTotal,
+        totalPages: serverTotalPages,
       });
-
-      setNotes(normalized);
-
-      // Update pagination from server response
-      const serverPagination = response.data.pagination || {};
-      setPagination(prev => ({
-        ...prev,
-        total: serverPagination.total || normalized.length,
-      }));
 
       // Update stats from counts
       const counts = response.data.counts || {};
       setStats({
-        total: serverPagination.total || normalized.length,
+        total: serverPagination.total ?? notesOut.length,
         completed: 0,
         inProgress: 0,
         pending: 0,
@@ -209,26 +277,56 @@ const InstructionRegister = () => {
   };
 
   const handleConvertToTask = async () => {
+    let conversionSucceeded = false;
+
     try {
       if (currentConvertVisitorId) {
-        await axios.post(`/ceo-notes/visitors/${currentConvertVisitorId}/convert-to-task`, convertData);
+        await axios.post(`/visitors/${currentConvertVisitorId}/convert-to-task`, convertData);
+        conversionSucceeded = true;
         toast.success('Record converted to task successfully');
       } else if (currentConvertProjectSheetId) {
-        await axios.post(`/ceo-notes/project-command-sheets/${currentConvertProjectSheetId}/convert-to-task`, convertData);
+        await axios.post(`/project-command-sheets/${currentConvertProjectSheetId}/convert-to-task`, convertData);
+        conversionSucceeded = true;
         toast.success('Project command sheet converted to task successfully');
       } else {
         await axios.post(`/ceo-notes/${currentConvertNoteId}/convert-to-task`, convertData);
+        conversionSucceeded = true;
         toast.success('Note converted to task successfully');
       }
-      setConvertModalOpen(false);
-      await fetchAllNotes();
     } catch (error) {
       console.error('Error converting:', error);
       toast.error('Failed to convert');
     }
+
+    if (!conversionSucceeded) return;
+
+    setConvertModalOpen(false);
+    try {
+      await fetchAllNotes();
+    } catch (refreshError) {
+      console.error('Error refreshing list after conversion:', refreshError);
+    }
   };
 
   const openConvertModal = (note) => {
+    // If this CEO Note has a linked Project Command Sheet, treat conversion as PCS conversion
+    if (note.project_command_sheet_detail) {
+      const sheet = note.project_command_sheet_detail;
+      setCurrentConvertProjectSheetId(sheet.id);
+      setCurrentConvertNoteId(null);
+      setCurrentConvertVisitorId(null);
+      setConvertData({
+        task_title: sheet.project_name || note.title,
+        task_description: sheet.project_details || note.details,
+        task_department: 'executive_office',
+        task_priority: note.priority || sheet.status || '',
+        task_due_date: sheet.end_date ? new Date(sheet.end_date).toISOString().split('T')[0] : (note.due_date ? note.due_date.split('T')[0] : ''),
+        assigned_users: note.assigned_user_ids || [],
+        mov_items: []
+      });
+      setConvertModalOpen(true);
+      return;
+    }
     if (note.source === 'visitor-record') {
       setCurrentConvertVisitorId(note.id);
       const name = note.visitor_name || note.caller_name || note.contact_name || 'Contact';
@@ -500,7 +598,7 @@ const InstructionRegister = () => {
     return names.join(', ');
   };
 
-  const totalPages = Math.ceil(pagination.total / pagination.pageSize);
+  const totalPages = Math.max(0, pagination.totalPages ?? (pagination.total > 0 ? Math.ceil(pagination.total / pagination.pageSize) : 0));
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
   const hasActiveFilters = activeFilterCount > 0;
   const getPageNumbers = () => {
@@ -746,38 +844,26 @@ const InstructionRegister = () => {
                     </td>
                     <td>{note.due_date ? new Date(note.due_date).toLocaleDateString() : '-'}</td>
                     <td>
-                      {note.related_task_id ? (
+                      { (note.related_task_id || note.project_command_sheet_detail?.related_task_id) ? (
                         <Link
-                          to={`/tasks/view/${note.related_task_id}`}
+                          to={`/tasks/view/${note.related_task_id || note.project_command_sheet_detail?.related_task_id}`}
                           className="visitors-list-related-note"
                         >
-                          Task #{note.related_task_id}
+                          Task #{note.related_task_id || note.project_command_sheet_detail?.related_task_id}
                         </Link>
                       ) : '-'}
                     </td>
                     <td>
                       <div className="instruction-actions">
                         <Link 
-                          to={
-                            note.source === 'visitor-record' 
-                              ? `/ceo-office/visitors/${note.id}` 
-                              : note.source === 'project-command-sheet' 
-                                ? `/ceo-office/project-command-sheets/${note.id}` 
-                                : `/ceo-office/notes/${note.id}`
-                          } 
+                          to={`/ceo-office/notes/${note.project_command_sheet_detail?.note_id || note.note_id || note.related_note_id || note.id}`} 
                           className="instruction-action-btn btn-view" 
                           title="View"
                         >
                           <FaEye color="#007bff" />
                         </Link>
                         <Link 
-                          to={
-                            note.source === 'visitor-record' 
-                              ? `/ceo-office/visitors/${note.id}` 
-                              : note.source === 'project-command-sheet' 
-                                ? `/ceo-office/project-command-sheets/${note.id}` 
-                                : `/ceo-office/notes/${note.id}`
-                          } 
+                          to={`/ceo-office/notes/${note.project_command_sheet_detail?.note_id || note.note_id || note.related_note_id || note.id}`} 
                           state={
                             note.source === 'visitor-record' || note.source === 'project-command-sheet' 
                               ? {} 
@@ -791,10 +877,10 @@ const InstructionRegister = () => {
                         <button
                           onClick={() => openConvertModal(note)}
                           className="instruction-action-btn btn-convert"
-                          disabled={note.related_task_id}
-                          title={note.related_task_id ? 'Already converted' : 'Convert to Task'}
+                          disabled={note.related_task_id || note.project_command_sheet_detail?.related_task_id}
+                          title={(note.related_task_id || note.project_command_sheet_detail?.related_task_id) ? 'Already converted' : 'Convert to Task'}
                         >
-                          <FaSyncAlt color={note.related_task_id ? "#6c757d" : "#20c997"} />
+                          <FaSyncAlt color={(note.related_task_id || note.project_command_sheet_detail?.related_task_id) ? "#6c757d" : "#20c997"} />
                         </button>
                         {note.source === 'ceo-note' && !['completed', 'closed', 'cancelled', 'approved', 'rejected'].includes(note.status) && (
                           <button
@@ -820,6 +906,11 @@ const InstructionRegister = () => {
                               handleVisitorDelete(note.id);
                             } else if (note.source === 'project-command-sheet') {
                               handleProjectSheetDelete(note.id);
+                            } else if (note.project_command_sheet_detail) {
+                              if (window.confirm('This will delete the CEO Note and its linked Project Command Sheet. Continue?')) {
+                                handleDelete(note.id);
+                              }
+                              return;
                             } else {
                               handleDelete(note.id);
                             }
@@ -854,11 +945,20 @@ const InstructionRegister = () => {
       {/* Pagination */}
       <div className="instruction-pagination-wrapper">
         <div className="instruction-pagination-info">
-          Showing {(pagination.page - 1) * pagination.pageSize + 1} to {Math.min(pagination.page * pagination.pageSize, pagination.total)} of {pagination.total} entries
+          {pagination.total === 0 ? (
+            'Showing 0 to 0 of 0 entries'
+          ) : (
+            `Showing ${(pagination.page - 1) * pagination.pageSize + 1} to ${Math.min(pagination.page * pagination.pageSize, pagination.total)} of ${pagination.total} entries`
+          )}
         </div>
-        {totalPages > 1 && (
+        {totalPages > 0 && (
           <div className="pagination">
-            <select className="form-control-instruction" style={{ width: '85px', fontSize: '12px' }} value={pagination.pageSize} onChange={(e) => setPagination(p => ({ ...p, pageSize: Number(e.target.value), page: 1 }))}>
+            <select
+              className="form-control-instruction"
+              style={{ width: '85px', fontSize: '12px' }}
+              value={pagination.pageSize}
+              onChange={(e) => setPagination(p => ({ ...p, page: 1, pageSize: Number(e.target.value) }))}
+            >
               <option value={10}>10 / page</option>
               <option value={20}>20 / page</option>
               <option value={30}>30 / page</option>
@@ -866,9 +966,10 @@ const InstructionRegister = () => {
               <option value={50}>50 / page</option>
             </select>
             <button
-              onClick={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
+              onClick={() => setPagination(p => ({ ...p, page: 1 }))}
               disabled={pagination.page === 1}
               className="btn btn-sm btn-secondary"
+              title="First page"
             >
               «
             </button>
@@ -876,6 +977,7 @@ const InstructionRegister = () => {
               onClick={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
               disabled={pagination.page === 1}
               className="btn btn-sm btn-secondary"
+              title="Previous page"
             >
               ‹
             </button>
@@ -885,7 +987,7 @@ const InstructionRegister = () => {
               ) : (
                 <button
                   key={page}
-                  onClick={() => setPagination(p => ({ ...p, page }))}
+                  onClick={() => setPagination(p => ({ ...p, page: Math.max(1, Math.min(page, totalPages || 1)) }))}
                   className={`btn btn-sm ${pagination.page === page ? 'btn-primary' : 'btn-secondary'}`}
                 >
                   {page}
@@ -893,16 +995,18 @@ const InstructionRegister = () => {
               )
             ))}
             <button
-              onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
-              disabled={pagination.page >= totalPages}
+              onClick={() => setPagination(p => ({ ...p, page: Math.min(totalPages || 1, p.page + 1) }))}
+              disabled={pagination.page >= totalPages || totalPages === 0}
               className="btn btn-sm btn-secondary"
+              title="Next page"
             >
               ›
             </button>
             <button
-              onClick={() => setPagination(p => ({ ...p, page: totalPages }))}
-              disabled={pagination.page >= totalPages}
+              onClick={() => setPagination(p => ({ ...p, page: totalPages || 1 }))}
+              disabled={pagination.page >= totalPages || totalPages === 0}
               className="btn btn-sm btn-secondary"
+              title="Last page"
             >
               »
             </button>
