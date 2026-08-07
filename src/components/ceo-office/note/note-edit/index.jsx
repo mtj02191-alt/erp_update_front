@@ -7,6 +7,16 @@ import './index.css';
 
 const NoteEdit = ({ note, onSave, onCancel }) => {
   // Initialize form data
+  const emailApprovalStatuses = [
+    { value: 'waiting_response', label: 'Waiting Response' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'rejected', label: 'Rejected' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'closed', label: 'Closed' },
+    { value: 'cancelled', label: 'Cancelled' },
+  ];
+
   const [formData, setFormData] = useState({
     date: note.date ? note.date.split('T')[0] : '',
     category: note.category || '',
@@ -16,7 +26,7 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
     department: note.department || '',
     priority: note.priority || '',
     due_date: note.due_date ? note.due_date.split('T')[0] : '',
-    status: note.status || '',
+    status: note.status || (note.category === 'emails_and_approvals' ? 'waiting_response' : ''),
     attachment: note.attachment || '',
     voice_note: note.voice_note || '',
     pa_remarks: note.pa_remarks || '',
@@ -92,7 +102,18 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
   });
 
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      let next = { ...prev, [name]: value };
+      if (name === 'category') {
+        if (value === 'emails_and_approvals') {
+          next.status = emailApprovalStatuses.some(s => s.value === prev.status)
+            ? prev.status
+            : 'waiting_response';
+        }
+      }
+      return next;
+    });
   };
 
   const handleArrayItemChange = (field, index, value) => {
@@ -249,16 +270,29 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
             onChange={handleInputChange}
             className="note-edit-form-control"
           >
-            <option value="unprocessed">Unprocessed</option>
-            <option value="pending">Pending</option>
-            <option value="in_progress">In Progress</option>
-            <option value="waiting_response">Waiting Response</option>
-            <option value="submitted">Submitted</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-            <option value="completed">Completed</option>
-            <option value="closed">Closed</option>
-            <option value="cancelled">Cancelled</option>
+            {(formData.category === 'emails_and_approvals'
+              ? emailApprovalStatuses
+              : [
+                  { value: 'unprocessed', label: 'Unprocessed' },
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'in_progress', label: 'In Progress' },
+                  { value: 'waiting_response', label: 'Waiting Response' },
+                  { value: 'submitted', label: 'Submitted' },
+                  { value: 'approved', label: 'Approved' },
+                  { value: 'rejected', label: 'Rejected' },
+                  { value: 'completed', label: 'Completed' },
+                  { value: 'closed', label: 'Closed' },
+                  { value: 'cancelled', label: 'Cancelled' },
+                ])
+              .concat(
+                formData.category === 'emails_and_approvals' && formData.status
+                  && !emailApprovalStatuses.some((s) => s.value === formData.status)
+                  ? [{ value: formData.status, label: `${formData.status} (current)` }]
+                  : [],
+              )
+              .map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
           </select>
         </div>
       </div>

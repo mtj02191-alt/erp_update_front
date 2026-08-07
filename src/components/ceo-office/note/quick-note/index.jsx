@@ -20,7 +20,7 @@ const QuickNote = () => {
     department: '',
     priority: 'medium',
     due_date: '',
-    status: 'unprocessed',
+    status: categoryFromUrl === 'emails_and_approvals' ? 'waiting_response' : 'unprocessed',
     attachment: '',
     voice_note: '',
     pa_remarks: '',
@@ -108,15 +108,27 @@ const QuickNote = () => {
     };
   }, []);
 
-  // Update type when category changes
+  // Update type and category-specific defaults when category changes
   useEffect(() => {
-    if (formData.category === 'visitors') {
-      setFormData(prev => ({ ...prev, type: 'visitor' }));
-    } else if (formData.category === 'calls') {
-      setFormData(prev => ({ ...prev, type: 'call' }));
-    } else if (formData.category === 'whatsapp') {
-      setFormData(prev => ({ ...prev, type: 'whatsapp' }));
-    }
+    const nextCategory = formData.category;
+    setFormData((prev) => {
+      const next = { ...prev };
+      if (nextCategory === 'visitors') {
+        next.type = 'visitor';
+      } else if (nextCategory === 'calls') {
+        next.type = 'call';
+      } else if (nextCategory === 'whatsapp') {
+        next.type = 'whatsapp';
+      }
+
+      if (nextCategory === 'emails_and_approvals') {
+        const allowedStatuses = ['waiting_response', 'pending', 'approved', 'rejected', 'completed', 'closed', 'cancelled'];
+        if (!allowedStatuses.includes(next.status)) {
+          next.status = 'waiting_response';
+        }
+      }
+      return next;
+    });
   }, [formData.category]);
 
   const handleChange = (e) => {
@@ -225,18 +237,49 @@ const QuickNote = () => {
     { value: 'critical', label: 'Critical' },
   ];
 
-  const statuses = [
-    { value: 'unprocessed', label: 'Unprocessed' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'in_progress', label: 'In Progress' },
+  const defaultStatuses = [
     { value: 'waiting_response', label: 'Waiting Response' },
-    { value: 'submitted', label: 'Submitted' },
+    { value: 'pending', label: 'Pending' },
     { value: 'approved', label: 'Approved' },
     { value: 'rejected', label: 'Rejected' },
     { value: 'completed', label: 'Completed' },
     { value: 'closed', label: 'Closed' },
     { value: 'cancelled', label: 'Cancelled' },
   ];
+
+  const statuses = formData.category === 'emails_and_approvals'
+    ? defaultStatuses
+    : [
+        { value: 'unprocessed', label: 'Unprocessed' },
+        { value: 'pending', label: 'Pending' },
+        { value: 'in_progress', label: 'In Progress' },
+        { value: 'waiting_response', label: 'Waiting Response' },
+        { value: 'submitted', label: 'Submitted' },
+        { value: 'approved', label: 'Approved' },
+        { value: 'rejected', label: 'Rejected' },
+        { value: 'completed', label: 'Completed' },
+        { value: 'closed', label: 'Closed' },
+        { value: 'cancelled', label: 'Cancelled' },
+      ];
+
+  useEffect(() => {
+    if (formData.category === 'visitors') {
+      setFormData(prev => ({ ...prev, type: 'visitor' }));
+    } else if (formData.category === 'calls') {
+      setFormData(prev => ({ ...prev, type: 'call' }));
+    } else if (formData.category === 'whatsapp') {
+      setFormData(prev => ({ ...prev, type: 'whatsapp' }));
+    }
+
+    if (formData.category === 'emails_and_approvals') {
+      setFormData(prev => ({
+        ...prev,
+        status: defaultStatuses.some(s => s.value === prev.status)
+          ? prev.status
+          : 'waiting_response',
+      }));
+    }
+  }, [formData.category]);
 
   const departments = [
     "admin",
