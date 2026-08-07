@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
+import {
   FaBuilding, FaClipboard, FaFilter, FaFlag, FaSearch, FaEye, FaSyncAlt, FaEdit, FaTrash,
   FaCalendarCheck, FaHistory, FaPhoneAlt, FaWhatsappSquare, FaUserFriends, FaHandshake,
   FaExclamationTriangle, FaLightbulb, FaHourglassHalf, FaProjectDiagram,
-  FaCheckDouble, 
+  FaCheckDouble,
   FaEnvelope,
   FaArrowUp,
   FaRedo,
@@ -12,7 +12,7 @@ import {
   FaCheck,
   FaTimes,
   FaLock
-} from 'react-icons/fa';          
+} from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import axios from '../../../utils/axios';
 import Navbar from '../../Navbar';
@@ -66,7 +66,7 @@ const InstructionRegister = () => {
       const response = await axios.get('/users/options');
       const users = response.data.data || response.data || [];
       setAllUsers(users);
-      
+
       // Create a map from user ID to user object
       const map = new Map();
       users.forEach(user => {
@@ -365,8 +365,8 @@ const InstructionRegister = () => {
         task_department: note.department || 'executive_office',
         task_priority: note.priority,
         task_due_date: note.due_date ? note.due_date.split('T')[0] : '',
-        assigned_users: note.assigned_user_ids?.length > 0 
-          ? note.assigned_user_ids 
+        assigned_users: note.assigned_user_ids?.length > 0
+          ? note.assigned_user_ids
           : note.assigned_users?.length > 0
             ? note.assigned_users.map(u => u.id)
             : [],
@@ -387,7 +387,7 @@ const InstructionRegister = () => {
       toast.error('Failed to delete note');
     }
   };
-  
+
   const handleVisitorDelete = async (visitorId) => {
     if (!window.confirm('Are you sure you want to delete this record?')) return;
     try {
@@ -537,13 +537,13 @@ const InstructionRegister = () => {
   const getAssignedUserNames = (note) => {
     // Collect all unique user objects and ids
     const userMap = new Map(); // Map id (number) to user object
-    
+
     // Helper to normalize id to number
     const normalizeId = (id) => {
       const num = Number(id);
       return isNaN(num) ? null : num;
     };
-    
+
     // 1. From assigned_users relation (array of user objects)
     if (note.assigned_users && Array.isArray(note.assigned_users)) {
       note.assigned_users.forEach(user => {
@@ -553,7 +553,7 @@ const InstructionRegister = () => {
         }
       });
     }
-    
+
     // 2. From assigned_user_ids array
     if (note.assigned_user_ids && Array.isArray(note.assigned_user_ids)) {
       note.assigned_user_ids.forEach(id => {
@@ -563,22 +563,22 @@ const InstructionRegister = () => {
         }
       });
     }
-    
+
     // If no users found
     if (userMap.size === 0) {
       return '-';
     }
-    
+
     // Get user names
     const names = [];
     userMap.forEach((user, id) => {
       let finalUser = user;
-      
+
       // If we don't have the user object, look it up in usersMap
       if (!finalUser) {
         finalUser = usersMap.get(id) || usersMap.get(String(id)) || usersMap.get(Number(id));
       }
-      
+
       if (finalUser) {
         const firstName = finalUser.first_name || finalUser.firstName || '';
         const lastName = finalUser.last_name || finalUser.lastName || '';
@@ -594,7 +594,7 @@ const InstructionRegister = () => {
         names.push(`User ${id}`);
       }
     });
-    
+
     return names.join(', ');
   };
 
@@ -617,411 +617,411 @@ const InstructionRegister = () => {
     <>
       <Navbar />
       <div className="instruction-register">
-      <div className="page-header">
-        <div className="page-header-left">
-          <h2>Instruction Register</h2>
-        </div>
-        <div className="instruction-page-header-right">
-        {/* <button onClick={handlePrint} className="instruction-btn btn-print" title="Print Register">
+        <div className="page-header">
+          <div className="page-header-left">
+            <h2>Instruction Register</h2>
+          </div>
+          <div className="instruction-page-header-right">
+            {/* <button onClick={handlePrint} className="instruction-btn btn-print" title="Print Register">
           <FaPrint /> Print
         </button> */}
-        <Link to="/ceo-office/reports" className="instruction-btn btn-reports" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-          <FaClipboard /> Reports
-        </Link>
-        <Link to="/ceo-office/quick-note" className="add-instruction-btn">
-          <span className="btn-icon">+</span> Quick Note
-        </Link>
-        <button onClick={() => navigate('/ceo-office/dashboard')} className="note-view-btn note-view-btn-secondary">
-            Back
+            {/* <Link to="/ceo-office/reports" className="instruction-btn btn-reports" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <FaClipboard /> Reports
+            </Link> */}
+            <Link to="/ceo-office/quick-note" className="add-instruction-btn">
+              <span className="btn-icon">+</span> Quick Note
+            </Link>
+            <button onClick={() => navigate('/ceo-office/dashboard')} className="note-view-btn note-view-btn-secondary">
+              Back
+            </button>
+          </div>
+        </div>
+
+        <div className="instruction-toolbar">
+          <div className="instruction-toolbar-meta">
+            <span className="instruction-summary-pill">
+              {stats.total} visible {stats.total === 1 ? 'item' : 'items'}
+            </span>
+            <span className={`instruction-summary-pill ${hasActiveFilters ? 'active' : 'neutral'}`}>
+              {hasActiveFilters ? `${activeFilterCount} active filter${activeFilterCount > 1 ? 's' : ''}` : 'All filters cleared'}
+            </span>
+            {lastUpdated && (
+              <span className="instruction-summary-pill secondary">
+                Updated {lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+              </span>
+            )}
+          </div>
+          <button type="button" className="instruction-refresh-btn" onClick={refreshInstructions} disabled={refreshing}>
+            <FaRedo className={refreshing ? 'instruction-refresh-spin' : ''} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>
-      </div>
 
-      <div className="instruction-toolbar">
-        <div className="instruction-toolbar-meta">
-          <span className="instruction-summary-pill">
-            {stats.total} visible {stats.total === 1 ? 'item' : 'items'}
-          </span>
-          <span className={`instruction-summary-pill ${hasActiveFilters ? 'active' : 'neutral'}`}>
-            {hasActiveFilters ? `${activeFilterCount} active filter${activeFilterCount > 1 ? 's' : ''}` : 'All filters cleared'}
-          </span>
-          {lastUpdated && (
-            <span className="instruction-summary-pill secondary">
-              Updated {lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-            </span>
-          )}
+        {/* Stats Cards */}
+        <div className="instruction-stats-grid">
+          <div className="instruction-stat-card total">
+            <div className="instruction-stat-icon">📝</div>
+            <div className="instruction-stat-content">
+              <div className="instruction-stat-value">{stats.total}</div>
+              <div className="instruction-stat-label">Total Instructions</div>
+            </div>
+          </div>
+          <div className="instruction-stat-card completed">
+            <div className="instruction-stat-icon">✅</div>
+            <div className="instruction-stat-content">
+              <div className="instruction-stat-value">{stats.completed}</div>
+              <div className="instruction-stat-label">Completed</div>
+            </div>
+          </div>
+          <div className="instruction-stat-card in-progress">
+            <div className="instruction-stat-icon">⏰</div>
+            <div className="instruction-stat-content">
+              <div className="instruction-stat-value">{stats.inProgress}</div>
+              <div className="instruction-stat-label">In Progress</div>
+            </div>
+          </div>
+          <div className="instruction-stat-card pending">
+            <div className="instruction-stat-icon">⏳</div>
+            <div className="instruction-stat-content">
+              <div className="instruction-stat-value">{stats.pending}</div>
+              <div className="instruction-stat-label">Pending</div>
+            </div>
+          </div>
+          <div className="instruction-stat-card critical">
+            <div className="instruction-stat-icon">⚠️</div>
+            <div className="instruction-stat-content">
+              <div className="instruction-stat-value">{stats.critical}</div>
+              <div className="instruction-stat-label">Critical</div>
+            </div>
+          </div>
         </div>
-        <button type="button" className="instruction-refresh-btn" onClick={refreshInstructions} disabled={refreshing}>
-          <FaRedo className={refreshing ? 'instruction-refresh-spin' : ''} />
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </button>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="instruction-stats-grid">
-        <div className="instruction-stat-card total">
-          <div className="instruction-stat-icon">📝</div>
-          <div className="instruction-stat-content">
-            <div className="instruction-stat-value">{stats.total}</div>
-            <div className="instruction-stat-label">Total Instructions</div>
+        {/* Filters */}
+        <div className="instruction-filters-bar">
+          <div className="filter-group search">
+            <div className="filter-instruction">
+              <FaSearch className="instruction-filter-icon" />
+              <input
+                type="text"
+                name="search"
+                placeholder="Search instructions..."
+                value={filters.search}
+                onChange={handleFilterChange}
+                className="instruction-control"
+              />
+            </div>
           </div>
-        </div>
-        <div className="instruction-stat-card completed">
-          <div className="instruction-stat-icon">✅</div>
-          <div className="instruction-stat-content">
-            <div className="instruction-stat-value">{stats.completed}</div>
-            <div className="instruction-stat-label">Completed</div>
+          <div className="filter-group">
+            <div className="filter-instruction">
+              <FaClipboard className="instruction-filter-icon" />
+              <select
+                name="category"
+                value={filters.category}
+                onChange={handleFilterChange}
+                className="instruction-control"
+              >
+                {categories.map(cat => (
+                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
-        <div className="instruction-stat-card in-progress">
-          <div className="instruction-stat-icon">⏰</div>
-          <div className="instruction-stat-content">
-            <div className="instruction-stat-value">{stats.inProgress}</div>
-            <div className="instruction-stat-label">In Progress</div>
+          <div className="filter-group">
+            <div className="filter-instruction">
+              <FaBuilding className="instruction-filter-icon" />
+              <select
+                name="department"
+                value={filters.department}
+                onChange={handleFilterChange}
+                className="instruction-control"
+              >
+                {departments.map(dept => (
+                  <option key={dept.value} value={dept.value}>{dept.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
-        <div className="instruction-stat-card pending">
-          <div className="instruction-stat-icon">⏳</div>
-          <div className="instruction-stat-content">
-            <div className="instruction-stat-value">{stats.pending}</div>
-            <div className="instruction-stat-label">Pending</div>
+          <div className="filter-group">
+            <div className="filter-instruction">
+              <FaFilter className="instruction-filter-icon" />
+              <select
+                name="status"
+                value={filters.status}
+                onChange={handleFilterChange}
+                className="instruction-control"
+              >
+                {statuses.map(s => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
-        <div className="instruction-stat-card critical">
-          <div className="instruction-stat-icon">⚠️</div>
-          <div className="instruction-stat-content">
-            <div className="instruction-stat-value">{stats.critical}</div>
-            <div className="instruction-stat-label">Critical</div>
+          <div className="filter-group">
+            <div className="filter-instruction">
+              <FaFlag className="instruction-filter-icon" />
+              <select
+                name="priority"
+                value={filters.priority}
+                onChange={handleFilterChange}
+                className="instruction-control"
+              >
+                {priorities.map(p => (
+                  <option key={p.value} value={p.value}>{p.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
+          <button onClick={handleResetFilters} className="instruction-btn btn-reset">
+            <span className="instruction-btn-icon">↻</span> Reset
+          </button>
         </div>
-      </div>
 
-      {/* Filters */}
-      <div className="instruction-filters-bar">
-        <div className="filter-group search">
-          <div className="filter-instruction">
-            <FaSearch className="instruction-filter-icon" />
-            <input
-              type="text"
-              name="search"
-              placeholder="Search instructions..."
-              value={filters.search}
-              onChange={handleFilterChange}
-              className="instruction-control"
-            />
-          </div>
-        </div>
-        <div className="filter-group">
-          <div className="filter-instruction">
-            <FaClipboard className="instruction-filter-icon" />
-            <select
-              name="category"
-              value={filters.category}
-              onChange={handleFilterChange}
-              className="instruction-control"
-            >
-              {categories.map(cat => (
-                <option key={cat.value} value={cat.value}>{cat.label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="filter-group">
-          <div className="filter-instruction">
-            <FaBuilding className="instruction-filter-icon" />
-            <select
-              name="department"
-              value={filters.department}
-              onChange={handleFilterChange}
-              className="instruction-control"
-            >
-              {departments.map(dept => (
-                <option key={dept.value} value={dept.value}>{dept.label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="filter-group">
-          <div className="filter-instruction">
-            <FaFilter className="instruction-filter-icon" />
-            <select
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              className="instruction-control"
-            >
-              {statuses.map(s => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="filter-group">
-          <div className="filter-instruction">
-            <FaFlag className="instruction-filter-icon" />
-            <select
-              name="priority"
-              value={filters.priority}
-              onChange={handleFilterChange}
-              className="instruction-control"
-            >
-              {priorities.map(p => (
-                <option key={p.value} value={p.value}>{p.label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <button onClick={handleResetFilters} className="instruction-btn btn-reset">
-          <span className="instruction-btn-icon">↻</span> Reset
-        </button>
-      </div>
-
-      {/* Table */}
-      <div className="table-container">
-        {loading ? (
-          <div className="loading-container">Loading...</div>
-        ) : (
-          <table className="notes-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                {/* <th>Date</th> */}
-                <th>Title</th>
-                <th>Category</th>
-                <th>Department</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Assigned To</th>
-                <th>Due Date</th>
-                <th>Related Task</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {notes.length > 0 ? (
-                notes.map((note, index) => (
-                  <tr key={note.id} className={isOverdue(note) ? 'overdue' : ''}>
-                    <td>{((pagination.page - 1) * pagination.pageSize) + index + 1}</td>
-                    {/* <td>{note.date ? new Date(note.date).toLocaleDateString() : '-'}</td> */}
-                    <td>
-                      <span className="instruction-td-title">{note.title}</span>
-                    </td>
-                    <td>
-                      <div className="category-cell">
-                        <span className="category-icon">{getCategoryIcon(note.category)}</span>
-                        <span className="category-name">{note.category?.replace('_', ' ')}</span>
-                      </div>
-                    </td>
-                    <td>{note.department?.replace('_', ' ')}</td>
-                    <td>
-                      <span className={`priority-badge-instruction priority-badge-instruction-${note.priority}`}>
-                        {note.priority?.toUpperCase()}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`instruction-list-status-badge instruction-list-status-badge-${note.status}`}>
-                        {note.status?.replace('_', ' ').toUpperCase()}
-                      </span>
-                    </td>
-                    <td>
-                      {(() => {
-                        const names = getAssignedUserNames(note);
-                        // For styling, split into badges if multiple
-                        if (names === '-') {
-                          return '-';
-                        }
-                        const nameArray = names.split(', ');
-                        return (
-                          <div className="assigned-users-container">
-                            {nameArray.map((name, idx) => (
-                              <span key={idx} className="assigned-badge-instruction">
-                                {name}
-                              </span>
-                            ))}
-                          </div>
-                        );
-                      })()}
-                    </td>
-                    <td>{note.due_date ? new Date(note.due_date).toLocaleDateString() : '-'}</td>
-                    <td>
-                      { (note.related_task_id || note.project_command_sheet_detail?.related_task_id) ? (
-                        <Link
-                          to={`/tasks/view/${note.related_task_id || note.project_command_sheet_detail?.related_task_id}`}
-                          className="visitors-list-related-note"
-                        >
-                          Task #{note.related_task_id || note.project_command_sheet_detail?.related_task_id}
-                        </Link>
-                      ) : '-'}
-                    </td>
-                    <td>
-                      <div className="instruction-actions">
-                        <Link 
-                          to={`/ceo-office/notes/${note.project_command_sheet_detail?.note_id || note.note_id || note.related_note_id || note.id}`} 
-                          className="instruction-action-btn btn-view" 
-                          title="View"
-                        >
-                          <FaEye color="#007bff" />
-                        </Link>
-                        <Link 
-                          to={`/ceo-office/notes/${note.project_command_sheet_detail?.note_id || note.note_id || note.related_note_id || note.id}`} 
-                          state={
-                            note.source === 'visitor-record' || note.source === 'project-command-sheet' 
-                              ? {} 
-                              : { isEditing: true }
-                          } 
-                          className="instruction-action-btn btn-edit" 
-                          title="Edit"
-                        >
-                          <FaEdit color="#fd7e14" />
-                        </Link>
-                        <button
-                          onClick={() => openConvertModal(note)}
-                          className="instruction-action-btn btn-convert"
-                          disabled={note.related_task_id || note.project_command_sheet_detail?.related_task_id}
-                          title={(note.related_task_id || note.project_command_sheet_detail?.related_task_id) ? 'Already converted' : 'Convert to Task'}
-                        >
-                          <FaSyncAlt color={(note.related_task_id || note.project_command_sheet_detail?.related_task_id) ? "#6c757d" : "#20c997"} />
-                        </button>
-                        {note.source === 'ceo-note' && !['completed', 'closed', 'cancelled', 'approved', 'rejected'].includes(note.status) && (
-                          <button
-                            onClick={() => handleApprove(note.id)}
-                            className="instruction-action-btn btn-approve"
-                            title="Approve"
+        {/* Table */}
+        <div className="table-container">
+          {loading ? (
+            <div className="loading-container">Loading...</div>
+          ) : (
+            <table className="notes-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  {/* <th>Date</th> */}
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th>Department</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Assigned To</th>
+                  <th>Due Date</th>
+                  <th>Related Task</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {notes.length > 0 ? (
+                  notes.map((note, index) => (
+                    <tr key={note.id} className={isOverdue(note) ? 'overdue' : ''}>
+                      <td>{((pagination.page - 1) * pagination.pageSize) + index + 1}</td>
+                      {/* <td>{note.date ? new Date(note.date).toLocaleDateString() : '-'}</td> */}
+                      <td>
+                        <span className="instruction-td-title">{note.title}</span>
+                      </td>
+                      <td>
+                        <div className="category-cell">
+                          <span className="category-icon">{getCategoryIcon(note.category)}</span>
+                          <span className="category-name">{note.category?.replace('_', ' ')}</span>
+                        </div>
+                      </td>
+                      <td>{note.department?.replace('_', ' ')}</td>
+                      <td>
+                        <span className={`priority-badge-instruction priority-badge-instruction-${note.priority}`}>
+                          {note.priority?.toUpperCase()}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`instruction-list-status-badge instruction-list-status-badge-${note.status}`}>
+                          {note.status?.replace('_', ' ').toUpperCase()}
+                        </span>
+                      </td>
+                      <td>
+                        {(() => {
+                          const names = getAssignedUserNames(note);
+                          // For styling, split into badges if multiple
+                          if (names === '-') {
+                            return '-';
+                          }
+                          const nameArray = names.split(', ');
+                          return (
+                            <div className="assigned-users-container">
+                              {nameArray.map((name, idx) => (
+                                <span key={idx} className="assigned-badge-instruction">
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </td>
+                      <td>{note.due_date ? new Date(note.due_date).toLocaleDateString() : '-'}</td>
+                      <td>
+                        {(note.related_task_id || note.project_command_sheet_detail?.related_task_id) ? (
+                          <Link
+                            to={`/tasks/view/${note.related_task_id || note.project_command_sheet_detail?.related_task_id}`}
+                            className="visitors-list-related-note"
                           >
-                            <FaCheck color="#28a745" />
-                          </button>
-                        )}
-                        {note.source === 'ceo-note' && !['completed', 'closed', 'cancelled'].includes(note.status) && (
-                          <button
-                            onClick={() => handleClose(note.id)}
-                            className="instruction-action-btn btn-close"
-                            title="Close"
+                            Task #{note.related_task_id || note.project_command_sheet_detail?.related_task_id}
+                          </Link>
+                        ) : '-'}
+                      </td>
+                      <td>
+                        <div className="instruction-actions">
+                          <Link
+                            to={`/ceo-office/notes/${note.project_command_sheet_detail?.note_id || note.note_id || note.related_note_id || note.id}`}
+                            className="instruction-action-btn btn-view"
+                            title="View"
                           >
-                            <FaLock color="#6c757d" />
+                            <FaEye color="#007bff" />
+                          </Link>
+                          <Link
+                            to={`/ceo-office/notes/${note.project_command_sheet_detail?.note_id || note.note_id || note.related_note_id || note.id}`}
+                            state={
+                              note.source === 'visitor-record' || note.source === 'project-command-sheet'
+                                ? {}
+                                : { isEditing: true }
+                            }
+                            className="instruction-action-btn btn-edit"
+                            title="Edit"
+                          >
+                            <FaEdit color="#fd7e14" />
+                          </Link>
+                          <button
+                            onClick={() => openConvertModal(note)}
+                            className="instruction-action-btn btn-convert"
+                            disabled={note.related_task_id || note.project_command_sheet_detail?.related_task_id}
+                            title={(note.related_task_id || note.project_command_sheet_detail?.related_task_id) ? 'Already converted' : 'Convert to Task'}
+                          >
+                            <FaSyncAlt color={(note.related_task_id || note.project_command_sheet_detail?.related_task_id) ? "#6c757d" : "#20c997"} />
                           </button>
-                        )}
-                        <button
-                          onClick={() => {
-                            if (note.source === 'visitor-record') {
-                              handleVisitorDelete(note.id);
-                            } else if (note.source === 'project-command-sheet') {
-                              handleProjectSheetDelete(note.id);
-                            } else if (note.project_command_sheet_detail) {
-                              if (window.confirm('This will delete the CEO Note and its linked Project Command Sheet. Continue?')) {
+                          {note.source === 'ceo-note' && !['completed', 'closed', 'cancelled', 'approved', 'rejected'].includes(note.status) && (
+                            <button
+                              onClick={() => handleApprove(note.id)}
+                              className="instruction-action-btn btn-approve"
+                              title="Approve"
+                            >
+                              <FaCheck color="#28a745" />
+                            </button>
+                          )}
+                          {note.source === 'ceo-note' && !['completed', 'closed', 'cancelled'].includes(note.status) && (
+                            <button
+                              onClick={() => handleClose(note.id)}
+                              className="instruction-action-btn btn-close"
+                              title="Close"
+                            >
+                              <FaLock color="#6c757d" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              if (note.source === 'visitor-record') {
+                                handleVisitorDelete(note.id);
+                              } else if (note.source === 'project-command-sheet') {
+                                handleProjectSheetDelete(note.id);
+                              } else if (note.project_command_sheet_detail) {
+                                if (window.confirm('This will delete the CEO Note and its linked Project Command Sheet. Continue?')) {
+                                  handleDelete(note.id);
+                                }
+                                return;
+                              } else {
                                 handleDelete(note.id);
                               }
-                              return;
-                            } else {
-                              handleDelete(note.id);
-                            }
-                          }}
-                          className="instruction-action-btn btn-delete"
-                          title="Delete"
-                        >
-                          <FaTrash color="#dc3545" />
-                        </button>
-                      </div>
+                            }}
+                            className="instruction-action-btn btn-delete"
+                            title="Delete"
+                          >
+                            <FaTrash color="#dc3545" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="11">
+                      <EmptyState
+                        title="No instructions match these filters"
+                        message="Try clearing a filter or adding a fresh note from the quick note form."
+                        actionLabel="Create quick note"
+                        actionHref="/ceo-office/quick-note"
+                        compact
+                      />
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="11">
-                    <EmptyState
-                      title="No instructions match these filters"
-                      message="Try clearing a filter or adding a fresh note from the quick note form."
-                      actionLabel="Create quick note"
-                      actionHref="/ceo-office/quick-note"
-                      compact
-                    />
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Pagination */}
-      <div className="instruction-pagination-wrapper">
-        <div className="instruction-pagination-info">
-          {pagination.total === 0 ? (
-            'Showing 0 to 0 of 0 entries'
-          ) : (
-            `Showing ${(pagination.page - 1) * pagination.pageSize + 1} to ${Math.min(pagination.page * pagination.pageSize, pagination.total)} of ${pagination.total} entries`
+                )}
+              </tbody>
+            </table>
           )}
         </div>
-        {totalPages > 0 && (
-          <div className="pagination">
-            <select
-              className="form-control-instruction"
-              style={{ width: '85px', fontSize: '12px' }}
-              value={pagination.pageSize}
-              onChange={(e) => setPagination(p => ({ ...p, page: 1, pageSize: Number(e.target.value) }))}
-            >
-              <option value={10}>10 / page</option>
-              <option value={20}>20 / page</option>
-              <option value={30}>30 / page</option>
-              <option value={40}>40 / page</option>
-              <option value={50}>50 / page</option>
-            </select>
-            <button
-              onClick={() => setPagination(p => ({ ...p, page: 1 }))}
-              disabled={pagination.page === 1}
-              className="btn btn-sm btn-secondary"
-              title="First page"
-            >
-              «
-            </button>
-            <button
-              onClick={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
-              disabled={pagination.page === 1}
-              className="btn btn-sm btn-secondary"
-              title="Previous page"
-            >
-              ‹
-            </button>
-            {getPageNumbers().map((page, idx) => (
-              page === '...' ? (
-                <span key={`dots-${idx}`} className="page-dots">...</span>
-              ) : (
-                <button
-                  key={page}
-                  onClick={() => setPagination(p => ({ ...p, page: Math.max(1, Math.min(page, totalPages || 1)) }))}
-                  className={`btn btn-sm ${pagination.page === page ? 'btn-primary' : 'btn-secondary'}`}
-                >
-                  {page}
-                </button>
-              )
-            ))}
-            <button
-              onClick={() => setPagination(p => ({ ...p, page: Math.min(totalPages || 1, p.page + 1) }))}
-              disabled={pagination.page >= totalPages || totalPages === 0}
-              className="btn btn-sm btn-secondary"
-              title="Next page"
-            >
-              ›
-            </button>
-            <button
-              onClick={() => setPagination(p => ({ ...p, page: totalPages || 1 }))}
-              disabled={pagination.page >= totalPages || totalPages === 0}
-              className="btn btn-sm btn-secondary"
-              title="Last page"
-            >
-              »
-            </button>
-          </div>
-        )}
-      </div>
 
-      {/* Convert to Task Modal */}
-      <ConvertToTaskModal
-        isOpen={convertModalOpen}
-        onClose={() => setConvertModalOpen(false)}
-        convertData={convertData}
-        setConvertData={setConvertData}
-        onConvert={handleConvertToTask}
-      />
+        {/* Pagination */}
+        <div className="instruction-pagination-wrapper">
+          <div className="instruction-pagination-info">
+            {pagination.total === 0 ? (
+              'Showing 0 to 0 of 0 entries'
+            ) : (
+              `Showing ${(pagination.page - 1) * pagination.pageSize + 1} to ${Math.min(pagination.page * pagination.pageSize, pagination.total)} of ${pagination.total} entries`
+            )}
+          </div>
+          {totalPages > 0 && (
+            <div className="pagination">
+              <select
+                className="form-control-instruction"
+                style={{ width: '85px', fontSize: '12px' }}
+                value={pagination.pageSize}
+                onChange={(e) => setPagination(p => ({ ...p, page: 1, pageSize: Number(e.target.value) }))}
+              >
+                <option value={10}>10 / page</option>
+                <option value={20}>20 / page</option>
+                <option value={30}>30 / page</option>
+                <option value={40}>40 / page</option>
+                <option value={50}>50 / page</option>
+              </select>
+              <button
+                onClick={() => setPagination(p => ({ ...p, page: 1 }))}
+                disabled={pagination.page === 1}
+                className="btn btn-sm btn-secondary"
+                title="First page"
+              >
+                «
+              </button>
+              <button
+                onClick={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
+                disabled={pagination.page === 1}
+                className="btn btn-sm btn-secondary"
+                title="Previous page"
+              >
+                ‹
+              </button>
+              {getPageNumbers().map((page, idx) => (
+                page === '...' ? (
+                  <span key={`dots-${idx}`} className="page-dots">...</span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => setPagination(p => ({ ...p, page: Math.max(1, Math.min(page, totalPages || 1)) }))}
+                    className={`btn btn-sm ${pagination.page === page ? 'btn-primary' : 'btn-secondary'}`}
+                  >
+                    {page}
+                  </button>
+                )
+              ))}
+              <button
+                onClick={() => setPagination(p => ({ ...p, page: Math.min(totalPages || 1, p.page + 1) }))}
+                disabled={pagination.page >= totalPages || totalPages === 0}
+                className="btn btn-sm btn-secondary"
+                title="Next page"
+              >
+                ›
+              </button>
+              <button
+                onClick={() => setPagination(p => ({ ...p, page: totalPages || 1 }))}
+                disabled={pagination.page >= totalPages || totalPages === 0}
+                className="btn btn-sm btn-secondary"
+                title="Last page"
+              >
+                »
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Convert to Task Modal */}
+        <ConvertToTaskModal
+          isOpen={convertModalOpen}
+          onClose={() => setConvertModalOpen(false)}
+          convertData={convertData}
+          setConvertData={setConvertData}
+          onConvert={handleConvertToTask}
+        />
       </div>
     </>
   );

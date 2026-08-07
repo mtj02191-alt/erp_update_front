@@ -936,16 +936,15 @@ const QuickNote = () => {
                       {/* Type selector (for consistency, though category determines this) */}
                       <div className="form-group">
                         <label>Type</label>
-                        <select
-                          name="type"
-                          value={formData.type}
-                          onChange={handleChange}
-                          className="form-control"
-                        >
-                          <option value="visitor">Visitor</option>
-                          <option value="call">Call</option>
-                          <option value="whatsapp">WhatsApp</option>
-                        </select>
+                        <div className="form-control" style={{ backgroundColor: '#f8f9fa' }}>
+                          {formData.category === 'visitors'
+                            ? 'Visitor'
+                            : formData.category === 'calls'
+                              ? 'Call'
+                              : formData.category === 'whatsapp'
+                                ? 'WhatsApp'
+                                : formData.type}
+                        </div>
                       </div>
 
                       <div className="form-group">
