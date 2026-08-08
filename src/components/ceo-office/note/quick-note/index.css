@@ -80,6 +80,12 @@
   border: none;
   font-size: 14px;
 }
+.quick-note-status-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+}
+
 .quick-toggle-group {
   display: flex;
   align-items: center;

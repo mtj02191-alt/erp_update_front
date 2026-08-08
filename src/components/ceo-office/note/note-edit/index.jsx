@@ -1,104 +1,196 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaPlus, FaMinus } from 'react-icons/fa';
 import axios from '../../../../utils/axios';
 import { toast } from 'react-toastify';
 import './index.css';
 
-const NoteEdit = ({ note, onSave, onCancel }) => {
-  // Initialize form data
-  const emailApprovalStatuses = [
-    { value: 'waiting_response', label: 'Waiting Response' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'approved', label: 'Approved' },
-    { value: 'rejected', label: 'Rejected' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'closed', label: 'Closed' },
-    { value: 'cancelled', label: 'Cancelled' },
-  ];
+const emailApprovalStatuses = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'request_clarification', label: 'Request Clarification' },
+];
 
+const waitingResponseStatuses = [
+  { value: 'waiting_response', label: 'Waiting Response' },
+  { value: 'reminder_sent', label: 'Reminder Sent' },
+  { value: 'received', label: 'Received' },
+  { value: 'closed', label: 'Closed' },
+];
+
+const projectCommandSheetStatuses = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'on_hold', label: 'On Hold' },
+  { value: 'completed', label: 'Completed' },
+];
+
+const visitorsStatuses = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'waiting', label: 'Waiting' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+
+const callsStatuses = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'follow_up_required', label: 'Follow-up Required' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+
+const whatsappStatuses = [
+  { value: 'pending_reply', label: 'Pending Reply' },
+  { value: 'replied', label: 'Replied' },
+  { value: 'waiting_response', label: 'Waiting Response' },
+  { value: 'closed', label: 'Closed' },
+];
+
+const meetingStatuses = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'completed', label: 'Completed' },
+];
+
+const genericStatuses = [
+  { value: 'unprocessed', label: 'Unprocessed' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'waiting_response', label: 'Waiting Response' },
+  { value: 'submitted', label: 'Submitted' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'closed', label: 'Closed' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+
+const getStatusesForCategory = (category) => {
+  switch (category) {
+    case 'emails_and_approvals':
+      return emailApprovalStatuses;
+    case 'waiting_response':
+      return waitingResponseStatuses;
+    case 'project_command_sheets':
+      return projectCommandSheetStatuses;
+    case 'visitors':
+      return visitorsStatuses;
+    case 'calls':
+      return callsStatuses;
+    case 'whatsapp':
+      return whatsappStatuses;
+    case 'meetings':
+      return meetingStatuses;
+    default:
+      return genericStatuses;
+  }
+};
+
+const getDefaultStatusForCategory = (category) => {
+  switch (category) {
+    case 'emails_and_approvals':
+      return 'pending';
+    case 'waiting_response':
+      return 'waiting_response';
+    case 'project_command_sheets':
+      return 'pending';
+    case 'visitors':
+      return 'pending';
+    case 'calls':
+      return 'pending';
+    case 'whatsapp':
+      return 'pending_reply';
+    case 'meetings':
+      return 'pending';
+    default:
+      return '';
+  }
+};
+
+const NoteEdit = ({ note, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
-    date: note.date ? note.date.split('T')[0] : '',
-    category: note.category || '',
-    title: note.title || '',
-    details: note.details || '',
-    related_person: note.related_person || '',
-    department: note.department || '',
-    priority: note.priority || '',
-    due_date: note.due_date ? note.due_date.split('T')[0] : '',
-    status: note.status || (note.category === 'emails_and_approvals' ? 'waiting_response' : ''),
-    attachment: note.attachment || '',
-    voice_note: note.voice_note || '',
-    pa_remarks: note.pa_remarks || '',
-    ceo_remarks: note.ceo_remarks || '',
+    date: note?.date ? note.date.split('T')[0] : new Date().toISOString().split('T')[0],
+    category: note?.category || 'today_task',
+    title: note?.title || '',
+    details: note?.details || '',
+    related_person: note?.related_person || '',
+    department: note?.department || '',
+    priority: note?.priority || 'medium',
+    due_date: note?.due_date ? note.due_date.split('T')[0] : '',
+    status: note?.status || getDefaultStatusForCategory(note?.category || ''),
+    attachment: note?.attachment || '',
+    voice_note: note?.voice_note || '',
+    pa_remarks: note?.pa_remarks || '',
+    ceo_remarks: note?.ceo_remarks || '',
     // Follow-up fields
-    follow_up_requested_from: note.follow_up_requested_from || '',
-    follow_up_requested_date: note.follow_up_requested_date ? note.follow_up_requested_date.split('T')[0] : '',
-    follow_up_last_date: note.follow_up_last_date ? note.follow_up_last_date.split('T')[0] : '',
-    follow_up_next_date: note.follow_up_next_date ? note.follow_up_next_date.split('T')[0] : '',
-    follow_up_current_response: note.follow_up_current_response || '',
-    follow_up_remarks: note.follow_up_remarks || '',
-    follow_up_history: note.follow_up_history || [],
+    follow_up_requested_from: note?.follow_up_requested_from || '',
+    follow_up_requested_date: note?.follow_up_requested_date ? note.follow_up_requested_date.split('T')[0] : '',
+    follow_up_last_date: note?.follow_up_last_date ? note.follow_up_last_date.split('T')[0] : '',
+    follow_up_next_date: note?.follow_up_next_date ? note.follow_up_next_date.split('T')[0] : '',
+    follow_up_current_response: note?.follow_up_current_response || '',
+    follow_up_remarks: note?.follow_up_remarks || '',
+    follow_up_history: note?.follow_up_history || [],
     // Meeting fields
-    meeting_date: note.meeting_date ? note.meeting_date.slice(0,16) : '',
-    meeting_with: note.meeting_with || '',
-    meeting_subject: note.meeting_subject || '',
-    meeting_discussion_points: note.meeting_discussion_points || [{ id: Date.now().toString(), content: '' }],
-    meeting_decisions: note.meeting_decisions || [{ id: Date.now().toString(), content: '' }],
-    meeting_action_items: note.meeting_action_items || [{ id: Date.now().toString(), content: '', assigned_to: '', due_date: '', status: 'pending' }],
+    meeting_date: note?.meeting_date ? note.meeting_date.slice(0,16) : '',
+    meeting_with: note?.meeting_with || '',
+    meeting_subject: note?.meeting_subject || '',
+    meeting_discussion_points: note?.meeting_discussion_points || [{ id: Date.now().toString(), content: '' }],
+    meeting_decisions: note?.meeting_decisions || [{ id: Date.now().toString(), content: '' }],
+    meeting_action_items: note?.meeting_action_items || [{ id: Date.now().toString(), content: '', assigned_to: '', due_date: '', status: 'pending' }],
     // Emails & Approvals fields
-    approval_type: note.approval_type || '',
-    approval_requested_by: note.approval_requested_by || '',
-    approval_subject: note.approval_subject || '',
-    approval_reference_number: note.approval_reference_number || '',
-    approval_amount: note.approval_amount || '',
-    approval_decision: note.approval_decision || 'pending',
-    approval_decision_remarks: note.approval_decision_remarks || '',
+    approval_type: note?.approval_type || '',
+    approval_requested_by: note?.approval_requested_by || '',
+    approval_subject: note?.approval_subject || '',
+    approval_reference_number: note?.approval_reference_number || '',
+    approval_amount: note?.approval_amount || '',
+    approval_decision: note?.approval_decision || 'pending',
+    approval_decision_remarks: note?.approval_decision_remarks || '',
     // Waiting Response fields
-    waiting_response_requested_from: note.waiting_response_requested_from || '',
-    waiting_response_request_date: note.waiting_response_request_date ? note.waiting_response_request_date.split('T')[0] : '',
-    waiting_response_expected_date: note.waiting_response_expected_date ? note.waiting_response_expected_date.split('T')[0] : '',
-    waiting_response_last_reminder_date: note.waiting_response_last_reminder_date ? note.waiting_response_last_reminder_date.split('T')[0] : '',
-    waiting_response_status: note.waiting_response_status || 'waiting_response',
-    waiting_response_remarks: note.waiting_response_remarks || '',
-    waiting_response_reminders: note.waiting_response_reminders || [{ id: Date.now().toString(), date: '', notes: '' }],
+    waiting_response_requested_from: note?.waiting_response_requested_from || '',
+    waiting_response_request_date: note?.waiting_response_request_date ? note.waiting_response_request_date.split('T')[0] : '',
+    waiting_response_expected_date: note?.waiting_response_expected_date ? note.waiting_response_expected_date.split('T')[0] : '',
+    waiting_response_last_reminder_date: note?.waiting_response_last_reminder_date ? note.waiting_response_last_reminder_date.split('T')[0] : '',
+    waiting_response_status: note?.waiting_response_status || 'waiting_response',
+    waiting_response_remarks: note?.waiting_response_remarks || '',
+    waiting_response_reminders: note?.waiting_response_reminders || [{ id: Date.now().toString(), date: '', notes: '' }],
     // Visitors/Calls/WhatsApp fields
-    type: note.type || 'visitor',
-    visit_datetime: note.visit_datetime ? note.visit_datetime.slice(0, 16) : '',
-    visitor_name: note.visitor_name || '',
-    organization: note.organization || '',
-    purpose: note.purpose || '',
-    visitor_meeting_with: note.visitor_meeting_with || note.meeting_with || '',
-    visitor_department: note.visitor_department || note.department || '',
-    protocol_required: note.protocol_required || '',
-    expected_duration: note.expected_duration || '',
-    visitor_outcome: note.visitor_outcome || '',
-    caller_name: note.caller_name || '',
-    phone_number: note.phone_number || '',
-    call_purpose: note.call_purpose || '',
-    call_summary: note.call_summary || '',
-    follow_up_required: note.follow_up_required || 'No',
-    follow_up_date: note.follow_up_date ? note.follow_up_date.slice(0, 16) : '',
-    assigned_to: note.assigned_to || '',
-    contact_name: note.contact_name || '',
-    message_summary: note.message_summary || '',
-    required_action: note.required_action || '',
-    attachment_url: note.attachment_url || '',
-    response_status: note.response_status || '',
-    remarks: note.remarks || '',
+    type: note?.type || 'visitor',
+    visit_datetime: note?.visit_datetime ? note.visit_datetime.slice(0, 16) : '',
+    visitor_name: note?.visitor_name || '',
+    organization: note?.organization || '',
+    purpose: note?.purpose || '',
+    visitor_meeting_with: note?.visitor_meeting_with || note?.meeting_with || '',
+    visitor_department: note?.visitor_department || note?.department || '',
+    protocol_required: note?.protocol_required || '',
+    expected_duration: note?.expected_duration || '',
+    visitor_outcome: note?.visitor_outcome || '',
+    caller_name: note?.caller_name || '',
+    phone_number: note?.phone_number || '',
+    call_purpose: note?.call_purpose || '',
+    call_summary: note?.call_summary || '',
+    follow_up_required: note?.follow_up_required || 'No',
+    follow_up_date: note?.follow_up_date ? note.follow_up_date.slice(0, 16) : '',
+    assigned_to: note?.assigned_to || '',
+    contact_name: note?.contact_name || '',
+    message_summary: note?.message_summary || '',
+    required_action: note?.required_action || '',
+    attachment_url: note?.attachment_url || '',
+    response_status: note?.response_status || '',
+    remarks: note?.remarks || '',
     // Project Command Sheet fields
-    project_name: note.project_name || '',
-    project_details: note.project_details || '',
-    discussions: note.discussions || '',
-    decisions: note.decisions || '',
-    meeting_notes: note.meeting_notes || '',
-    pending_items: note.pending_items || [],
-    action_items: note.action_items || [],
-    start_date: note.start_date ? note.start_date.split('T')[0] : '',
-    end_date: note.end_date ? note.end_date.split('T')[0] : '',
-    pcs_status: note.pcs_status || 'Pending',
-    next_steps: note.next_steps || '',
-    results: note.results || ''
+    project_name: note?.project_name || '',
+    project_details: note?.project_details || '',
+    discussions: note?.discussions || '',
+    decisions: note?.decisions || '',
+    meeting_notes: note?.meeting_notes || '',
+    pending_items: note?.pending_items || [],
+    action_items: note?.action_items || [],
+    start_date: note?.start_date ? note.start_date.split('T')[0] : '',
+    end_date: note?.end_date ? note.end_date.split('T')[0] : '',
+    pcs_status: note?.pcs_status || 'Pending',
+    next_steps: note?.next_steps || '',
+    results: note?.results || ''
   });
 
   const handleInputChange = (e) => {
@@ -106,10 +198,17 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
     setFormData((prev) => {
       let next = { ...prev, [name]: value };
       if (name === 'category') {
-        if (value === 'emails_and_approvals') {
-          next.status = emailApprovalStatuses.some(s => s.value === prev.status)
-            ? prev.status
-            : 'waiting_response';
+        if (value === 'visitors') {
+          next.type = 'visitor';
+        } else if (value === 'calls') {
+          next.type = 'call';
+        } else if (value === 'whatsapp') {
+          next.type = 'whatsapp';
+        }
+
+        const allowedStatuses = getStatusesForCategory(value).map((s) => s.value);
+        if (!allowedStatuses.includes(next.status)) {
+          next.status = getDefaultStatusForCategory(value);
         }
       }
       return next;
@@ -134,11 +233,33 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
     setFormData({ ...formData, [field]: newArray });
   };
 
+  useEffect(() => {
+    setFormData((prev) => {
+      const next = { ...prev };
+      if (next.category === 'visitors') {
+        next.type = 'visitor';
+      } else if (next.category === 'calls') {
+        next.type = 'call';
+      } else if (next.category === 'whatsapp') {
+        next.type = 'whatsapp';
+      }
+
+      const allowedStatuses = getStatusesForCategory(next.category).map((s) => s.value);
+      if (!allowedStatuses.includes(next.status)) {
+        next.status = getDefaultStatusForCategory(next.category);
+      }
+
+      return next;
+    });
+  }, [formData.category]);
+
+  const statuses = getStatusesForCategory(formData.category);
+
   // Helper function to clean empty strings
   const cleanEmptyStrings = (obj) => {
     const cleaned = {};
     for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
         const value = obj[key];
         if (typeof value === 'string' && value.trim() === '') {
           cleaned[key] = null;
@@ -158,18 +279,18 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
       const categoryFieldMap = {
         follow_up: ['follow_up_requested_from', 'follow_up_requested_date', 'follow_up_last_date', 'follow_up_next_date', 'follow_up_current_response', 'follow_up_remarks', 'follow_up_history'],
         meetings: ['meeting_date', 'meeting_with', 'meeting_subject', 'meeting_discussion_points', 'meeting_decisions', 'meeting_action_items'],
-        emails_and_approvals: ['approval_type', 'approval_requested_by', 'approval_subject', 'approval_reference_number', 'approval_amount', 'approval_decision', 'approval_decision_remarks'],
-        waiting_response: ['waiting_response_requested_from', 'waiting_response_request_date', 'waiting_response_expected_date', 'waiting_response_last_reminder_date', 'waiting_response_status', 'waiting_response_remarks', 'waiting_response_reminders'],
+        emails_and_approvals: ['approval_type', 'approval_requested_by', 'approval_subject', 'approval_reference_number', 'approval_amount', 'approval_decision_remarks'],
+        waiting_response: ['waiting_response_requested_from', 'waiting_response_request_date', 'waiting_response_expected_date', 'waiting_response_last_reminder_date', 'waiting_response_remarks', 'waiting_response_reminders'],
         visitors: ['type', 'visit_datetime', 'visitor_name', 'organization', 'purpose', 'meeting_with', 'department', 'protocol_required', 'expected_duration', 'visitor_outcome'],
         calls: ['type', 'visit_datetime', 'caller_name', 'organization', 'phone_number', 'call_purpose', 'call_summary', 'follow_up_required', 'follow_up_date', 'assigned_to'],
-        whatsapp: ['type', 'visit_datetime', 'contact_name', 'phone_number', 'message_summary', 'required_action', 'attachment_url', 'response_status'],
-        project_command_sheets: ['project_name', 'project_details', 'discussions', 'decisions', 'meeting_notes', 'pending_items', 'action_items', 'start_date', 'end_date', 'pcs_status', 'next_steps', 'results'],
+        whatsapp: ['type', 'visit_datetime', 'contact_name', 'phone_number', 'message_summary', 'required_action', 'attachment_url'],
+        project_command_sheets: ['project_name', 'project_details', 'discussions', 'decisions', 'meeting_notes', 'pending_items', 'action_items', 'start_date', 'end_date', 'next_steps', 'results'],
       };
 
       const relevantFields = [...commonFields, ...(categoryFieldMap[formData.category] || [])];
       let cleanedData = {};
       for (const key of relevantFields) {
-        if (formData.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(formData, key)) {
           cleanedData[key] = formData[key];
         }
       }
@@ -198,9 +319,6 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
         cleanedData.meeting_action_items = cleanedData.meeting_action_items.filter(a => a.content?.trim());
       }
 
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('Note update payload:', cleanedData);
-      }
       const response = await axios.patch(`/ceo-notes/${note.id}`, cleanedData);
       toast.success('Note updated successfully');
       onSave(response.data);
@@ -270,24 +388,10 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
             onChange={handleInputChange}
             className="note-edit-form-control"
           >
-            {(formData.category === 'emails_and_approvals'
-              ? emailApprovalStatuses
-              : [
-                  { value: 'unprocessed', label: 'Unprocessed' },
-                  { value: 'pending', label: 'Pending' },
-                  { value: 'in_progress', label: 'In Progress' },
-                  { value: 'waiting_response', label: 'Waiting Response' },
-                  { value: 'submitted', label: 'Submitted' },
-                  { value: 'approved', label: 'Approved' },
-                  { value: 'rejected', label: 'Rejected' },
-                  { value: 'completed', label: 'Completed' },
-                  { value: 'closed', label: 'Closed' },
-                  { value: 'cancelled', label: 'Cancelled' },
-                ])
+            {statuses
               .concat(
-                formData.category === 'emails_and_approvals' && formData.status
-                  && !emailApprovalStatuses.some((s) => s.value === formData.status)
-                  ? [{ value: formData.status, label: `${formData.status} (current)` }]
+                formData.status && !statuses.some((s) => s.value === formData.status)
+                  ? [{ value: formData.status, label: `${formData.status.replace(/_/g, ' ')} (current)` }]
                   : [],
               )
               .map((s) => (
@@ -589,18 +693,6 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
                     className="note-edit-form-control"
                   />
                 </div>
-                <div className="note-edit-form-group flex-1">
-                  <label>Status</label>
-                  <select
-                    value={item.status}
-                    onChange={(e) => handleArrayItemChange('meeting_action_items', index, { status: e.target.value })}
-                    className="note-edit-form-control"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
                 {formData.meeting_action_items.length > 1 && (
                   <button
                     type="button"
@@ -672,20 +764,6 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
                 className="note-edit-form-control"
               />
             </div>
-            <div className="note-edit-form-group">
-              <label>Decision</label>
-              <select
-                name="approval_decision"
-                value={formData.approval_decision}
-                onChange={handleInputChange}
-                className="note-edit-form-control"
-              >
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="request_clarification">Request Clarification</option>
-              </select>
-            </div>
             <div className="note-edit-form-group note-edit-full-width">
               <label>Decision Remarks</label>
               <textarea
@@ -744,20 +822,6 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
                 onChange={handleInputChange}
                 className="note-edit-form-control"
               />
-            </div>
-            <div className="note-edit-form-group">
-              <label>Response Status</label>
-              <select
-                name="waiting_response_status"
-                value={formData.waiting_response_status}
-                onChange={handleInputChange}
-                className="note-edit-form-control"
-              >
-                <option value="waiting_response">Waiting Response</option>
-                <option value="reminder_sent">Reminder Sent</option>
-                <option value="received">Received</option>
-                <option value="closed">Closed</option>
-              </select>
             </div>
             <div className="note-edit-form-group note-edit-full-width">
               <label>Remarks</label>
@@ -1110,21 +1174,6 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
                     className="note-edit-form-control"
                   />
                 </div>
-                <div className="note-edit-form-group">
-                  <label>Response Status</label>
-                  <select
-                    name="response_status"
-                    value={formData.response_status}
-                    onChange={handleInputChange}
-                    className="note-edit-form-control"
-                  >
-                    <option value="">Select</option>
-                    <option value="Pending Reply">Pending Reply</option>
-                    <option value="Replied">Replied</option>
-                    <option value="Waiting Response">Waiting Response</option>
-                    <option value="Closed">Closed</option>
-                  </select>
-                </div>
                 <div className="note-edit-form-group note-edit-full-width">
                   <label>Remarks</label>
                   <textarea
@@ -1215,20 +1264,6 @@ const NoteEdit = ({ note, onSave, onCancel }) => {
                         onChange={handleInputChange}
                         className="note-edit-form-control"
                       />
-                    </div>
-                    <div className="note-edit-form-group">
-                      <label>Status</label>
-                      <select
-                        name="pcs_status"
-                        value={formData.pcs_status}
-                        onChange={handleInputChange}
-                        className="note-edit-form-control"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="On Hold">On Hold</option>
-                        <option value="Completed">Completed</option>
-                      </select>
                     </div>
                     <div className="note-edit-form-group note-edit-full-width">
                       <label>Next Steps</label>

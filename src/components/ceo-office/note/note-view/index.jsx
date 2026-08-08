@@ -33,21 +33,14 @@ const CeoNoteView = () => {
   const [auditHistory, setAuditHistory] = useState([]);
   const [showAuditHistory, setShowAuditHistory] = useState(false);
   const [loadingAudit, setLoadingAudit] = useState(false);
-  const [allUsers, setAllUsers] = useState([]);
   const [usersMap, setUsersMap] = useState(new Map());
 
-  useEffect(() => {
-    if (id) {
-      fetchNote();
-    }
-    fetchAllUsers();
-  }, [id]);
+  
 
-  const fetchAllUsers = async () => {
+  const fetchAllUsers = React.useCallback(async () => {
     try {
       const response = await axios.get('/users/options');
       const users = response.data.data || response.data || [];
-      setAllUsers(users);
 
       const map = new Map();
       users.forEach(user => {
@@ -59,13 +52,15 @@ const CeoNoteView = () => {
     } catch (error) {
       console.error('Error fetching users:', error);
     }
-  };
+  }, []);
 
-  const fetchNote = async () => {
+  const fetchNote = React.useCallback(async () => {
     try {
+      console.log('CeoNoteView: fetchNote called for id=', id);
       setLoading(true);
       const response = await axios.get(`/ceo-notes/${id}`);
       const raw = response.data;
+      console.log('CeoNoteView: fetchNote raw=', raw);
 
       // Flatten nested detail objects into the note for flat field access
       const detailKeys = [
@@ -132,7 +127,14 @@ const CeoNoteView = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      fetchNote();
+    }
+    fetchAllUsers();
+  }, [id, fetchNote, fetchAllUsers]);
 
   const fetchAuditHistory = async () => {
     try {
@@ -190,14 +192,40 @@ const CeoNoteView = () => {
       pending: 'note-view-status-pending',
       in_progress: 'note-view-status-in_progress',
       waiting_response: 'note-view-status-waiting_response',
+      reminder_sent: 'note-view-status-warning',
+      received: 'note-view-status-info',
+      pending_reply: 'note-view-status-pending',
+      follow_up_required: 'note-view-status-warning',
       submitted: 'note-view-status-submitted',
       approved: 'note-view-status-approved',
       rejected: 'note-view-status-rejected',
+      request_clarification: 'note-view-status-warning',
       completed: 'note-view-status-completed',
       closed: 'note-view-status-closed',
       cancelled: 'note-view-status-cancelled'
     };
     return classes[status] || 'note-view-status-pending';
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      unprocessed: 'Unprocessed',
+      pending: 'Pending',
+      in_progress: 'In Progress',
+      waiting_response: 'Waiting Response',
+      reminder_sent: 'Reminder Sent',
+      received: 'Received',
+      pending_reply: 'Pending Reply',
+      follow_up_required: 'Follow-up Required',
+      submitted: 'Submitted',
+      approved: 'Approved',
+      rejected: 'Rejected',
+      completed: 'Completed',
+      closed: 'Closed',
+      cancelled: 'Cancelled',
+      request_clarification: 'Request Clarification',
+    };
+    return labels[status] || status?.replace(/_/g, ' ') || '';
   };
 
   const getPriorityBadgeClass = (priority) => {
@@ -277,19 +305,6 @@ const CeoNoteView = () => {
     }
 
     return Array.from(displayNames.values());
-  };
-
-  // Helper to render a field only if it has value
-  const renderFieldIfPresent = (label, value, renderFn) => {
-    if (!hasValue(value)) return null;
-    return (
-      <div className="note-view-form-group">
-        <label>{label}</label>
-        <p className="note-view-content-text">
-          {renderFn ? renderFn(value) : value}
-        </p>
-      </div>
-    );
   };
 
   const handleRemind = async () => {
@@ -497,7 +512,7 @@ const CeoNoteView = () => {
                 <div className="note-view-meta-item">
                   <span className="note-view-meta-label">Status:</span>
                   <span className={`note-view-status-badge ${getStatusBadgeClass(note.status)}`}>
-                    {note.status?.replace('_', ' ')}
+                    {getStatusLabel(note.status)}
                   </span>
                 </div>
               </div>
@@ -717,8 +732,7 @@ const CeoNoteView = () => {
                               <strong>{item.content}</strong>
                               {hasValue(item.assigned_to) && <span> • {item.assigned_to}</span>}
                               {hasValue(item.due_date) && <span> • Due: {new Date(item.due_date).toLocaleDateString()}</span>}
-                              {hasValue(item.status) && <span className={`note-view-status-small note-view-status-${item.status}`}> • {item.status}</span>}
-                            </div>
+                                  </div>
                           ))}
                         </div>
                       )}
@@ -790,7 +804,10 @@ const CeoNoteView = () => {
                   hasValue(note.waiting_response_request_date) ||
                   hasValue(note.waiting_response_expected_date) ||
                   hasValue(note.waiting_response_last_reminder_date) ||
-                  hasValue(note.waiting_response_status) ||
+                  hasValue(note.waiting_response_requested_from) ||
+                  hasValue(note.waiting_response_request_date) ||
+                  hasValue(note.waiting_response_expected_date) ||
+                  hasValue(note.waiting_response_last_reminder_date) ||
                   hasValue(note.waiting_response_remarks) ||
                   hasValue(note.waiting_response_reminders)
                 ) && (
@@ -819,12 +836,6 @@ const CeoNoteView = () => {
                           <div className="note-view-form-group">
                             <label>Last Reminder Date</label>
                             <p className="note-view-content-text">{new Date(note.waiting_response_last_reminder_date).toLocaleDateString()}</p>
-                          </div>
-                        )}
-                        {hasValue(note.waiting_response_status) && (
-                          <div className="note-view-form-group">
-                            <label>Response Status</label>
-                            <p className="note-view-content-text">{note.waiting_response_status}</p>
                           </div>
                         )}
                         {hasValue(note.waiting_response_remarks) && (
@@ -884,7 +895,6 @@ const CeoNoteView = () => {
                     hasValue(note.message_summary) ||
                     hasValue(note.required_action) ||
                     hasValue(note.attachment_url) ||
-                    hasValue(note.response_status) ||
                     hasValue(note.remarks)
                   ))
                 ) && (
@@ -1051,12 +1061,6 @@ const CeoNoteView = () => {
                                 </a>
                               </div>
                             )}
-                            {hasValue(note.response_status) && (
-                              <div className="note-view-form-group">
-                                <label>Response Status</label>
-                                <p className="note-view-content-text">{note.response_status}</p>
-                              </div>
-                            )}
                             {hasValue(note.remarks) && (
                               <div className="note-view-form-group full-width">
                                 <label>Remarks</label>
@@ -1078,7 +1082,6 @@ const CeoNoteView = () => {
                   hasValue(note.meeting_notes) ||
                   hasValue(note.start_date) ||
                   hasValue(note.end_date) ||
-                  hasValue(note.pcs_status) ||
                   hasValue(note.next_steps) ||
                   hasValue(note.results)
                 ) && (
@@ -1125,12 +1128,6 @@ const CeoNoteView = () => {
                           <div className="note-view-form-group">
                             <label>End Date</label>
                             <p className="note-view-content-text">{new Date(note.end_date).toLocaleDateString()}</p>
-                          </div>
-                        )}
-                        {hasValue(note.pcs_status) && (
-                          <div className="note-view-form-group">
-                            <label>Status</label>
-                            <p className="note-view-content-text">{note.pcs_status}</p>
                           </div>
                         )}
                         {hasValue(note.next_steps) && (

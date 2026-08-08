@@ -20,7 +20,11 @@ const QuickNote = () => {
     department: '',
     priority: 'medium',
     due_date: '',
-    status: categoryFromUrl === 'emails_and_approvals' ? 'waiting_response' : 'unprocessed',
+    status: categoryFromUrl === 'waiting_response'
+      ? 'waiting_response'
+      : categoryFromUrl === 'emails_and_approvals'
+        ? 'pending'
+        : 'unprocessed',
     attachment: '',
     voice_note: '',
     pa_remarks: '',
@@ -97,39 +101,126 @@ const QuickNote = () => {
     results: ''
   });
   const [loading, setLoading] = useState(false);
-  const [assignedUsers, setAssignedUsers] = useState([]);
+  // Status definitions & helpers (moved up so they are initialized before useEffect)
+  const emailApprovalStatuses = [
+    { value: 'pending', label: 'Pending' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'rejected', label: 'Rejected' },
+    { value: 'request_clarification', label: 'Request Clarification' },
+  ];
 
-  const searchAssignees = useMemo(() => {
-    return async (searchTerm) => {
-      try {
-        const response = await axios.get('/users/options', { params: { search: searchTerm, active: true } });
-        return Array.isArray(response.data) ? response.data : response.data.data || [];
-      } catch { return []; }
-    };
-  }, []);
+  const waitingResponseStatuses = [
+    { value: 'waiting_response', label: 'Waiting Response' },
+    { value: 'reminder_sent', label: 'Reminder Sent' },
+    { value: 'received', label: 'Received' },
+    { value: 'closed', label: 'Closed' },
+  ];
+
+  const projectCommandSheetStatuses = [
+    { value: 'pending', label: 'Pending' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'on_hold', label: 'On Hold' },
+    { value: 'completed', label: 'Completed' },
+  ];
+
+  const visitorsStatuses = [
+    { value: 'pending', label: 'Pending' },
+    { value: 'waiting', label: 'Waiting' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'cancelled', label: 'Cancelled' },
+  ];
+
+  const callsStatuses = [
+    { value: 'pending', label: 'Pending' },
+    { value: 'follow_up_required', label: 'Follow-up Required' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'cancelled', label: 'Cancelled' },
+  ];
+
+  const whatsappStatuses = [
+    { value: 'pending_reply', label: 'Pending Reply' },
+    { value: 'replied', label: 'Replied' },
+    { value: 'waiting_response', label: 'Waiting Response' },
+    { value: 'closed', label: 'Closed' },
+  ];
+
+  const meetingStatuses = [
+    { value: 'pending', label: 'Pending' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'completed', label: 'Completed' },
+  ];
+
+  const genericStatuses = [
+    { value: 'unprocessed', label: 'Unprocessed' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'waiting_response', label: 'Waiting Response' },
+    { value: 'submitted', label: 'Submitted' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'rejected', label: 'Rejected' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'closed', label: 'Closed' },
+    { value: 'cancelled', label: 'Cancelled' },
+  ];
+
+  const getStatusesForCategory = (category) => {
+    switch (category) {
+      case 'emails_and_approvals':
+        return emailApprovalStatuses;
+      case 'waiting_response':
+        return waitingResponseStatuses;
+      case 'project_command_sheets':
+        return projectCommandSheetStatuses;
+      case 'visitors':
+        return visitorsStatuses;
+      case 'calls':
+        return callsStatuses;
+      case 'whatsapp':
+        return whatsappStatuses;
+      case 'meetings':
+        return meetingStatuses;
+      default:
+        return genericStatuses;
+    }
+  };
+
+  const statuses = useMemo(() => getStatusesForCategory(formData.category), [formData.category]);
+
+  const defaultStatusByCategory = useMemo(() => ({
+    emails_and_approvals: 'pending',
+    waiting_response: 'waiting_response',
+    project_command_sheets: 'pending',
+    visitors: 'pending',
+    calls: 'pending',
+    whatsapp: 'pending_reply',
+    meetings: 'pending',
+  }), []);
 
   // Update type and category-specific defaults when category changes
   useEffect(() => {
     const nextCategory = formData.category;
     setFormData((prev) => {
+      let changed = false;
       const next = { ...prev };
-      if (nextCategory === 'visitors') {
-        next.type = 'visitor';
-      } else if (nextCategory === 'calls') {
-        next.type = 'call';
-      } else if (nextCategory === 'whatsapp') {
-        next.type = 'whatsapp';
+
+      const newType = nextCategory === 'visitors' ? 'visitor' : nextCategory === 'calls' ? 'call' : nextCategory === 'whatsapp' ? 'whatsapp' : prev.type;
+      if (newType !== prev.type) {
+        next.type = newType;
+        changed = true;
       }
 
-      if (nextCategory === 'emails_and_approvals') {
-        const allowedStatuses = ['waiting_response', 'pending', 'approved', 'rejected', 'completed', 'closed', 'cancelled'];
-        if (!allowedStatuses.includes(next.status)) {
-          next.status = 'waiting_response';
-        }
+      const allowedStatuses = statuses.map((s) => s.value);
+      const desiredStatus = allowedStatuses.includes(prev.status)
+        ? prev.status
+        : (defaultStatusByCategory[nextCategory] || statuses[0]?.value || prev.status);
+      if (desiredStatus !== prev.status) {
+        next.status = desiredStatus;
+        changed = true;
       }
-      return next;
+
+      return changed ? next : prev;
     });
-  }, [formData.category]);
+  }, [formData.category, defaultStatusByCategory, statuses]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -157,7 +248,7 @@ const QuickNote = () => {
   const cleanEmptyStrings = (obj) => {
     const cleaned = {};
     for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
         const value = obj[key];
         if (typeof value === 'string' && value.trim() === '') {
           cleaned[key] = null;
@@ -181,30 +272,51 @@ const QuickNote = () => {
       cleanedNoteData.meeting_decisions = formData.meeting_decisions.filter(d => d.content.trim());
       cleanedNoteData.meeting_action_items = formData.meeting_action_items.filter(a => a.content.trim());
 
+      // Only send fields relevant to the selected category.
+      const commonFields = ['date', 'category', 'title', 'details', 'related_person', 'department', 'priority', 'due_date', 'status', 'attachment', 'voice_note', 'pa_remarks', 'ceo_remarks', 'assigned_user_ids', 'remarks'];
+      const categoryFieldMap = {
+        follow_up: ['follow_up_requested_from', 'follow_up_requested_date', 'follow_up_last_date', 'follow_up_next_date', 'follow_up_current_response', 'follow_up_remarks', 'follow_up_history'],
+        meetings: ['meeting_date', 'meeting_with', 'meeting_subject', 'meeting_discussion_points', 'meeting_decisions', 'meeting_action_items'],
+        emails_and_approvals: ['approval_type', 'approval_requested_by', 'approval_subject', 'approval_reference_number', 'approval_amount', 'approval_decision', 'approval_decision_remarks'],
+        waiting_response: ['waiting_response_requested_from', 'waiting_response_request_date', 'waiting_response_expected_date', 'waiting_response_last_reminder_date', 'waiting_response_remarks', 'waiting_response_reminders'],
+        visitors: ['type', 'visit_datetime', 'visitor_name', 'organization', 'purpose', 'visitor_meeting_with', 'visitor_department', 'protocol_required', 'expected_duration', 'visitor_outcome'],
+        calls: ['type', 'visit_datetime', 'caller_name', 'organization', 'phone_number', 'call_purpose', 'call_summary', 'follow_up_required', 'follow_up_date', 'assigned_to'],
+        whatsapp: ['type', 'visit_datetime', 'contact_name', 'phone_number', 'message_summary', 'required_action', 'attachment_url'],
+        project_command_sheets: ['project_name', 'project_details', 'discussions', 'decisions', 'meeting_notes', 'pending_items', 'action_items', 'start_date', 'end_date', 'next_steps', 'results'],
+      };
+
+      const relevantFields = [...commonFields, ...(categoryFieldMap[formData.category] || [])];
+      const filteredNoteData = {};
+      for (const key of relevantFields) {
+        if (Object.prototype.hasOwnProperty.call(formData, key)) {
+          filteredNoteData[key] = formData[key];
+        }
+      }
+
       // Map camelCase relatedNoteId to snake_case
       if (formData.relatedNoteId) {
-        cleanedNoteData.related_note_id = formData.relatedNoteId;
+        filteredNoteData.related_note_id = formData.relatedNoteId;
       }
-      delete cleanedNoteData.relatedNoteId;
-
-      // Include assigned users
-      cleanedNoteData.assigned_user_ids = formData.assigned_user_ids;
 
       // For categories that correspond to visitor types, set the type appropriately
       if (formData.category === 'visitors') {
-        cleanedNoteData.type = 'visitor';
+        filteredNoteData.type = 'visitor';
       } else if (formData.category === 'calls') {
-        cleanedNoteData.type = 'call';
+        filteredNoteData.type = 'call';
       } else if (formData.category === 'whatsapp') {
-        cleanedNoteData.type = 'whatsapp';
+        filteredNoteData.type = 'whatsapp';
       }
-      
+
+      cleanedNoteData = cleanEmptyStrings(filteredNoteData);
+      cleanedNoteData.meeting_discussion_points = (filteredNoteData.meeting_discussion_points || []).filter(p => p.content.trim());
+      cleanedNoteData.meeting_decisions = (filteredNoteData.meeting_decisions || []).filter(d => d.content.trim());
+      cleanedNoteData.meeting_action_items = (filteredNoteData.meeting_action_items || []).filter(a => a.content.trim());
 
       await axios.post('/ceo-notes', cleanedNoteData);
       toast.success('Note created successfully');
 
       navigate('/ceo-office/dashboard');
-    } 
+    }
     catch (error) {
       console.error('Error creating record:', error);
       toast.error('Failed to create record');
@@ -237,49 +349,7 @@ const QuickNote = () => {
     { value: 'critical', label: 'Critical' },
   ];
 
-  const defaultStatuses = [
-    { value: 'waiting_response', label: 'Waiting Response' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'approved', label: 'Approved' },
-    { value: 'rejected', label: 'Rejected' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'closed', label: 'Closed' },
-    { value: 'cancelled', label: 'Cancelled' },
-  ];
 
-  const statuses = formData.category === 'emails_and_approvals'
-    ? defaultStatuses
-    : [
-        { value: 'unprocessed', label: 'Unprocessed' },
-        { value: 'pending', label: 'Pending' },
-        { value: 'in_progress', label: 'In Progress' },
-        { value: 'waiting_response', label: 'Waiting Response' },
-        { value: 'submitted', label: 'Submitted' },
-        { value: 'approved', label: 'Approved' },
-        { value: 'rejected', label: 'Rejected' },
-        { value: 'completed', label: 'Completed' },
-        { value: 'closed', label: 'Closed' },
-        { value: 'cancelled', label: 'Cancelled' },
-      ];
-
-  useEffect(() => {
-    if (formData.category === 'visitors') {
-      setFormData(prev => ({ ...prev, type: 'visitor' }));
-    } else if (formData.category === 'calls') {
-      setFormData(prev => ({ ...prev, type: 'call' }));
-    } else if (formData.category === 'whatsapp') {
-      setFormData(prev => ({ ...prev, type: 'whatsapp' }));
-    }
-
-    if (formData.category === 'emails_and_approvals') {
-      setFormData(prev => ({
-        ...prev,
-        status: defaultStatuses.some(s => s.value === prev.status)
-          ? prev.status
-          : 'waiting_response',
-      }));
-    }
-  }, [formData.category]);
 
   const departments = [
     "admin",
@@ -301,53 +371,39 @@ const QuickNote = () => {
     "aas_lab"
   ];
 
-  const approvalDecisions = [
-    { value: 'pending', label: 'Pending' },
-    { value: 'approved', label: 'Approved' },
-    { value: 'rejected', label: 'Rejected' },
-    { value: 'request_clarification', label: 'Request Clarification' },
-  ];
-
-  const waitingResponseStatuses = [
-    { value: 'waiting_response', label: 'Waiting Response' },
-    { value: 'reminder_sent', label: 'Reminder Sent' },
-    { value: 'received', label: 'Received' },
-    { value: 'closed', label: 'Closed' },
-  ];
-
   return (
     <>
       <Navbar />
       <div className="quick-note-container">
         <div className="quick-note-header">
-        <h3>Quick CEO Note</h3>
+          <h3>Quick CEO Note</h3>
 
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div className="quick-toggle-group">
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+            <div className="quick-toggle-group">
+              <button
+                className={`view-toggle-btn ${!isDetailedMode ? 'active' : ''}`}
+                onClick={() => setIsDetailedMode(false)}
+                title="Quick Mode"
+              >
+                <FaFileAlt /> Quick
+              </button>
+              <button
+                className={`view-toggle-btn ${isDetailedMode ? 'active' : ''}`}
+                onClick={() => setIsDetailedMode(true)}
+                title="Detailed Mode"
+              >
+                <FaFileInvoiceDollar /> Detailed
+              </button>
+            </div>
+
             <button
-              className={`view-toggle-btn ${!isDetailedMode ? 'active' : ''}`}
-              onClick={() => setIsDetailedMode(false)}
-              title="Quick Mode"
+              onClick={() => navigate('/ceo-office/dashboard')}
+              className="quick-note-back-btn"
             >
-              <FaFileAlt /> Quick
-            </button>
-            <button
-              className={`view-toggle-btn ${isDetailedMode ? 'active' : ''}`}
-              onClick={() => setIsDetailedMode(true)}
-              title="Detailed Mode"
-            >
-              <FaFileInvoiceDollar /> Detailed
+              Back
             </button>
           </div>
-
-          <button
-            onClick={() => navigate('/ceo-office/dashboard')}
-            className="quick-note-back-btn"
-          >
-            Back
-          </button>
         </div>
-      </div>
 
 
         <form onSubmit={handleSubmit} className="note-form">
@@ -426,8 +482,7 @@ const QuickNote = () => {
                 className="form-control"
               />
             </div>
-
-            <div className="form-group">
+            <div className="quick-note-status-group">
               <label>Status</label>
               <select
                 name="status"
@@ -739,18 +794,6 @@ const QuickNote = () => {
                                 className="form-control"
                               />
                             </div>
-                            <div className="form-group flex-1">
-                              <label>Status</label>
-                              <select
-                                value={item.status}
-                                onChange={(e) => handleArrayItemChange('meeting_action_items', index, { status: e.target.value })}
-                                className="form-control"
-                              >
-                                <option value="pending">Pending</option>
-                                <option value="in_progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                              </select>
-                            </div>
                             {formData.meeting_action_items.length > 1 && (
                               <button
                                 type="button"
@@ -823,19 +866,6 @@ const QuickNote = () => {
                           className="form-control"
                         />
                       </div>
-                      <div className="form-group">
-                        <label>Decision</label>
-                        <select
-                          name="approval_decision"
-                          value={formData.approval_decision}
-                          onChange={handleChange}
-                          className="form-control"
-                        >
-                          {approvalDecisions.map(d => (
-                            <option key={d.value} value={d.value}>{d.label}</option>
-                          ))}
-                        </select>
-                      </div>
                       <div className="form-group full-width">
                         <label>Decision Remarks</label>
                         <textarea
@@ -894,19 +924,6 @@ const QuickNote = () => {
                           onChange={handleChange}
                           className="form-control"
                         />
-                      </div>
-                      <div className="form-group">
-                        <label>Current Response Status</label>
-                        <select
-                          name="waiting_response_status"
-                          value={formData.waiting_response_status}
-                          onChange={handleChange}
-                          className="form-control"
-                        >
-                          {waitingResponseStatuses.map(s => (
-                            <option key={s.value} value={s.value}>{s.label}</option>
-                          ))}
-                        </select>
                       </div>
                       <div className="form-group full-width">
                         <label>Response Remarks</label>
@@ -1252,21 +1269,6 @@ const QuickNote = () => {
                               className="form-control"
                             />
                           </div>
-                          <div className="form-group">
-                            <label>Response Status</label>
-                            <select
-                              name="response_status"
-                              value={formData.response_status}
-                              onChange={handleChange}
-                              className="form-control"
-                            >
-                              <option value="">Select</option>
-                              <option value="Pending Reply">Pending Reply</option>
-                              <option value="Replied">Replied</option>
-                              <option value="Waiting Response">Waiting Response</option>
-                              <option value="Closed">Closed</option>
-                            </select>
-                          </div>
                         </>
                       )}
 
@@ -1370,20 +1372,6 @@ const QuickNote = () => {
                           onChange={handleChange}
                           className="form-control"
                         />
-                      </div>
-                      <div className="form-group">
-                        <label>Status</label>
-                        <select
-                          name="pcs_status"
-                          value={formData.pcs_status}
-                          onChange={handleChange}
-                          className="form-control"
-                        >
-                          <option value="Pending">Pending</option>
-                          <option value="In Progress">In Progress</option>
-                          <option value="On Hold">On Hold</option>
-                          <option value="Completed">Completed</option>
-                        </select>
                       </div>
                       <div className="form-group full-width">
                         <label>Next Steps</label>
