@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { FaPlus, FaMinus } from 'react-icons/fa';
 import axios from '../../../../utils/axios';
 import { toast } from 'react-toastify';
@@ -108,8 +109,112 @@ const getDefaultStatusForCategory = (category) => {
   }
 };
 
-const NoteEdit = ({ note, onSave, onCancel }) => {
-  const [formData, setFormData] = useState({
+const NoteEdit = ({ note: noteProp, onSave: onSaveProp, onCancel: onCancelProp }) => {
+  const navigate = useNavigate();
+  const { id: idFromParams } = useParams();
+  const [noteData, setNoteData] = useState(noteProp || null);
+  const [standaloneLoading, setStandaloneLoading] = useState(!!idFromParams && !noteProp);
+
+  useEffect(() => {
+    if (idFromParams && !noteProp) {
+      setStandaloneLoading(true);
+      axios.get(`/ceo-notes/${idFromParams}`)
+        .then(res => setNoteData(res.data))
+        .catch(err => {
+          console.error('Error loading note for edit:', err);
+          toast.error('Failed to load note');
+        })
+        .finally(() => setStandaloneLoading(false));
+    }
+  }, [idFromParams, noteProp]);
+
+  const note = noteProp || noteData;
+
+  useEffect(() => {
+    if (note) {
+      setFormData((prev) => ({
+        ...prev,
+        date: note.date ? note.date.split('T')[0] : prev.date,
+        category: note.category || prev.category,
+        title: note.title || prev.title,
+        details: note.details || prev.details,
+        related_person: note.related_person || prev.related_person,
+        department: note.department || prev.department,
+        priority: note.priority || prev.priority,
+        due_date: note.due_date ? note.due_date.split('T')[0] : prev.due_date,
+        status: note.status || getDefaultStatusForCategory(note.category || prev.category),
+        attachment: note.attachment || prev.attachment,
+        voice_note: note.voice_note || prev.voice_note,
+        pa_remarks: note.pa_remarks || prev.pa_remarks,
+        ceo_remarks: note.ceo_remarks || prev.ceo_remarks,
+        follow_up_requested_from: note.follow_up_requested_from || prev.follow_up_requested_from,
+        follow_up_requested_date: note.follow_up_requested_date ? note.follow_up_requested_date.split('T')[0] : prev.follow_up_requested_date,
+        follow_up_last_date: note.follow_up_last_date ? note.follow_up_last_date.split('T')[0] : prev.follow_up_last_date,
+        follow_up_next_date: note.follow_up_next_date ? note.follow_up_next_date.split('T')[0] : prev.follow_up_next_date,
+        follow_up_current_response: note.follow_up_current_response || prev.follow_up_current_response,
+        follow_up_remarks: note.follow_up_remarks || prev.follow_up_remarks,
+        follow_up_history: note.follow_up_history || prev.follow_up_history,
+        meeting_date: note.meeting_date ? note.meeting_date.slice(0, 16) : prev.meeting_date,
+        meeting_with: note.meeting_with || prev.meeting_with,
+        meeting_subject: note.meeting_subject || prev.meeting_subject,
+        meeting_discussion_points: note.meeting_discussion_points || prev.meeting_discussion_points,
+        meeting_decisions: note.meeting_decisions || prev.meeting_decisions,
+        meeting_action_items: note.meeting_action_items || prev.meeting_action_items,
+        approval_type: note.approval_type || prev.approval_type,
+        approval_requested_by: note.approval_requested_by || prev.approval_requested_by,
+        approval_subject: note.approval_subject || prev.approval_subject,
+        approval_reference_number: note.approval_reference_number || prev.approval_reference_number,
+        approval_amount: note.approval_amount ?? prev.approval_amount,
+        approval_decision: note.approval_decision || prev.approval_decision,
+        approval_decision_remarks: note.approval_decision_remarks || prev.approval_decision_remarks,
+        waiting_response_requested_from: note.waiting_response_requested_from || prev.waiting_response_requested_from,
+        waiting_response_request_date: note.waiting_response_request_date ? note.waiting_response_request_date.split('T')[0] : prev.waiting_response_request_date,
+        waiting_response_expected_date: note.waiting_response_expected_date ? note.waiting_response_expected_date.split('T')[0] : prev.waiting_response_expected_date,
+        waiting_response_last_reminder_date: note.waiting_response_last_reminder_date ? note.waiting_response_last_reminder_date.split('T')[0] : prev.waiting_response_last_reminder_date,
+        waiting_response_status: note.waiting_response_status || prev.waiting_response_status,
+        waiting_response_remarks: note.waiting_response_remarks || prev.waiting_response_remarks,
+        waiting_response_reminders: note.waiting_response_reminders || prev.waiting_response_reminders,
+        type: note.type || prev.type,
+        visit_datetime: note.visit_datetime ? note.visit_datetime.slice(0, 16) : prev.visit_datetime,
+        visitor_name: note.visitor_name || prev.visitor_name,
+        organization: note.organization || prev.organization,
+        purpose: note.purpose || prev.purpose,
+        visitor_meeting_with: note.visitor_meeting_with || note.meeting_with || prev.visitor_meeting_with,
+        visitor_department: note.visitor_department || note.department || prev.visitor_department,
+        protocol_required: note.protocol_required || prev.protocol_required,
+        expected_duration: note.expected_duration || prev.expected_duration,
+        visitor_outcome: note.visitor_outcome || prev.visitor_outcome,
+        caller_name: note.caller_name || prev.caller_name,
+        phone_number: note.phone_number || prev.phone_number,
+        call_purpose: note.call_purpose || prev.call_purpose,
+        call_summary: note.call_summary || prev.call_summary,
+        follow_up_required: note.follow_up_required || prev.follow_up_required,
+        follow_up_date: note.follow_up_date ? note.follow_up_date.slice(0, 16) : prev.follow_up_date,
+        assigned_to: note.assigned_to || prev.assigned_to,
+        contact_name: note.contact_name || prev.contact_name,
+        message_summary: note.message_summary || prev.message_summary,
+        required_action: note.required_action || prev.required_action,
+        attachment_url: note.attachment_url || prev.attachment_url,
+        response_status: note.response_status || prev.response_status,
+        remarks: note.remarks || prev.remarks,
+        project_name: note.project_name || prev.project_name,
+        project_details: note.project_details || prev.project_details,
+        discussions: note.discussions || prev.discussions,
+        decisions: note.decisions || prev.decisions,
+        meeting_notes: note.meeting_notes || prev.meeting_notes,
+        pending_items: note.pending_items || prev.pending_items,
+        action_items: note.action_items || prev.action_items,
+        start_date: note.start_date ? note.start_date.split('T')[0] : prev.start_date,
+        end_date: note.end_date ? note.end_date.split('T')[0] : prev.end_date,
+        pcs_status: note.pcs_status || prev.pcs_status,
+        next_steps: note.next_steps || prev.next_steps,
+        results: note.results || prev.results,
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note]);
+
+  const getInitialFormData = () => ({
     date: note?.date ? note.date.split('T')[0] : new Date().toISOString().split('T')[0],
     category: note?.category || 'today_task',
     title: note?.title || '',

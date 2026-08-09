@@ -486,11 +486,23 @@ const CeoNoteView = () => {
           {isEditing ? (
             <NoteEdit
               note={note}
-              onSave={(updatedNote) => {
-                setNote(updatedNote);
+              onSave={async () => {
                 setIsEditing(false);
+                try {
+                  navigate('.', { replace: true, state: {} });
+                } catch (e) {
+                  /* ignore navigation replace errors */
+                }
+                await fetchNote();
               }}
-              onCancel={() => setIsEditing(false)}
+              onCancel={() => {
+                setIsEditing(false);
+                try {
+                  navigate('.', { replace: true, state: {} });
+                } catch (e) {
+                  /* ignore navigation replace errors */
+                }
+              }}
             />
           ) : (
             <>
