@@ -6,6 +6,8 @@ import axios from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
 import ConvertToTaskModal from '../../ConvertToTaskModal';
 import NoteEdit from '../note-edit';
+import { getStatusesForCategory, getStatusBadgeClass, getStatusLabel } from '../statusConfig';
+import { useAuth } from '../../../../context/AuthContext';
 import './index.css';
 
 const CeoNoteView = () => {
@@ -34,6 +36,8 @@ const CeoNoteView = () => {
   const [showAuditHistory, setShowAuditHistory] = useState(false);
   const [loadingAudit, setLoadingAudit] = useState(false);
   const [usersMap, setUsersMap] = useState(new Map());
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const { user } = useAuth();
 
   
 
@@ -162,6 +166,37 @@ const CeoNoteView = () => {
     }
   };
 
+  const canChangeStatus = () => {
+    const role = (user?.role || '').toLowerCase();
+    return role === 'pa' || role === 'admin' || role === 'super_admin' || role === 'ceo';
+  };
+
+  const handleStatusChange = async (nextStatus) => {
+    if (!note || !id || !canChangeStatus()) {
+      toast.error('You are not authorized to change note status');
+      return;
+    }
+
+    if (!nextStatus) return;
+
+    try {
+      setUpdatingStatus(true);
+      const response = await axios.patch(`/ceo-notes/${id}`, { status: nextStatus });
+      const updatedNote = response?.data || null;
+      if (updatedNote) {
+        setNote(prev => ({ ...prev, ...updatedNote, status: updatedNote.status || prev?.status }));
+      } else {
+        await fetchNote();
+      }
+      toast.success('Status updated successfully');
+    } catch (error) {
+      console.error('Error updating note status:', error);
+      toast.error(error.response?.data?.message || 'Failed to update note status');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   const handleApprove = async () => {
     try {
       await axios.post(`/ceo-notes/${id}/approve`, approvalData);
@@ -186,47 +221,6 @@ const CeoNoteView = () => {
     }
   };
 
-  const getStatusBadgeClass = (status) => {
-    const classes = {
-      unprocessed: 'note-view-status-unprocessed',
-      pending: 'note-view-status-pending',
-      in_progress: 'note-view-status-in_progress',
-      waiting_response: 'note-view-status-waiting_response',
-      reminder_sent: 'note-view-status-warning',
-      received: 'note-view-status-info',
-      pending_reply: 'note-view-status-pending',
-      follow_up_required: 'note-view-status-warning',
-      submitted: 'note-view-status-submitted',
-      approved: 'note-view-status-approved',
-      rejected: 'note-view-status-rejected',
-      request_clarification: 'note-view-status-warning',
-      completed: 'note-view-status-completed',
-      closed: 'note-view-status-closed',
-      cancelled: 'note-view-status-cancelled'
-    };
-    return classes[status] || 'note-view-status-pending';
-  };
-
-  const getStatusLabel = (status) => {
-    const labels = {
-      unprocessed: 'Unprocessed',
-      pending: 'Pending',
-      in_progress: 'In Progress',
-      waiting_response: 'Waiting Response',
-      reminder_sent: 'Reminder Sent',
-      received: 'Received',
-      pending_reply: 'Pending Reply',
-      follow_up_required: 'Follow-up Required',
-      submitted: 'Submitted',
-      approved: 'Approved',
-      rejected: 'Rejected',
-      completed: 'Completed',
-      closed: 'Closed',
-      cancelled: 'Cancelled',
-      request_clarification: 'Request Clarification',
-    };
-    return labels[status] || status?.replace(/_/g, ' ') || '';
-  };
 
   const getPriorityBadgeClass = (priority) => {
     const classes = {
@@ -527,6 +521,21 @@ const CeoNoteView = () => {
                     {getStatusLabel(note.status)}
                   </span>
                 </div>
+                {canChangeStatus() && (
+                  <div className="note-view-meta-item">
+                    <span className="note-view-meta-label">Change Status:</span>
+                    <select
+                      value={note.status || ''}
+                      onChange={(e) => handleStatusChange(e.target.value)}
+                      className="note-view-form-control"
+                      disabled={updatingStatus}
+                    >
+                      {getStatusesForCategory(note.category).map((statusOption) => (
+                        <option key={statusOption.value} value={statusOption.value}>{statusOption.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="note-view-content-section">
