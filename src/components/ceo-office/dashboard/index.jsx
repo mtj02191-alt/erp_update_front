@@ -264,7 +264,7 @@ const CeoDashboard = () => {
       </div>
 
       {/* Project Alerts Section - shows overdue items */}
-      {(stats?.summary?.overdue_follow_ups || 0) > 0 && (
+      {/* {(stats?.summary?.overdue_follow_ups || 0) > 0 && (
         <div className="ceo-dashboard-card category-project_alerts" style={{ borderLeft: '4px solid #dc3545', marginBottom: '16px' }}>
           <div className="ceo-dashboard-card-header" style={{ cursor: 'pointer' }} onClick={() => navigate('/ceo-office/instruction-register')}>
             <h2><span className="card-header-icon"><FaExclamationTriangle /></span> Project Alerts</h2>
@@ -276,7 +276,7 @@ const CeoDashboard = () => {
             </p>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Dashboard Card Grid */}
       <div className="ceo-dashboard-card-grid">
