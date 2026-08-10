@@ -14,8 +14,8 @@
   --surface: #ffffff;
   --canvas: #f5f6fb;
 
-  --accent: #4a4bff;
-  --accent-deep: #2f2fd6;
+  --accent: #2563EB;
+  --accent-deep: #2563EB;
   --accent-tint: #eeeeff;
 
   --success: #0f9d70;
@@ -24,7 +24,7 @@
   --warning-tint: #fbf1de;
   --danger: #d6455a;
   --danger-tint: #fbeaee;
-  --violet: #7c4fd6;
+  --violet: #2563EB;
   --violet-tint: #f2ecfc;
   --neutral-tint: #eef0f6;
 
@@ -225,7 +225,7 @@
   background: var(--surface);
   color: var(--ink-soft);
   border-radius: var(--radius-sm);
-  padding: 8px 12px;
+  padding: 12px 12px;
   font-size: 12px;
   font-weight: 700;
   display: inline-flex;
@@ -398,6 +398,7 @@
   color: var(--ink);
   outline: none;
   font-family: inherit;
+  cursor: pointer;
 }
 
 .instruction-control::placeholder {

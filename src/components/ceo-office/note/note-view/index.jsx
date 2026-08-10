@@ -464,14 +464,14 @@ const CeoNoteView = () => {
         <div className="note-view-page-header">
           <h3>CEO Note Details</h3>
           <div className="note-view-header-actions">
+            <button onClick={() => setIsEditing(!isEditing)} className="note-view-btn note-view-btn-primary">
+              {isEditing ? 'Cancel' : 'Edit'}
+            </button>
             <button
               onClick={() => navigate(-1)}
               className="note-view-btn note-view-btn-secondary"
             >
               Back
-            </button>
-            <button onClick={() => setIsEditing(!isEditing)} className="note-view-btn note-view-btn-primary">
-              {isEditing ? 'Cancel' : 'Edit'}
             </button>
           </div>
         </div>

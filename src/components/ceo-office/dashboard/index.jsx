@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from '../../../utils/axios';
@@ -11,7 +12,7 @@ import {
   FaArrowUp, FaCheckCircle, FaRegClock, FaExclamationTriangle, 
   FaPhone, FaWhatsapp, FaUsers, FaHandshake, FaBullhorn, 
   FaGavel, FaEnvelope, FaHourglassHalf, FaFileAlt, FaCheck,
-  FaClipboardList, FaUserCheck, FaReplyAll, FaStickyNote, FaRedo, FaBell
+  FaClipboardList, FaUserCheck, FaReplyAll, FaStickyNote, FaRedo, FaBell, FaTimes, FaUser
 } from 'react-icons/fa';
 
 import EmptyState from '../common/EmptyState';
@@ -23,7 +24,8 @@ const CeoDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [expandedCategories, setExpandedCategories] = useState({});
+  const [modalCategory, setModalCategory] = useState('');
+  const [modalItems, setModalItems] = useState([]);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [pendingApprovals, setPendingApprovals] = useState([]);
@@ -32,12 +34,43 @@ const CeoDashboard = () => {
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const pendingDropdownRef = useRef(null);
 
-  // Toggle expanded state for a category
-  const toggleExpandCategory = (catKey) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [catKey]: !prev[catKey]
-    }));
+  const openCategoryModal = (catKey, items) => {
+    setModalCategory(catKey);
+    setModalItems(items);
+  };
+
+  const getLinkTo = (item, catKey) => {
+    if (catKey === 'project_command_sheets') {
+      const noteId = item.note_id || item.related_note_id || item.noteId || item.id;
+      return `/ceo-office/notes/${noteId}`;
+    }
+    if (catKey === 'visitors') {
+      const noteId = item.related_note_id || item.noteId || item.id;
+      return `/ceo-office/notes/${noteId}`;
+    }
+    if (catKey === 'calls') {
+      const noteId = item.related_note_id || item.noteId || item.id;
+      return `/ceo-office/notes/${noteId}`;
+    }
+    if (catKey === 'whatsapp') {
+      const noteId = item.related_note_id || item.noteId || item.id;
+      return `/ceo-office/notes/${noteId}`;
+    }
+    const noteId = item.related_note_id || item.noteId || item.id;
+    return `/ceo-office/notes/${noteId}`;
+  };
+
+  const getItemTitle = (item) => {
+    return item.project_name || 
+           item.caller_name || 
+           item.contact_name || 
+           item.visitor_name || 
+           item.title;
+  };
+
+  const closeCategoryModal = () => {
+    setModalCategory('');
+    setModalItems([]);
   };
 
   // Category config for icons and labels
@@ -522,7 +555,7 @@ const CeoDashboard = () => {
                 {items.length > 0 ? (
                   <>
                     <div className="notes-list">
-                      {(expandedCategories[catKey] ? items : items.slice(0, 3)).map(item => (
+                      {items.slice(0, 3).map(item => (
                         <Link
                           to={getLinkTo(item, catKey)}
                           key={item.id}
@@ -544,10 +577,10 @@ const CeoDashboard = () => {
                         className="see-more-btn"
                         onClick={(e) => {
                           e.preventDefault();
-                          toggleExpandCategory(catKey);
+                          openCategoryModal(catKey, items);
                         }}
                       >
-                        {expandedCategories[catKey] ? 'See Less' : `See More (${items.length - 3} more)`}
+                        {`View All`}
                       </button>
                     )}
                   </>
@@ -569,6 +602,59 @@ const CeoDashboard = () => {
           );
         })}
       </div>
+      {modalCategory && createPortal(
+        <div className="ceo-modal-overlay" onClick={closeCategoryModal}>
+          <div className="ceo-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ceo-modal-header">
+              <div className="ceo-modal-header-left">
+                <div className="modal-header-icon">{categoryConfig[modalCategory]?.icon}</div>
+                <div className="modal-header-text">
+                  <h3>{categoryConfig[modalCategory]?.label || 'Items'}</h3>
+                  <span className="modal-record-badge">{modalItems.length} record{modalItems.length === 1 ? '' : 's'}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="ceo-modal-close-circle"
+                onClick={closeCategoryModal}
+                aria-label="Close"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            <div className="ceo-modal-list">
+              {modalItems.map((item) => (
+                <Link
+                  key={item.id}
+                  to={getLinkTo(item, modalCategory)}
+                  className="ceo-modal-item"
+                  onClick={closeCategoryModal}
+                >
+                  <div className="modal-item-left">
+                    <div className="modal-item-text">
+                      <div className="note-title">{getItemTitle(item)}</div>
+                      <div className="note-meta">
+                        <span className="note-meta-small">{item.created_at ? new Date(item.created_at).toLocaleDateString() : ''}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="modal-item-right">
+                    <span className={`status-pill status-${(item.status || 'pending').toLowerCase().replace(/\s+/g, '-')}`}>
+                      {(item.status || 'Pending').toString().replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            <div className="ceo-modal-footer">
+              <button type="button" className="ceo-modal-action-btn" onClick={closeCategoryModal}>Close</button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
       </div>
     </>
   );
