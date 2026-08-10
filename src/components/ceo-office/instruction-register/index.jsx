@@ -232,15 +232,19 @@ const InstructionRegister = () => {
         totalPages: serverTotalPages,
       });
 
-      // Update stats from counts
-      const counts = response.data.counts || {};
-      setStats({
-        total: serverPagination.total ?? notesOut.length,
-        completed: 0,
-        inProgress: 0,
-        pending: 0,
-        critical: 0,
-      });
+      const completedStatuses = ['completed', 'closed', 'approved', 'rejected'];
+      const inProgressStatuses = ['in_progress', 'submitted', 'waiting_response'];
+      const pendingStatuses = ['pending', 'unprocessed'];
+
+      const derivedStats = {
+        total: serverTotal ?? notesOut.length,
+        completed: notesOut.filter(note => completedStatuses.includes(note.status)).length,
+        inProgress: notesOut.filter(note => inProgressStatuses.includes(note.status)).length,
+        pending: notesOut.filter(note => pendingStatuses.includes(note.status)).length,
+        critical: notesOut.filter(note => note.priority === 'critical').length,
+      };
+
+      setStats(derivedStats);
 
       setLastUpdated(new Date());
     } catch (error) {
@@ -252,8 +256,9 @@ const InstructionRegister = () => {
   };
 
   const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
-    setPagination({ ...pagination, page: 1 });
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handleResetFilters = () => {
@@ -264,7 +269,7 @@ const InstructionRegister = () => {
       priority: '',
       search: '',
     });
-    setPagination({ ...pagination, page: 1 });
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const refreshInstructions = async () => {
