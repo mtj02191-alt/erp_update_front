@@ -887,15 +887,6 @@ const InstructionRegister = () => {
                           >
                             <FaSyncAlt color={(note.related_task_id || note.project_command_sheet_detail?.related_task_id) ? "#6c757d" : "#20c997"} />
                           </button>
-                          {note.source === 'ceo-note' && !['completed', 'closed', 'cancelled', 'approved', 'rejected'].includes(note.status) && (
-                            <button
-                              onClick={() => handleApprove(note.id)}
-                              className="instruction-action-btn btn-approve"
-                              title="Approve"
-                            >
-                              <FaCheck color="#28a745" />
-                            </button>
-                          )}
                           {note.source === 'ceo-note' && !['completed', 'closed', 'cancelled'].includes(note.status) && (
                             <button
                               onClick={() => handleClose(note.id)}

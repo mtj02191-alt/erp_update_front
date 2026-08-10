@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from '../../../utils/axios';
@@ -11,7 +11,7 @@ import {
   FaArrowUp, FaCheckCircle, FaRegClock, FaExclamationTriangle, 
   FaPhone, FaWhatsapp, FaUsers, FaHandshake, FaBullhorn, 
   FaGavel, FaEnvelope, FaHourglassHalf, FaFileAlt, FaCheck,
-  FaClipboardList, FaUserCheck, FaReplyAll, FaStickyNote, FaRedo
+  FaClipboardList, FaUserCheck, FaReplyAll, FaStickyNote, FaRedo, FaBell
 } from 'react-icons/fa';
 
 import EmptyState from '../common/EmptyState';
@@ -26,6 +26,11 @@ const CeoDashboard = () => {
   const [expandedCategories, setExpandedCategories] = useState({});
   const [lastUpdated, setLastUpdated] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [pendingApprovalsLoading, setPendingApprovalsLoading] = useState(false);
+  const [pendingApprovalsOpen, setPendingApprovalsOpen] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
+  const pendingDropdownRef = useRef(null);
 
   // Toggle expanded state for a category
   const toggleExpandCategory = (catKey) => {
@@ -134,6 +139,30 @@ const CeoDashboard = () => {
     }
   };
 
+  const fetchPendingApprovals = async () => {
+    if (!(user?.department === 'ceo' || user?.department === 'admin')) {
+      return;
+    }
+
+    try {
+      setPendingApprovalsLoading(true);
+      const response = await axios.get('/ceo-notes', {
+        params: {
+          page: 1,
+          pageSize: 10,
+          category: 'emails_and_approvals',
+          status: 'pending',
+          sortOrder: 'DESC',
+        },
+      });
+      setPendingApprovals(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to load pending approvals:', error);
+    } finally {
+      setPendingApprovalsLoading(false);
+    }
+  };
+
   const fetchDashboardStats = async (showToast = false) => {
     try {
       setLoading(true);
@@ -154,14 +183,73 @@ const CeoDashboard = () => {
     }
   };
 
+  const refreshAllDashboardData = async (showToast = false) => {
+    await fetchDashboardStats(showToast);
+    await fetchPendingApprovals();
+  };
+
+  const handleApprovalAction = async (noteId, decision) => {
+    setActionLoadingId(noteId);
+    try {
+      await axios.post(`/ceo-notes/${noteId}/approve`, {
+        decision,
+        remarks:
+          decision === 'clarification_requested'
+            ? 'CEO requested clarification'
+            : undefined,
+      });
+      toast.success(
+        decision === 'approved'
+          ? 'Approval recorded'
+          : decision === 'rejected'
+          ? 'Rejection recorded'
+          : 'Clarification requested',
+      );
+      await refreshAllDashboardData();
+      if (pendingApprovals.length === 1) {
+        setPendingApprovalsOpen(false);
+      }
+    } catch (error) {
+      console.error('Approval action failed:', error);
+      toast.error('Failed to process approval action');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   useEffect(() => {
-    fetchDashboardStats();
+    refreshAllDashboardData();
 
     // Poll every 60 seconds
-    const intervalId = setInterval(() => fetchDashboardStats(), 60000);
+    const intervalId = setInterval(() => refreshAllDashboardData(), 60000);
 
     return () => clearInterval(intervalId);
-  }, [selectedCategory]);
+  }, [selectedCategory, user]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        pendingDropdownRef.current &&
+        !pendingDropdownRef.current.contains(event.target)
+      ) {
+        setPendingApprovalsOpen(false);
+      }
+    };
+
+    if (pendingApprovalsOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [pendingApprovalsOpen]);
+
+  useEffect(() => {
+    if (pendingApprovalsOpen) {
+      fetchPendingApprovals();
+    }
+  }, [pendingApprovalsOpen]);
 
   if (loading) {
     return (
@@ -203,19 +291,113 @@ const CeoDashboard = () => {
 
       <div className="ceo-dashboard-toolbar">
         <div className="ceo-dashboard-toolbar-meta">
-          <span className="ceo-dashboard-meta-pill">
+            {(user?.department === 'ceo' || user?.department === 'admin') && (
+              <div className="ceo-approval-bell-wrapper" ref={pendingDropdownRef}>
+                <button
+                  type="button"
+                  className="ceo-approval-bell-btn"
+                  onClick={() => setPendingApprovalsOpen((prev) => !prev)}
+                >
+                  <FaBell />
+                  {(stats?.summary?.pending_approvals > 0 || pendingApprovals.length > 0) && (
+                    <span className="approval-badge">
+                      {stats?.summary?.pending_approvals ?? pendingApprovals.length}
+                    </span>
+                  )}
+                </button>
+                {pendingApprovalsOpen && (
+                  <div className="approval-dropdown">
+                    <div className="approval-dropdown-header">
+                      <div>
+                        <strong>Emails & Approvals</strong>
+                        <div className="approval-dropdown-subtitle">
+                          Pending CEO actions
+                        </div>
+                      </div>
+                      <span className="approval-dropdown-count">
+                        {stats?.summary?.pending_approvals || 0}
+                      </span>
+                    </div>
+                    <div className="approval-dropdown-list">
+                      {pendingApprovalsLoading ? (
+                        <div className="approval-empty-state">Loading...</div>
+                      ) : pendingApprovals.length === 0 ? (
+                        <div className="approval-empty-state">
+                          No pending approval requests.
+                        </div>
+                      ) : (
+                        pendingApprovals.map((note) => (
+                          <div
+                            key={note.id}
+                            className="approval-item approval-item-clickable"
+                            onClick={() => {
+                              navigate(`/ceo-office/notes/${note.id}`);
+                              setPendingApprovalsOpen(false);
+                            }}
+                          >
+                            <div className="approval-item-main">
+                              <div className="approval-item-title">{note.title}</div>
+                              <div className="approval-item-meta">
+                                <span>{note.approval_requested_by || 'Unknown requester'}</span>
+                                <span>{note.priority ? note.priority.toUpperCase() : 'N/A'}</span>
+                                <span>{new Date(note.created_at).toLocaleString()}</span>
+                              </div>
+                            </div>
+                            <div className="approval-item-actions">
+                              <button
+                                type="button"
+                                className="approval-btn approval-btn-approve"
+                                disabled={actionLoadingId === note.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleApprovalAction(note.id, 'approved');
+                                }}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                type="button"
+                                className="approval-btn approval-btn-reject"
+                                disabled={actionLoadingId === note.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleApprovalAction(note.id, 'rejected');
+                                }}
+                              >
+                                Reject
+                              </button>
+                              <button
+                                type="button"
+                                className="approval-btn approval-btn-clarify"
+                                disabled={actionLoadingId === note.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleApprovalAction(note.id, 'clarification_requested');
+                                }}
+                              >
+                                Clarify
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    {/* <div className="approval-dropdown-footer">
+                      <Link to="/ceo-office/instruction-register">View all approvals</Link>
+                    </div> */}
+                  </div>
+                )}
+              </div>
+            )}
+
+          {/* <span className="ceo-dashboard-meta-pill">
             {selectedCategory ? `Focused on ${categoryConfig[selectedCategory]?.label || 'selected category'}` : 'Showing all categories'}
-          </span>
-          {lastUpdated && (
-            <span className="ceo-dashboard-meta-pill secondary">
-              Updated {lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-            </span>
-          )}
+          </span> */}
         </div>
         <button
           type="button"
           className="ceo-refresh-btn"
-          onClick={() => fetchDashboardStats(true)}
+          onClick={() => refreshAllDashboardData(true)}
           disabled={refreshing}
         >
           <FaRedo className={refreshing ? 'ceo-refresh-spin' : ''} />
@@ -225,7 +407,7 @@ const CeoDashboard = () => {
 
       {/* Stats Cards */}
       <div className="ceo-stats-grid">
-        {(user?.department === 'ceo' || user?.department === 'admin') && (
+        {/* {(user?.department === 'ceo' || user?.department === 'admin') && (
           <div 
             className={`stat-card pending-approvals-card ${(stats?.summary?.pending_approvals || 0) > 0 ? 'pending-approvals-active' : ''}`}
             onClick={() => setSelectedCategory('emails_and_approvals')}
@@ -235,7 +417,7 @@ const CeoDashboard = () => {
             <div className="stat-label">Pending Approvals</div>
             <div className="stat-value">{stats?.summary?.pending_approvals || 0}</div>
           </div>
-        )}
+        )} */}
         <div className={`stat-card warning ${(stats?.summary?.overdue_follow_ups || 0) > 0 ? 'stat-card-overdue' : ''}`}>
           <FaExclamationTriangle className="ceo-stat-icon follow_up" />
           <div className="stat-label">Overdue Follow-ups</div>

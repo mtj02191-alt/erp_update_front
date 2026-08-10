@@ -94,7 +94,7 @@
     text-align: center;
   }
   .ceo-dashboard-toolbar {
-    flex-direction: column;
+    /* flex-direction: column; */
     align-items: stretch;
   }
   .ceo-refresh-btn {
@@ -124,6 +124,207 @@
 .ceo-btn-group {
   display: flex;
   gap: 10px;
+}
+
+.ceo-approval-bell-wrapper {
+  position: relative;
+}
+
+.ceo-approval-bell-btn {
+  position: relative;
+  background: var(--surface);
+  color: var(--ink);
+  border:none;
+  padding: 10px 12px;
+  font-size: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.ceo-approval-bell-btn:hover {
+  border-color: var(--ink-soft);
+}
+
+.approval-badge {
+  position: absolute;
+  top: 3px;
+  right: 6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--danger);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+ animation: tl-approval-badge-pulse 1.5s infinite;  border-color: #f0d8ab;
+}
+
+@keyframes tl-approval-badge-pulse {
+  0% {
+    box-shadow: 0 3px 8px rgba(239, 68, 68, 0.6), 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 0 0 rgba(239, 68, 68, 0.9);
+  }
+  50% {
+    box-shadow: 0 3px 8px rgba(239, 68, 68, 0.6), 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 0 22px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 3px 8px rgba(239, 68, 68, 0.6), 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+
+.approval-dropdown {
+  position: absolute;
+  right: 0;
+  left: 15px;
+  top: calc(100% + 5px);
+  width: min(420px, 100vw - 24px);
+  z-index: 20;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card-hover);
+  padding: 14px;
+}
+
+.approval-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.approval-dropdown-header strong {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.approval-dropdown-subtitle {
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.approval-dropdown-count {
+  background: var(--accent);
+  color: #fff;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.approval-dropdown-list {
+  display: grid;
+  gap: 10px;
+  max-height: 380px;
+  overflow: auto;
+}
+
+.approval-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: var(--canvas);
+}
+
+.approval-item-clickable {
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.approval-item-clickable:hover {
+  background-color: #f6f7fb;
+  border-color: var(--ink-soft);
+}
+
+.approval-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.approval-item-title {
+  font-weight: 700;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.approval-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.approval-item-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.approval-btn {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.approval-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.approval-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.approval-btn-approve {
+  background: var(--success);
+  color: #fff;
+}
+
+.approval-btn-reject {
+  background: var(--danger);
+  color: #fff;
+}
+
+.approval-btn-clarify {
+  background: var(--warning);
+  color: #1e2433;
+}
+
+.approval-dropdown-footer {
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  text-align: right;
+}
+
+.approval-dropdown-footer a {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.approval-empty-state {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--ink-soft);
+  background: var(--canvas);
+  border-radius: var(--radius-sm);
 }
 
 /* Action buttons — one accent family, distinguished by weight
@@ -215,12 +416,12 @@
 .ceo-dashboard-meta-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
+  gap: 20px;
+  padding: 5px 5px;
+  border-radius: 6px;
   background: var(--canvas);
   color: var(--ink-soft);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.01em;
   text-transform: uppercase;
@@ -236,7 +437,7 @@
   background: var(--surface);
   color: var(--ink-soft);
   border-radius: var(--radius-sm);
-  padding: 8px 12px;
+  padding: 12px 12px;
   font-size: 12px;
   font-weight: 700;
   display: inline-flex;
