@@ -311,14 +311,14 @@ const CeoDashboard = () => {
                 ))}
               </select>
             </div>
-            <div className="ceo-btn-group">
+            {/* <div className="ceo-btn-group">
               <Link to="/ceo-office/instruction-register" className="ceo-instruction-register-btn"> 
                 Instruction Register
               </Link>
               <Link to="/ceo-office/quick-note" className="ceo-quick-note-btn">
                 Quick Note
               </Link>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -593,11 +593,11 @@ const CeoDashboard = () => {
               </div>
 
               {/* Card Footer */}
-              <div className="ceo-dashboard-card-footer">
+              {/* <div className="ceo-dashboard-card-footer">
                 <Link to={getAddLink()} className="add-note-link">
                   + Add
                 </Link>
-              </div>
+              </div> */}
             </div>
           );
         })}

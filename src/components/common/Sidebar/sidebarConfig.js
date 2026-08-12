@@ -785,27 +785,13 @@ const ceoOfficeItems = () => [
   //   module: 'ceo_office',
   //   icon: FiPlusCircle
   // },
-  // {
-  //   label: 'Instruction Register',
-  //   path: '/ceo-office/instruction-register',
-  //   type: 'list',
-  //   module: 'ceo_office',
-  //   icon: FiList
-  // },
-  // {
-  //   label: 'Project Command Sheets',
-  //   path: '/ceo-office/project-command-sheets',
-  //   type: 'list',
-  //   module: 'ceo_office',
-  //   icon: FiBriefcase
-  // },
-  // {
-  //   label: 'Visitors / Calls',
-  //   path: '/ceo-office/visitors',
-  //   type: 'list',
-  //   module: 'ceo_office',
-  //   icon: FiUsers
-  // }
+  {
+    label: 'Instruction Register',
+    path: '/ceo-office/instruction-register',
+    type: 'list',
+    module: 'ceo_office',
+    icon: FiList
+  },
 ];
 
 const emailTemplatesItems = () => [
