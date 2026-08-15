@@ -8,7 +8,7 @@ import CeoDashboard from './components/ceo-office/dashboard';
 import QuickNote from './components/ceo-office/note/quick-note';
 import InstructionRegister from './components/ceo-office/instruction-register';
 import CeoNoteView from './components/ceo-office/note/note-view';
-import Reports from './components/ceo-office/reports';
+// import Reports from './components/ceo-office/reports';
 import Store from './components/store/Store';
 import Procurements from './components/procurements/Procurements';
 import Program from './components/program/Program';
