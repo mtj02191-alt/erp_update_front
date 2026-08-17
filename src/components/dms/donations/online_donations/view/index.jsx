@@ -1,5 +1,14 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import {
+  FiMail,
+  FiCheckCircle,
+  FiXCircle,
+  FiRefreshCw,
+  FiSend,
+} from 'react-icons/fi';
+import { FaWhatsapp } from 'react-icons/fa';
+import { HiOutlineDocumentText } from 'react-icons/hi';
 import axiosInstance from '../../../../../utils/axios';
 import '../../../../../styles/variables.css';
 import '../../../../../styles/components.css';
@@ -7,7 +16,17 @@ import PageHeader from '../../../../common/PageHeader';
 import Navbar from '../../../../Navbar';
 import FormInput from '../../../../common/FormInput';
 import FormSelect from '../../../../common/FormSelect';
+import DonationAuditHistory from '../../shared/DonationAuditHistory';
+import DonationAllotmentPanel from '../../shared/DonationAllotmentPanel';
+import DonationReceiptModal from '../../shared/DonationReceiptModal';
+import DonationPendingAttachments, {
+  uploadPendingDonationAttachments,
+} from '../../shared/DonationPendingAttachments';
+import '../../shared/DonationPendingAttachments.css';
 import { useAuth } from '../../../../../context/AuthContext';
+import { isLocalId } from '../../../../../offline/handlers';
+import { toast } from 'react-toastify';
+import './index.css';
 
 /** Matches UserPermissions `communication.*` send flags; `super_admin` is handled in checks. */
 const COMM_PERMS = {
@@ -17,6 +36,8 @@ const COMM_PERMS = {
   whatsappPaymentLinks: 'communication.whatsapp_payment_links.send',
   whatsappThanks: 'communication.whatsapp_thanks.send',
   whatsappCampaigns: 'communication.whatsapp_campaigns.send',
+  donationReceiptsView: 'communication.donation_receipts.view',
+  donationReceiptsSend: 'communication.donation_receipts.send',
 };
 
 const PROGRESS_STEP_STATUS_OPTIONS = [
@@ -39,13 +60,14 @@ const ViewOnlineDonation = () => {
   const [sendingThanksWhatsApp, setSendingThanksWhatsApp] = useState(false);
   const [sendingLinkEmail, setSendingLinkEmail] = useState(false);
   const [sendingLinkWhatsApp, setSendingLinkWhatsApp] = useState(false);
-  const [sendingReceipt, setSendingReceipt] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [messageStatus, setMessageStatus] = useState({ type: '', message: '' });
   const [markingCompleted, setMarkingCompleted] = useState(false);
   const [markingFailed, setMarkingFailed] = useState(false);
   const [note, setNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
   const [noteStatus, setNoteStatus] = useState({ type: '', message: '' });
+  const [auditRefreshKey, setAuditRefreshKey] = useState(0);
   const [fetchingProviderStatus, setFetchingProviderStatus] = useState(false);
   const [providerStatusData, setProviderStatusData] = useState(null);
   const [progressTrackers, setProgressTrackers] = useState([]);
@@ -60,6 +82,9 @@ const ViewOnlineDonation = () => {
   const [progressEvidenceTitle, setProgressEvidenceTitle] = useState('');
   const [progressEvidenceType, setProgressEvidenceType] = useState('link');
   const [activeProgressStepId, setActiveProgressStepId] = useState(null);
+  const [pendingAttachments, setPendingAttachments] = useState([]);
+  const attachmentsRef = useRef(null);
+  const [savingAttachments, setSavingAttachments] = useState(false);
   const [batchTagDraft, setBatchTagDraft] = useState('');
   const [batchTagNameDraft, setBatchTagNameDraft] = useState('');
   const [savingBatchTag, setSavingBatchTag] = useState(false);
@@ -119,27 +144,39 @@ const ViewOnlineDonation = () => {
   );
 
   const canSendComm = (path) => hasAnyPermission(['super_admin', path]);
-  const showEmailComm =
-    canSendComm(COMM_PERMS.emailPaymentLinks) ||
-    canSendComm(COMM_PERMS.emailThanks) ||
-    canSendComm(COMM_PERMS.emailCampaigns);
-  const showWhatsAppComm =
-    canSendComm(COMM_PERMS.whatsappPaymentLinks) ||
-    canSendComm(COMM_PERMS.whatsappThanks) ||
-    canSendComm(COMM_PERMS.whatsappCampaigns);
+  const donationStatus = String(donation?.status || '').toLowerCase();
+  const isDonationCompleted = donationStatus === 'completed';
+  const isDonationFailed = donationStatus === 'failed';
+
+  // Links for unpaid / non-completed; thanks + receipt only after completion
+  const showPaymentLinkActions = !isDonationCompleted;
+  const showThanksActions = isDonationCompleted;
+
+  const canEmailPaymentLink =
+    showPaymentLinkActions && canSendComm(COMM_PERMS.emailPaymentLinks);
+  const canEmailThanks = showThanksActions && canSendComm(COMM_PERMS.emailThanks);
+  const canWhatsAppPaymentLink =
+    showPaymentLinkActions && canSendComm(COMM_PERMS.whatsappPaymentLinks);
+  const canWhatsAppThanks = showThanksActions && canSendComm(COMM_PERMS.whatsappThanks);
+
+  const showEmailComm = canEmailPaymentLink || canEmailThanks;
+  const showWhatsAppComm = canWhatsAppPaymentLink || canWhatsAppThanks;
   const showCommSection = showEmailComm || showWhatsAppComm;
-  const showInKindReceipt =
-    !!donation &&
-    (donation.donation_method === 'in_kind' ||
-      (donation.in_kind_items && donation.in_kind_items.length > 0));
-  const showCommActionsHeader = showCommSection || showInKindReceipt;
+  const canViewReceipt = canSendComm(COMM_PERMS.donationReceiptsView);
+  const canSendReceiptEmail = canSendComm(COMM_PERMS.donationReceiptsSend);
+  const showReceiptSection =
+    isDonationCompleted && (canViewReceipt || canSendReceiptEmail);
+  const showMarkCompleted = !isDonationCompleted;
+  const showMarkFailed = !isDonationFailed;
+  const showStatusActions = showMarkCompleted || showMarkFailed;
+  const isPendingOffline = isLocalId(id);
 
   useEffect(() => {
     fetchDonation();
   }, [id]);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || isLocalId(id)) return;
     fetchProgressData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -317,6 +354,58 @@ const ViewOnlineDonation = () => {
       setLoading(false);
     }
   };
+
+  const uploadViewAttachments = async () => {
+    if (isLocalId(id)) return;
+    const toUpload =
+      attachmentsRef.current?.collectForSubmit?.() || pendingAttachments;
+    if (!toUpload.length) {
+      toast.error('Add an attachment name and file first.');
+      return;
+    }
+    setSavingAttachments(true);
+    try {
+      const { uploaded, failed } = await uploadPendingDonationAttachments({
+        axiosInstance,
+        donationId: id,
+        items: toUpload,
+      });
+      if (uploaded > 0) {
+        toast.success(
+          uploaded === 1
+            ? 'Attachment uploaded successfully.'
+            : `${uploaded} attachments uploaded successfully.`,
+        );
+        setPendingAttachments([]);
+        await fetchDonation();
+      }
+      if (failed > 0) {
+        toast.error(
+          failed === 1
+            ? 'Failed to upload 1 attachment.'
+            : `Failed to upload ${failed} attachments.`,
+        );
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to upload attachments.');
+    } finally {
+      setSavingAttachments(false);
+    }
+  };
+
+  const removeDonationAttachment = async (attachmentId) => {
+    if (!window.confirm('Remove this attachment?')) return;
+    try {
+      await axiosInstance.delete(`/donations/${id}/attachments/${attachmentId}`);
+      setDonation((prev) => ({
+        ...prev,
+        attachments: (prev.attachments || []).filter((a) => a.id !== attachmentId),
+      }));
+      toast.success('Attachment removed.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to remove attachment.');
+    }
+  };
   
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString();
@@ -330,6 +419,7 @@ const ViewOnlineDonation = () => {
       const response = await axiosInstance.patch(`/donations/${id}/note`, { note });
       if (response.data.success) {
         setDonation(response.data.data);
+        setAuditRefreshKey((k) => k + 1);
         setNoteStatus({ type: 'success', message: 'Note saved successfully.' });
         setTimeout(() => setNoteStatus({ type: '', message: '' }), 4000);
       } else {
@@ -488,38 +578,6 @@ const ViewOnlineDonation = () => {
     }
   };
 
-  const sendReceipt = async () => {
-    if (!id) return;
-
-    setSendingReceipt(true);
-    setMessageStatus({ type: '', message: '' });
-
-    try {
-      const response = await axiosInstance.post(`/donations/sendDonationReceipt/${id}`);
-
-      if (response.data.success) {
-        setMessageStatus({
-          type: 'success',
-          message: response.data.message || 'Receipt sent successfully!',
-        });
-        setTimeout(() => setMessageStatus({ type: '', message: '' }), 5000);
-      } else {
-        setMessageStatus({
-          type: 'error',
-          message: response.data.message || 'Failed to send receipt',
-        });
-      }
-    } catch (err) {
-      setMessageStatus({
-        type: 'error',
-        message: err.response?.data?.message || 'Failed to send receipt. Please try again.',
-      });
-      console.error('Error sending receipt:', err);
-    } finally {
-      setSendingReceipt(false);
-    }
-  };
-
   const markAsCompleted = async () => {
     if (!id) return;
     
@@ -527,18 +585,20 @@ const ViewOnlineDonation = () => {
     setMessageStatus({ type: '', message: '' });
     
     try {
-      const response = await axiosInstance.post(`/donations/status-action`, { 
-        donation_id: parseInt(id), 
-        status: 'completed' 
-      });
+      const response = isLocalId(id)
+        ? await axiosInstance.patch(`/donations/${id}`, { status: 'completed' })
+        : await axiosInstance.post(`/donations/status-action`, {
+            donation_id: parseInt(id, 10),
+            status: 'completed',
+          });
       
       if (response.data.success) {
         setMessageStatus({
           type: 'success',
           message: response.data.message || 'Donation marked as completed successfully!',
         });
-        // Refresh donation data
         await fetchDonation();
+        setAuditRefreshKey((k) => k + 1);
         setTimeout(() => setMessageStatus({ type: '', message: '' }), 5000);
       } else {
         setMessageStatus({
@@ -564,18 +624,20 @@ const ViewOnlineDonation = () => {
     setMessageStatus({ type: '', message: '' });
     
     try {
-      const response = await axiosInstance.post(`/donations/status-action`, { 
-        donation_id: parseInt(id), 
-        status: 'failed' 
-      });
+      const response = isLocalId(id)
+        ? await axiosInstance.patch(`/donations/${id}`, { status: 'failed' })
+        : await axiosInstance.post(`/donations/status-action`, {
+            donation_id: parseInt(id, 10),
+            status: 'failed',
+          });
       
       if (response.data.success) {
         setMessageStatus({
           type: 'success',
           message: response.data.message || 'Donation marked as failed successfully!',
         });
-        // Refresh donation data
         await fetchDonation();
+        setAuditRefreshKey((k) => k + 1);
         setTimeout(() => setMessageStatus({ type: '', message: '' }), 5000);
       } else {
         setMessageStatus({
@@ -704,6 +766,21 @@ const ViewOnlineDonation = () => {
           backPath="/donations/online_donations/list"
         />
         <div className="view-content">
+          {isPendingOffline && (
+            <div
+              className="status-message"
+              style={{
+                marginBottom: 16,
+                background: '#fef3c7',
+                border: '1px solid #fcd34d',
+                color: '#92400e',
+              }}
+            >
+              This donation is saved locally and pending sync. Email, WhatsApp, receipts, and
+              provider status are unavailable until it is synced.
+            </div>
+          )}
+          {/* {!isPendingOffline && (
           <div className="view-section">
             <h3 className="view-section-title">Progress Tracking</h3>
 
@@ -1041,6 +1118,7 @@ const ViewOnlineDonation = () => {
               </div>
             )}
           </div>
+          )} */}
 
           <div className="view-section">
             <h3 className="view-section-title">Donation Details</h3>
@@ -1097,6 +1175,67 @@ const ViewOnlineDonation = () => {
           </div>
 
           <div className="view-section">
+            <h3 className="view-section-title">Attachments</h3>
+            {(donation.attachments || []).length > 0 ? (
+              <ul className="donation-attachments-list">
+                {(donation.attachments || []).map((a) => {
+                  const displayName = a.description || a.file_name;
+                  return (
+                    <li key={a.id} className="donation-attachments-list__item">
+                      <div className="donation-attachments-list__main">
+                        <strong>{displayName}</strong>
+                        {a.description && a.file_name && a.description !== a.file_name && (
+                          <span>{a.file_name}</span>
+                        )}
+                      </div>
+                      <div className="donation-attachments-list__actions">
+                        <a href={a.file_url} target="_blank" rel="noreferrer">
+                          View
+                        </a>
+                        {!isLocalId(id) && (
+                          <button
+                            type="button"
+                            onClick={() => removeDonationAttachment(a.id)}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p style={{ margin: '0.5rem 0', color: '#64748b', fontSize: '0.9rem' }}>
+                No attachments yet.
+              </p>
+            )}
+
+            {!isLocalId(id) && (
+              <div style={{ marginTop: '1rem' }}>
+                <DonationPendingAttachments
+                  ref={attachmentsRef}
+                  items={pendingAttachments}
+                  onChange={setPendingAttachments}
+                  disabled={savingAttachments}
+                  title="Add attachment"
+                  fileInputId="donation-view-pending-attachment-file"
+                />
+                <div style={{ marginTop: '0.75rem' }}>
+                  <button
+                    type="button"
+                    className="primary_btn"
+                    onClick={uploadViewAttachments}
+                    disabled={savingAttachments}
+                  >
+                    {savingAttachments ? 'Uploading...' : 'Upload attachments'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="view-section">
             <h3 className="view-section-title">Internal Note :</h3>
             {noteStatus.message && (
               <div
@@ -1132,16 +1271,40 @@ const ViewOnlineDonation = () => {
             </div>
           </div>
 
+          {!isPendingOffline && (
+            <div className="view-section">
+              <h3 className="view-section-title">Change history</h3>
+              <DonationAuditHistory donationId={id} refreshKey={auditRefreshKey} />
+            </div>
+          )}
+
           <div className="view-section">
             <h3 className="view-section-title">Donor Information</h3>
-            <div className="view-grid">
+            <div className="view-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
               <div className="view-item">
                 <span className="view-item-label">Name</span>
-                <span className="view-item-value">{donation?.donor?.name || 'Anonymous'}</span>
+                <span className="view-item-value">
+                  {donation?.donor?.id ? (
+                    <a
+                      href={`/dms/donors/view/${donation.donor.id}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigate(`/dms/donors/view/${donation.donor.id}`);
+                      }}
+                      style={{ color: '#2563eb', textDecoration: 'underline' }}
+                    >
+                      {donation.donor.name || 'Anonymous'}
+                    </a>
+                  ) : (
+                    donation?.donor?.name || 'Anonymous'
+                  )}
+                </span>
               </div>
               <div className="view-item">
                 <span className="view-item-label">Email</span>
-                <span className="view-item-value">{donation?.donor?.email || '-'}</span>
+                <span className="view-item-value" style={{ wordBreak: 'break-word' }}>
+                  {donation?.donor?.email || '-'}
+                </span>
               </div>
               <div className="view-item">
                 <span className="view-item-label">Phone</span>
@@ -1274,376 +1437,188 @@ const ViewOnlineDonation = () => {
               )}
             </div>
           </div> */}
-          {/* Communication Actions Section */}
-          <div className="view-section" style={{ 
-            backgroundColor: '#f9fafb', 
-            border: '1px solid #e5e7eb', 
-            borderRadius: '8px',
-            padding: '1.5rem',
-            marginBottom: '1.5rem'
-          }}>
-            {showCommActionsHeader && (
-              <h3 className="view-section-title" style={{ marginBottom: '1rem' }}>
-                Communication Actions
-              </h3>
-            )}
-            
+          {/* Communication & Actions */}
+          {!isPendingOffline && (
+          <div className="view-section donation-view-actions-panel donation-comm-panel">
+            <div className="donation-comm-panel__header">
+              <div className="donation-comm-panel__header-icon" aria-hidden>
+                <FiSend />
+              </div>
+              <div className="donation-comm-panel__header-text">
+                <h3 className="donation-comm-panel__title">Communication & Actions</h3>
+                <p className="donation-comm-panel__subtitle">
+                  Send messages, generate receipt and update status for this donation.
+                </p>
+              </div>
+            </div>
+
             {messageStatus.message && (
-              <div 
-                className={`status-message ${messageStatus.type === 'success' ? 'status-message--success' : 'status-message--error'}`}
-                style={{ 
-                  marginBottom: '1rem',
-                  padding: '0.75rem 1rem',
-                  borderRadius: '6px'
-                }}
+              <div
+                className={`status-message donation-view-status-message ${messageStatus.type === 'success' ? 'status-message--success' : 'status-message--error'}`}
               >
                 {messageStatus.message}
               </div>
             )}
-            
-            {showCommSection && (
-              <>
-                {showEmailComm && (
-                  <div style={{ marginBottom: '1.25rem' }}>
-                    <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '15px', color: '#374151' }}>Email</h4>
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                      gap: '1rem',
-                    }}>
-                      {canSendComm(COMM_PERMS.emailPaymentLinks) && (
-                        <button
-                          type="button"
-                          onClick={sendLinkEmail}
-                          disabled={sendingLinkEmail || !donation?.donor?.email}
-                          style={{
-                            padding: '0.75rem 1.5rem',
-                            backgroundColor: '#3b82f6',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: sendingLinkEmail || !donation?.donor?.email ? 'not-allowed' : 'pointer',
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            opacity: sendingLinkEmail || !donation?.donor?.email ? 0.6 : 1,
-                            transition: 'all 0.2s',
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!sendingLinkEmail && donation?.donor?.email) {
-                              e.target.style.backgroundColor = '#2563eb';
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!sendingLinkEmail && donation?.donor?.email) {
-                              e.target.style.backgroundColor = '#3b82f6';
-                            }
-                          }}
-                        >
-                          {sendingLinkEmail ? 'Sending...' : '📧 Send Payment Link Email'}
-                        </button>
-                      )}
-                      {canSendComm(COMM_PERMS.emailThanks) && (
-                        <button
-                          type="button"
-                          onClick={sendThanksEmail}
-                          disabled={sendingThanksEmail || !donation?.donor?.email}
-                          style={{
-                            padding: '0.75rem 1.5rem',
-                            backgroundColor: '#10b981',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: sendingThanksEmail || !donation?.donor?.email ? 'not-allowed' : 'pointer',
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            opacity: sendingThanksEmail || !donation?.donor?.email ? 0.6 : 1,
-                            transition: 'all 0.2s',
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!sendingThanksEmail && donation?.donor?.email) {
-                              e.target.style.backgroundColor = '#059669';
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!sendingThanksEmail && donation?.donor?.email) {
-                              e.target.style.backgroundColor = '#10b981';
-                            }
-                          }}
-                        >
-                          {sendingThanksEmail ? 'Sending...' : '📧 Send Thanks Email'}
-                        </button>
-                      )}
-                      {canSendComm(COMM_PERMS.emailCampaigns) && (
-                        <div
-                          style={{
-                            gridColumn: '1 / -1',
-                            padding: '0.65rem 0.75rem',
-                            backgroundColor: '#f3f4f6',
-                            borderRadius: '6px',
-                            fontSize: '13px',
-                            color: '#4b5563',
-                          }}
-                        >
-                          Email — Campaigns: send campaign email from the Campaigns module. This page only covers donation payment links and thanks.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {showWhatsAppComm && (
-                  <div style={{ marginBottom: '1rem' }}>
-                    <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '15px', color: '#374151' }}>WhatsApp</h4>
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                      gap: '1rem',
-                    }}>
-                      {canSendComm(COMM_PERMS.whatsappPaymentLinks) && (
-                        <button
-                          type="button"
-                          onClick={sendLinkWhatsApp}
-                          disabled={sendingLinkWhatsApp || !donation?.donor?.phone}
-                          style={{
-                            padding: '0.75rem 1.5rem',
-                            backgroundColor: '#25d366',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: sendingLinkWhatsApp || !donation?.donor?.phone ? 'not-allowed' : 'pointer',
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            opacity: sendingLinkWhatsApp || !donation?.donor?.phone ? 0.6 : 1,
-                            transition: 'all 0.2s',
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!sendingLinkWhatsApp && donation?.donor?.phone) {
-                              e.target.style.backgroundColor = '#20ba5a';
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!sendingLinkWhatsApp && donation?.donor?.phone) {
-                              e.target.style.backgroundColor = '#25d366';
-                            }
-                          }}
-                        >
-                          {sendingLinkWhatsApp ? 'Sending...' : '💬 Send Payment Link WhatsApp'}
-                        </button>
-                      )}
-                      {canSendComm(COMM_PERMS.whatsappThanks) && (
-                        <button
-                          type="button"
-                          onClick={sendThanksWhatsApp}
-                          disabled={sendingThanksWhatsApp || !donation?.donor?.phone}
-                          style={{
-                            padding: '0.75rem 1.5rem',
-                            backgroundColor: '#25d366',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: sendingThanksWhatsApp || !donation?.donor?.phone ? 'not-allowed' : 'pointer',
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            opacity: sendingThanksWhatsApp || !donation?.donor?.phone ? 0.6 : 1,
-                            transition: 'all 0.2s',
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!sendingThanksWhatsApp && donation?.donor?.phone) {
-                              e.target.style.backgroundColor = '#20ba5a';
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!sendingThanksWhatsApp && donation?.donor?.phone) {
-                              e.target.style.backgroundColor = '#25d366';
-                            }
-                          }}
-                        >
-                          {sendingThanksWhatsApp ? 'Sending...' : '💬 Send Thanks WhatsApp'}
-                        </button>
-                      )}
-                      {canSendComm(COMM_PERMS.whatsappCampaigns) && (
-                        <div
-                          style={{
-                            gridColumn: '1 / -1',
-                            padding: '0.65rem 0.75rem',
-                            backgroundColor: '#f3f4f6',
-                            borderRadius: '6px',
-                            fontSize: '13px',
-                            color: '#4b5563',
-                          }}
-                        >
-                          WhatsApp — Campaigns: send campaign WhatsApp from the Campaigns module. This page only covers donation payment links and thanks.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {(!donation?.donor?.email && !donation?.donor?.phone) && (
-                  <p style={{
-                    marginTop: '0.75rem',
-                    fontSize: '13px',
-                    color: '#6b7280',
-                    fontStyle: 'italic',
-                  }}
-                  >
-                    Donor email and/or phone number are required to send messages.
-                  </p>
-                )}
-              </>
-            )}
 
-            {showInKindReceipt && (
-              <div style={{
-                marginTop: showCommSection ? '1rem' : 0,
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                gap: '1rem',
-              }}
-              >
-                <button
-                  type="button"
-                  onClick={sendReceipt}
-                  disabled={sendingReceipt || !donation?.donor?.email}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    backgroundColor: '#f59e0b',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: sendingReceipt || !donation?.donor?.email ? 'not-allowed' : 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    opacity: sendingReceipt || !donation?.donor?.email ? 0.6 : 1,
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!sendingReceipt && donation?.donor?.email) {
-                      e.target.style.backgroundColor = '#d97706';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!sendingReceipt && donation?.donor?.email) {
-                      e.target.style.backgroundColor = '#f59e0b';
-                    }
-                  }}
-                >
-                  {sendingReceipt ? 'Sending...' : '🧾 Send Receipt'}
-                </button>
-              </div>
-            )}
-
-            {/* Status Actions Section */}
-            <h3 className="view-section-title" style={{ marginTop: '2rem', marginBottom: '1rem' }}>
-              Status Actions
-            </h3>
-            
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '1rem'
-            }}>
-              {/* Get Provider Status */}
-              {supportsProviderStatus && (
-                <button
-                  onClick={fetchProviderStatus}
-                  disabled={fetchingProviderStatus}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    backgroundColor: '#6366f1',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: fetchingProviderStatus ? 'not-allowed' : 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    opacity: fetchingProviderStatus ? 0.6 : 1,
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!fetchingProviderStatus) {
-                      e.target.style.backgroundColor = '#4f46e5';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!fetchingProviderStatus) {
-                      e.target.style.backgroundColor = '#6366f1';
-                    }
-                  }}
-                >
-                  {fetchingProviderStatus ? 'Checking...' : `🔄 Get Status from ${donation?.donation_method?.toUpperCase()}`}
-                </button>
+            <div className="donation-comm-grid">
+              {showEmailComm && (
+                <div className="donation-comm-col">
+                  <h4 className="donation-comm-col__title">Email</h4>
+                  <div className="donation-comm-col__actions">
+                    {canEmailPaymentLink && (
+                      <button
+                        type="button"
+                        className="donation-comm-btn donation-comm-btn--email"
+                        onClick={sendLinkEmail}
+                        disabled={sendingLinkEmail || !donation?.donor?.email}
+                      >
+                        <span className="donation-comm-btn__icon">
+                          <FiMail />
+                        </span>
+                        <span className="donation-comm-btn__label">
+                          {sendingLinkEmail ? 'Sending…' : 'Payment Link'}
+                        </span>
+                      </button>
+                    )}
+                    {canEmailThanks && (
+                      <button
+                        type="button"
+                        className="donation-comm-btn donation-comm-btn--email"
+                        onClick={sendThanksEmail}
+                        disabled={sendingThanksEmail || !donation?.donor?.email}
+                      >
+                        <span className="donation-comm-btn__icon">
+                          <FiMail />
+                        </span>
+                        <span className="donation-comm-btn__label">
+                          {sendingThanksEmail ? 'Sending…' : 'Thanks Email'}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
               )}
 
-              {/* Mark As Completed */}
-              <button
-                onClick={markAsCompleted}
-                disabled={markingCompleted || donation?.status === 'completed'}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  backgroundColor: '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: markingCompleted || donation?.status === 'completed' ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  opacity: markingCompleted || donation?.status === 'completed' ? 0.6 : 1,
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  if (!markingCompleted && donation?.status !== 'completed') {
-                    e.target.style.backgroundColor = '#059669';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!markingCompleted && donation?.status !== 'completed') {
-                    e.target.style.backgroundColor = '#10b981';
-                  }
-                }}
-              >
-                {markingCompleted ? 'Updating...' : '✅ Mark As Completed'} 
-              </button>
-              
-              {/* Mark As Failed */}
-              <button
-                onClick={markAsFailed}
-                disabled={markingFailed || donation?.status === 'failed'}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  backgroundColor: '#ef4444',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: markingFailed || donation?.status === 'failed' ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  opacity: markingFailed || donation?.status === 'failed' ? 0.6 : 1,
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  if (!markingFailed && donation?.status !== 'failed') {
-                    e.target.style.backgroundColor = '#dc2626';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!markingFailed && donation?.status !== 'failed') {
-                    e.target.style.backgroundColor = '#ef4444';
-                  }
-                }}
-              >
-                {markingFailed ? 'Updating...' : '❌ Mark As Failed'}
-              </button>
+              {showWhatsAppComm && (
+                <div className="donation-comm-col">
+                  <h4 className="donation-comm-col__title">WhatsApp</h4>
+                  <div className="donation-comm-col__actions">
+                    {canWhatsAppPaymentLink && (
+                      <button
+                        type="button"
+                        className="donation-comm-btn donation-comm-btn--whatsapp"
+                        onClick={sendLinkWhatsApp}
+                        disabled={sendingLinkWhatsApp || !donation?.donor?.phone}
+                      >
+                        <span className="donation-comm-btn__icon">
+                          <FaWhatsapp />
+                        </span>
+                        <span className="donation-comm-btn__label">
+                          {sendingLinkWhatsApp ? 'Sending…' : 'Payment Link'}
+                        </span>
+                      </button>
+                    )}
+                    {canWhatsAppThanks && (
+                      <button
+                        type="button"
+                        className="donation-comm-btn donation-comm-btn--whatsapp"
+                        onClick={sendThanksWhatsApp}
+                        disabled={sendingThanksWhatsApp || !donation?.donor?.phone}
+                      >
+                        <span className="donation-comm-btn__icon">
+                          <FaWhatsapp />
+                        </span>
+                        <span className="donation-comm-btn__label">
+                          {sendingThanksWhatsApp ? 'Sending…' : 'Thanks WhatsApp'}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {showReceiptSection && (
+                <div className="donation-comm-col">
+                  <h4 className="donation-comm-col__title">Receipt</h4>
+                  <div className="donation-comm-col__actions">
+                    <button
+                      type="button"
+                      className="donation-comm-btn donation-comm-btn--receipt donation-comm-btn--wide"
+                      onClick={() => setShowReceiptModal(true)}
+                    >
+                      <span className="donation-comm-btn__icon">
+                        <HiOutlineDocumentText />
+                      </span>
+                      <span className="donation-comm-btn__label">Generate Receipt</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {(showStatusActions || supportsProviderStatus) && (
+              <div className="donation-comm-col">
+                <h4 className="donation-comm-col__title">Status</h4>
+                {showStatusActions && (
+                <div className="donation-comm-col__actions">
+                  {showMarkCompleted && (
+                    <button
+                      type="button"
+                      className="donation-comm-btn donation-comm-btn--completed donation-comm-btn--inline"
+                      onClick={markAsCompleted}
+                      disabled={markingCompleted}
+                    >
+                      <span className="donation-comm-btn__icon">
+                        <FiCheckCircle />
+                      </span>
+                      <span className="donation-comm-btn__label">
+                        {markingCompleted ? 'Updating…' : 'Completed'}
+                      </span>
+                    </button>
+                  )}
+                  {showMarkFailed && (
+                    <button
+                      type="button"
+                      className="donation-comm-btn donation-comm-btn--failed donation-comm-btn--inline"
+                      onClick={markAsFailed}
+                      disabled={markingFailed}
+                    >
+                      <span className="donation-comm-btn__icon">
+                        <FiXCircle />
+                      </span>
+                      <span className="donation-comm-btn__label">
+                        {markingFailed ? 'Updating…' : 'Failed'}
+                      </span>
+                    </button>
+                  )}
+                </div>
+                )}
+                {supportsProviderStatus && (
+                  <button
+                    type="button"
+                    className="donation-comm-provider-btn"
+                    onClick={fetchProviderStatus}
+                    disabled={fetchingProviderStatus}
+                  >
+                    <FiRefreshCw className={fetchingProviderStatus ? 'donation-comm-spin' : ''} />
+                    {fetchingProviderStatus
+                      ? 'Checking…'
+                      : `Get Status from ${donation?.donation_method?.toUpperCase()}`}
+                  </button>
+                )}
+              </div>
+              )}
             </div>
+
+            {showCommSection && !donation?.donor?.email && !donation?.donor?.phone && (
+              <p className="donation-view-hint-text">
+                Donor email and/or phone number are required to send messages.
+              </p>
+            )}
 
             {/* Provider Status Response */}
             {providerStatusData && (
-              <div style={{
-                marginTop: '1.5rem',
-                padding: '1rem 1.25rem',
-                backgroundColor: '#f0f9ff',
-                border: '1px solid #bae6fd',
-                borderRadius: '8px',
-              }}>
-                <h4 style={{ margin: '0 0 0.75rem 0', color: '#0369a1', fontSize: '15px' }}>
+              <div className="donation-view-provider-panel">
+                <h4 className="donation-view-provider-title">
                   Provider Response ({providerStatusData.provider?.toUpperCase()})
                 </h4>
 
@@ -1662,37 +1637,24 @@ const ViewOnlineDonation = () => {
                   </div>
                   <div className="view-item">
                     <span className="view-item-label">DB Updated</span>
-                    <span className="view-item-value" style={{
-                      color: providerStatusData.dbUpdated ? '#059669' : '#6b7280',
-                      fontWeight: 500
-                    }}>
+                    <span className={`view-item-value ${providerStatusData.dbUpdated ? 'donation-view-sync-yes' : 'donation-view-sync-no'}`}>
                       {providerStatusData.dbUpdated ? 'Yes - status synced' : 'No - already in sync'}
                     </span>
                   </div>
                 </div>
 
-                {/* Show provider-specific details */}
                 {providerStatusData.details && Object.keys(providerStatusData.details).length > 0 && (
                   <div style={{ marginTop: '0.75rem' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#0369a1', display: 'block', marginBottom: '0.5rem' }}>
+                    <span className="donation-view-provider-label">
                       Details:
                     </span>
-                    <div style={{
-                      backgroundColor: '#ffffff',
-                      border: '1px solid #e0f2fe',
-                      borderRadius: '6px',
-                      padding: '0.75rem',
-                      fontSize: '13px',
-                      fontFamily: 'monospace',
-                      lineHeight: '1.6',
-                      overflowX: 'auto',
-                    }}>
+                    <div className="donation-view-provider-details">
                       {Object.entries(providerStatusData.details)
                         .filter(([, value]) => value !== null && value !== undefined && value !== '')
                         .map(([key, value]) => (
-                          <div key={key} style={{ display: 'flex', gap: '0.5rem' }}>
-                            <span style={{ color: '#6b7280', minWidth: '180px' }}>{key}:</span>
-                            <span style={{ color: '#111827', fontWeight: 500 }}>{String(value)}</span>
+                          <div key={key} className="donation-view-detail-row">
+                            <span className="donation-view-detail-key">{key}:</span>
+                            <span className="donation-view-detail-value">{String(value)}</span>
                           </div>
                         ))}
                     </div>
@@ -1700,9 +1662,92 @@ const ViewOnlineDonation = () => {
                 )}
               </div>
             )}
+
+            <DonationAllotmentPanel
+              donationId={id}
+              donation={donation}
+              onUpdated={fetchDonation}
+            />
           </div>
+          )}
+          {isPendingOffline && (
+            <div className="view-section donation-view-actions-panel donation-comm-panel">
+              <div className="donation-comm-panel__header">
+                <div className="donation-comm-panel__header-icon" aria-hidden>
+                  <FiSend />
+                </div>
+                <div className="donation-comm-panel__header-text">
+                  <h3 className="donation-comm-panel__title">Communication & Actions</h3>
+                  <p className="donation-comm-panel__subtitle">
+                    Update status for this offline donation.
+                  </p>
+                </div>
+              </div>
+              {messageStatus.message && (
+                <div
+                  className={`status-message donation-view-status-message ${messageStatus.type === 'success' ? 'status-message--success' : 'status-message--error'}`}
+                >
+                  {messageStatus.message}
+                </div>
+              )}
+              <div className="donation-comm-grid donation-comm-grid--offline">
+                {(showStatusActions) && (
+                <div className="donation-comm-col">
+                  <h4 className="donation-comm-col__title">Status</h4>
+                  <div className="donation-comm-col__actions">
+                    {showMarkCompleted && (
+                      <button
+                        type="button"
+                        className="donation-comm-btn donation-comm-btn--completed donation-comm-btn--inline"
+                        onClick={markAsCompleted}
+                        disabled={markingCompleted}
+                      >
+                        <span className="donation-comm-btn__icon">
+                          <FiCheckCircle />
+                        </span>
+                        <span className="donation-comm-btn__label">
+                          {markingCompleted ? 'Updating…' : 'Completed'}
+                        </span>
+                      </button>
+                    )}
+                    {showMarkFailed && (
+                      <button
+                        type="button"
+                        className="donation-comm-btn donation-comm-btn--failed donation-comm-btn--inline"
+                        onClick={markAsFailed}
+                        disabled={markingFailed}
+                      >
+                        <span className="donation-comm-btn__icon">
+                          <FiXCircle />
+                        </span>
+                        <span className="donation-comm-btn__label">
+                          {markingFailed ? 'Updating…' : 'Failed'}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      <DonationReceiptModal
+        isOpen={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        donationId={id}
+        donation={donation}
+        canPreview={canViewReceipt}
+        canSendEmail={canSendReceiptEmail}
+        onStatusMessage={(status) => {
+          setMessageStatus(status);
+          if (status.type === 'success') {
+            setTimeout(() => setMessageStatus({ type: '', message: '' }), 5000);
+          }
+        }}
+      />
     </>
   );
 };

@@ -15,6 +15,11 @@ const ProtectedRoute = ({ children }) => {
       return true;
     }
 
+    // CEO / PA have access to everything (same scope as super admin for routing)
+    if (userData.role === 'ceo' || userData.role === 'pa') {
+      return true;
+    }
+
     // Admin has access to everything in their department
     if (userData.role === 'admin') {
       return currentPath.startsWith(`/${userData.department}`);
@@ -37,6 +42,11 @@ const ProtectedRoute = ({ children }) => {
                          !currentPath.includes('/delete/');
       
       return isCreateRoute || isListRoute;
+    }
+
+    // For all other roles (manager, dept_head, etc.), allow department-scoped access
+    if (userData.department) {
+      return currentPath.startsWith(`/${userData.department}`);
     }
 
     return false;

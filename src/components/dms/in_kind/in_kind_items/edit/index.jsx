@@ -136,7 +136,7 @@ const EditInKindItem = () => {
 
         <form onSubmit={handleSubmit} className="form">
           <div className="form-section">
-            <h3 style={{ marginBottom: '15px', color: '#333' }}>Item Details</h3>
+            <h3 className="form-section-heading">Item Details</h3>
             
             <div className="form-grid-2">
 

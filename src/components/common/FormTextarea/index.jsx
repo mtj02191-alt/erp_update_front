@@ -13,6 +13,7 @@ const FormTextarea = ({
   isEdit = false,
   className = '',
   rows = 4,
+  maxLength,
 }) => {
   return (
     <div className={`form-group ${className}`}>
@@ -29,6 +30,7 @@ const FormTextarea = ({
         disabled={disabled || isEdit}
         required={required}
         rows={rows}
+        maxLength={maxLength}
       />
       {error && <span className="form-error">{error}</span>}
     </div>

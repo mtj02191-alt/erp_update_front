@@ -62,7 +62,11 @@ export const departmentRoles = {
       { value: 'manager', label: 'Manager' },
       { value: 'csr', label: 'CSR' }, // Donation Collector
       { value: 'reconcile_agent', label: 'Reconcile Agent' }, // bank data reconcile agent
-      { value: 'back_office_clerk', label: 'Back Office Clerk' } // person responsible for registering donors and handling back office clerk
+      { value: 'back_office_clerk', label: 'Back Office Clerk' }, // person responsible for registering donors and handling back office clerk
+      { value: 'call_center_agent', label: 'Call Center Agent' },
+      { value: 'asst_crd_officer', label: 'Asst. CRD Officer' },
+      { value: 'crd_officer', label: 'CRD Officer' },
+      { value: 'internee', label: 'Internee' },
     ]
   };
 
@@ -113,7 +117,10 @@ export const departmentRoles = {
     { value: 'staff', label: 'Staff' }, 
     { value: 'field_officer', label: 'Field Officer' },
     { value: 'volunteer', label: 'Volunteer' },
-    { value: 'dept_head', label: 'Dept Head' }
+    { value: 'dept_head', label: 'Dept Head' },
+    { value: 'asst_crd_officer', label: 'Asst. CRD Officer' },
+    { value: 'crd_officer', label: 'CRD Officer' },
+    { value: 'internee', label: 'Internee' },
   ];
   
   export const genders = [

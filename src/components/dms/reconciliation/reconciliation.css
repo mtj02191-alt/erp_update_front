@@ -1,0 +1,89 @@
+.reconciliation-upload-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+.reconciliation-upload-card .form-section {
+  margin-bottom: 0;
+}
+
+.reconciliation-section-title {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: var(--color-text-primary);
+}
+
+.reconciliation-filters {
+  margin-bottom: 16px;
+}
+
+.reconciliation-summary {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 6px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 14px;
+}
+
+.reconciliation-summary--error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.reconciliation-status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.reconciliation-status-badge.created {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.reconciliation-status-badge.skipped {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.reconciliation-status-badge.failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.reconciliation-file-link {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.reconciliation-file-link:hover {
+  text-decoration: underline;
+}
+
+.reconciliation-table-container {
+  overflow-x: auto;
+}
+
+.reconciliation-table-container .data-table {
+  min-width: 1100px;
+}
+
+.reconciliation-notes {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+.reconciliation-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}

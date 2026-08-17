@@ -4,12 +4,14 @@ import axiosInstance from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
 import PageHeader from '../../../common/PageHeader';
 import Card from '../../../common/Card';
-import { FiEdit, FiBarChart2 } from 'react-icons/fi';
+import { FiEdit, FiBarChart2, FiRepeat } from 'react-icons/fi';
+import { formatTargetFrequency, CAMPAIGN_TEMPLATE_SLOTS, formatCommunicationSlot } from '../campaignConstants';
 
 const ViewCampaign = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [campaign, setCampaign] = useState(null);
+  const [donationItems, setDonationItems] = useState([]);
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -35,6 +37,14 @@ const ViewCampaign = () => {
       const response = await axiosInstance.get(`/campaigns/${id}`);
       if (response.data.success) {
         setCampaign(response.data.data);
+        try {
+          const itemsRes = await axiosInstance.get(`/campaigns/${id}/donation-items`);
+          if (itemsRes.data.success) {
+            setDonationItems(itemsRes.data.data || []);
+          }
+        } catch {
+          setDonationItems([]);
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch campaign');
@@ -100,6 +110,11 @@ const ViewCampaign = () => {
     return `${currency} ${n.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
   };
 
+  const formatPercent = (pct) => {
+    if (pct == null) return '-';
+    return `${Number(pct).toFixed(1)}%`;
+  };
+
   const handleBack = () => navigate('/dms/campaigns/list');
   const handleEdit = () => navigate(`/dms/campaigns/edit/${id}`);
 
@@ -139,6 +154,37 @@ const ViewCampaign = () => {
     );
   }
 
+  const goalLabel = campaign.is_recurring ? 'Target per period' : 'Goal Amount';
+  const campaignInfo = {
+    Status: getStatusBadge(campaign.status),
+    Type: campaign.is_recurring ? 'Recurring' : 'One-time',
+    Slug: campaign.slug || '-',
+    Currency: campaign.currency || 'PKR',
+    [goalLabel]: formatAmount(campaign.goal_amount, campaign.currency),
+    'Start Date': campaign.start_at ? new Date(campaign.start_at).toLocaleString() : '-',
+    'End Date': campaign.end_at ? new Date(campaign.end_at).toLocaleString() : '-',
+    Featured: campaign.is_featured ? 'Yes' : 'No'
+  };
+
+  if (campaign.is_recurring) {
+    campaignInfo.Frequency = formatTargetFrequency(campaign.target_frequency);
+    const freq = campaign.target_frequency;
+    const automationLabel =
+      freq === 'daily'
+        ? 'Enabled (daily)'
+        : freq === 'weekly'
+          ? 'Enabled (Sat & Sun)'
+          : 'Enabled (2nd of month)';
+    campaignInfo['Donor automation'] = campaign.monthly_donor_automation_enabled
+      ? campaign.use_default_thanks_and_reminders
+        ? `${automationLabel} · default thanks & payment links`
+        : automationLabel
+      : 'Off';
+  }
+
+  campaignInfo.Program = campaign.program?.label || '—';
+  campaignInfo.Subprogram = campaign.sub_program?.label || '—';
+
   return (
     <>
       <Navbar />
@@ -155,22 +201,14 @@ const ViewCampaign = () => {
             <div style={{ flex: '1', minWidth: '300px' }}>
               <Card
                 title="Campaign Information"
-                data={{
-                  Status: getStatusBadge(campaign.status),
-                  Slug: campaign.slug || '-',
-                  Currency: campaign.currency || 'PKR',
-                  'Goal Amount': formatAmount(campaign.goal_amount, campaign.currency),
-                  'Start Date': campaign.start_at ? new Date(campaign.start_at).toLocaleString() : '-',
-                  'End Date': campaign.end_at ? new Date(campaign.end_at).toLocaleString() : '-',
-                  Featured: campaign.is_featured ? 'Yes' : 'No'
-                }}
+                data={campaignInfo}
               />
             </div>
 
             {report && (
               <div style={{ flex: '1', minWidth: '300px' }}>
                 <Card
-                  title="Donations Report"
+                  title={campaign.is_recurring ? 'Overall Donations (filtered range)' : 'Donations Report'}
                   data={{
                     'Total Amount': formatAmount(report.total_amount, campaign.currency),
                     'Total Donations': report.total_donations,
@@ -180,7 +218,111 @@ const ViewCampaign = () => {
                 />
               </div>
             )}
+
+            {report?.current_period && (
+              <div style={{ flex: '1', minWidth: '300px' }}>
+                <Card
+                  title="Current period"
+                  data={{
+                    Period: report.current_period.label,
+                    Raised: formatAmount(report.current_period.raised, campaign.currency),
+                    Target: formatAmount(report.period_goal, campaign.currency),
+                    Progress: formatPercent(report.current_period.progress_pct),
+                    Donations: report.current_period.count
+                  }}
+                />
+              </div>
+            )}
           </div>
+
+          {campaign.is_recurring && (
+            campaign.communication_templates ||
+            campaign.use_default_thanks_and_reminders
+          ) && (
+            <div style={{
+              padding: '20px',
+              backgroundColor: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              marginBottom: '20px'
+            }}>
+              <h3 style={{ marginBottom: '12px' }}>Communication</h3>
+              {campaign.use_default_thanks_and_reminders && (
+                <p style={{ fontSize: '13px', color: '#0369a1', marginBottom: '12px', lineHeight: 1.5 }}>
+                  Using system defaults: thank-you email/WhatsApp when donated; payment-link email/WhatsApp as reminder when not.
+                </p>
+              )}
+              {campaign.communication_templates && (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Configuration</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {CAMPAIGN_TEMPLATE_SLOTS.map((slot) => {
+                      const defaultsCover =
+                        campaign.use_default_thanks_and_reminders &&
+                        (slot.key === 'thanks' || slot.key === 'reminder');
+                      return (
+                        <tr key={slot.key}>
+                          <td>{slot.label}</td>
+                          <td>
+                            {defaultsCover
+                              ? slot.key === 'thanks'
+                                ? 'System default (thanks email + WhatsApp)'
+                                : 'System default (payment-link email + WhatsApp)'
+                              : formatCommunicationSlot(campaign.communication_templates, slot.key)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+
+          {donationItems.length > 0 && (
+            <div style={{
+              padding: '20px',
+              backgroundColor: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              marginBottom: '20px'
+            }}>
+              <h3 style={{ marginBottom: '12px' }}>Donation items (per-unit pricing)</h3>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Unit price</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {donationItems.map((item) => (
+                    <tr key={item.id}>
+                      <td>
+                        <div style={{ fontWeight: 500 }}>{item.name}</div>
+                        {item.description && (
+                          <div style={{ fontSize: '12px', color: '#666' }}>{item.description}</div>
+                        )}
+                      </td>
+                      <td>{formatAmount(item.unit_price, item.currency || campaign.currency)}</td>
+                      <td>{item.is_active ? 'Active' : 'Inactive'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p style={{ margin: '12px 0 0', fontSize: '13px', color: '#6b7280' }}>
+                {campaign.is_recurring
+                  ? 'Used on website checkout and recurring donor pledges.'
+                  : 'Used on website checkout for one-time donations.'}
+              </p>
+            </div>
+          )}
 
           {campaign.description && (
             <div style={{
@@ -221,6 +363,39 @@ const ViewCampaign = () => {
               />
             </div>
           </div>
+
+          {/* Period Totals (recurring) */}
+          {report?.period_totals && report.period_totals.length > 0 && (
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FiRepeat /> Period breakdown
+              </h3>
+              <div className="table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Period</th>
+                      <th>Raised ({campaign.currency})</th>
+                      <th>Target</th>
+                      <th>Progress</th>
+                      <th>Donations</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.period_totals.map((row) => (
+                      <tr key={row.period_key}>
+                        <td>{row.label}</td>
+                        <td>{formatAmount(row.amount, campaign.currency)}</td>
+                        <td>{formatAmount(row.goal, campaign.currency)}</td>
+                        <td>{formatPercent(row.progress_pct)}</td>
+                        <td>{row.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Daily Totals Table */}
           {report && report.daily_totals && report.daily_totals.length > 0 && (

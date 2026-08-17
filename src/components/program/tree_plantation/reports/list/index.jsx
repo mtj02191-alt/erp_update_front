@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../../../../utils/axios';
 import '../../../../../styles/variables.css';
 import '../../../../../styles/components.css';
-import PageHeader from '../../../../common/PageHeader';
+import PageHeader from '../../../../common/PageHeader'
+import { RefreshButton } from '../../../../common/filters';
 import ActionMenu from '../../../../common/ActionMenu';
 import Pagination from '../../../../common/Pagination';
 import ConfirmationModal from '../../../../common/ConfirmationModal';
@@ -107,7 +108,11 @@ const TreePlantationReportsList = () => {
             </div>
           ) : (
             <>
-              <div className="table-container">
+                        <div className="list-refresh-bar">
+            <RefreshButton onClick={fetchReports} loading={loading} />
+          </div>
+
+          <div className="table-container">
                 <table className="data-table">
                   <thead>
                     <tr>

@@ -1,13 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FiChevronDown, FiLogOut, FiUser } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
+import { FiBarChart2, FiChevronDown, FiLogOut, FiMoon, FiSun, FiUser } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useTheme } from '../context/ThemeContext';
+import OfflineModeControls from './common/OfflineModeControls';
+import NotificationBell from './common/NotificationBell';
 import './Navbar.css';
 import mtjfLogo from '../assets/mtjf_logo.png';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
+  const { isDark, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -38,9 +43,23 @@ const Navbar = () => {
       <div className="navbar-container">
         <div className="navbar-brand">
           <img src={mtjfLogo} alt="MTJF Logo" className="navbar-logo" />
-          <h2>Operations Report</h2>
+          <h2 className="navbar-title">
+            <span className="navbar-title-full">MTJF Solutions</span>
+            <span className="navbar-title-short">DMS</span>
+          </h2>
         </div>
         <div className="navbar-actions" ref={menuRef}>
+          <OfflineModeControls compact />
+          <NotificationBell />
+          <button
+            type="button"
+            className="navbar-theme-toggle"
+            onClick={toggleTheme}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={isDark ? 'Light mode' : 'Dark mode'}
+          >
+            {isDark ? <FiSun /> : <FiMoon />}
+          </button>
           <button
             type="button"
             className="navbar-user-trigger"
@@ -78,6 +97,15 @@ const Navbar = () => {
                 <span>Notifications</span>
                 <strong>{unreadCount > 0 ? unreadCount : 0}</strong>
               </div>
+
+              <Link
+                to="/profile"
+                className="navbar-user-menu__link"
+                onClick={() => setMenuOpen(false)}
+              >
+                <FiBarChart2 />
+                <span>My Performance</span>
+              </Link>
 
               <button type="button" onClick={handleLogout} className="logout-button">
                 <FiLogOut />

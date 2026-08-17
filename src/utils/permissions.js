@@ -72,6 +72,20 @@ export const canViewModule = (permissions, department, module) => {
     return false;
   }
 
+  // Super admin / FR manager: all fund_raising modules visible in sidebar
+  if (permissions.super_admin === true) {
+    return true;
+  }
+  if (
+    department === 'fund_raising' &&
+    (permissions.fund_raising_manager === true ||
+      permissions.fund_raising?.manager === true)
+  ) {
+    return true;
+  }
+
+
+
   // Unified donors (fund_raising): allow sidebar if new `donors` or legacy online/offline donor flags exist
   if (department === 'fund_raising' && module === 'donors') {
     const fr = permissions[department];
@@ -86,6 +100,15 @@ export const canViewModule = (permissions, department, module) => {
       offline?.view === true ||
       offline?.list_view === true
     );
+  }
+
+  // Communication sidebar section uses id `email_templates` but permissions live under `communication`
+  if (department === 'email_templates') {
+    const comm = permissions.communication;
+    if (!comm) return false;
+    const modulePermissions = comm[module];
+    if (!modulePermissions) return false;
+    return modulePermissions.view === true || modulePermissions.list_view === true;
   }
 
   const modulePermissions = permissions[department]?.[module];
@@ -144,32 +167,34 @@ export const getAccessibleModules = (permissions, department) => {
 };
 
 /**
- * Get user's permissions for a specific module
+ * Get user's permissions for a specific module.
+ * Only returns action keys that actually exist on the stored module permissions;
+ * does NOT fabricate keys for actions that are absent from the database JSON.
+ *
  * @param {Object} permissions - User permissions object
  * @param {string} department - Department name
  * @param {string} module - Module name
- * @returns {Object} - Object with permission flags
+ * @returns {Object} - Object with permission flags actually present in storage
  */
 export const getModulePermissions = (permissions, department, module) => {
   if (!permissions || !department || !module) {
-    return {
-      view: false,
-      create: false,
-      update: false,
-      delete: false,
-      list_view: false
-    };
+    return {};
   }
-  
-  const modulePermissions = permissions[department]?.[module] || {};
-  
-  return {
-    view: modulePermissions.view === true,
-    create: modulePermissions.create === true,
-    update: modulePermissions.update === true,
-    delete: modulePermissions.delete === true,
-    list_view: modulePermissions.list_view === true
-  };
+
+  const modulePermissions = permissions[department]?.[module];
+  if (!modulePermissions || typeof modulePermissions !== 'object') {
+    return {};
+  }
+
+  const result = {};
+  for (const [key, value] of Object.entries(modulePermissions)) {
+    if (typeof value === 'boolean') {
+      result[key] = value === true;
+    } else if (typeof value !== 'object') {
+      result[key] = value;
+    }
+  }
+  return result;
 };
 
 /**
@@ -219,6 +244,33 @@ export const hasPermissionByPath = (permissions, permissionPath) => {
  * // Multiple permissions (OR logic - returns true if user has ANY)
  * hasAnyPermission(permissions, ['fund_raising.donations.create', 'super_admin', 'fund_raising_manager'])
  */
+export const DATA_SCOPE_TYPES = ['self', 'team', 'department', 'org'];
+
+/**
+ * Per-module data scope from permissions JSON (defaults to self).
+ */
+export const getModuleDataScope = (permissions, department, module) => {
+  if (!permissions || !department || !module) {
+    return 'self';
+  }
+  const modulePerms = permissions[department]?.[module];
+  if (!modulePerms || typeof modulePerms !== 'object') {
+    return 'self';
+  }
+  if (modulePerms.view_all === true) {
+    return 'org';
+  }
+  const scope = modulePerms.scope;
+  return DATA_SCOPE_TYPES.includes(scope) ? scope : 'self';
+};
+
+/**
+ * Whether the user can see all records in a module (auditor / org scope).
+ */
+export const hasModuleViewAll = (permissions, department, module) => {
+  return getModuleDataScope(permissions, department, module) === 'org';
+};
+
 export const hasAnyPermission = (permissions, requiredPermissions) => {
   if (!permissions || !requiredPermissions) {
     return false;
@@ -249,7 +301,10 @@ export default {
   getAccessibleModules,
   getModulePermissions,
   hasPermissionByPath,
-  hasAnyPermission
+  hasAnyPermission,
+  getModuleDataScope,
+  hasModuleViewAll,
+  DATA_SCOPE_TYPES,
 };
 
   // // Single permission
@@ -285,7 +340,6 @@ export const getTaskPermissions = (permissions, department, userRole) => {
     ...modulePermissions,
     ...reports
   };
-  
   
   let scope = 'self';
   if (reports.view_all === true) {
@@ -325,7 +379,8 @@ export const getTaskPermissions = (permissions, department, userRole) => {
   const canApproveBase =
     actions.approve === true || isAdmin;
   const canApproveByRole = isAdmin || isDeptHeadRole || isManagerRole || isTeamLeadRole;
-  return {
+  
+  const result = {
     canView: canViewBase || canViewReports,
     canViewDetail: canViewDetail,
     canCreate: actions.create === true || isAdmin,
@@ -342,4 +397,19 @@ export const getTaskPermissions = (permissions, department, userRole) => {
     canEditCompleted,
     reportScope: scope
   };
+
+  console.log('getTaskPermissions result:', {
+    result,
+    permissions,
+    department,
+    userRole,
+    modulePermissions,
+    actions,
+    isAdmin,
+    isDeptHeadRole,
+    isManagerRole,
+    isTeamLeadRole
+  });
+  
+  return result;
 };

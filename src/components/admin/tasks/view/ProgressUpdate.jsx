@@ -11,6 +11,8 @@ const ProgressUpdate = ({
   canEdit = true,
   currentUser,
   progressActivities = [],
+  taskStatus,
+  onShowMovCompletionPrompt,
 }) => {
   const isStructured = useMemo(() => {
     return (
@@ -205,6 +207,43 @@ const ProgressUpdate = ({
     setError('');
 
     try {
+      let nextItems;
+      let allCompleted = false;
+
+      // First calculate next items to check if all are completed
+      if (isStructured) {
+        nextItems = items.map((i, idx) => {
+          if (idx === index) {
+            return { ...i, checked: !i.checked };
+          }
+          return i;
+        });
+        allCompleted = nextItems.every((i) => i.checked);
+      } else {
+        // Legacy mode
+        const nextChecked = !item.completed;
+        
+        // STATE-LEVEL IMMUTABILITY: When unchecking, only allow if current user owns it
+        if (!nextChecked && checkedById && Number(checkedById) !== Number(currentUser?.id)) {
+          toast.error('You cannot uncheck an item checked by another assignee');
+          setLoading(false);
+          return;
+        }
+        
+        nextItems = items.map((i, idx) => {
+          if (idx === index) {
+            return {
+              ...i,
+              completed: nextChecked,
+              completed_by_id: nextChecked ? (checkedById || currentUser?.id) : null,
+            };
+          }
+          return i;
+        });
+        allCompleted = nextItems.every((i) => i.completed);
+      }
+
+      // Now proceed with API call
       if (isStructured) {
         const nextChecked = !item.checked;
         const res = await axiosInstance.patch(
@@ -229,30 +268,7 @@ const ProgressUpdate = ({
         // Legacy mode: Enforce per-item ownership
         const nextChecked = !item.completed;
         
-        // STATE-LEVEL IMMUTABILITY: When unchecking, only allow if current user owns it
-        if (!nextChecked && checkedById && Number(checkedById) !== Number(currentUser?.id)) {
-          toast.error('You cannot uncheck an item checked by another assignee');
-          setLoading(false);
-          return;
-        }
-        
         // Create next state by mapping ALL items to preserve ownership
-        const nextItems = items.map((item, i) => {
-          if (i === index) {
-            // Only modify the target item
-            return {
-              ...item,
-              completed: nextChecked,
-              // OWNERSHIP TRACKING: 
-              // - Set owner when checking (preserve existing if already set)
-              // - Clear owner when unchecking (item becomes available for others)
-              completed_by_id: nextChecked ? (checkedById || currentUser?.id) : null,
-            };
-          }
-          // CRITICAL: Return ALL other items EXACTLY as-is to preserve their ownership
-          return item;
-        });
-        
         const total = nextItems.length;
         const checkedCount = nextItems.filter((item) => item.completed).length;
         const nextProgress =
@@ -263,8 +279,7 @@ const ProgressUpdate = ({
           .map((item, i) => (item.completed ? i : null))
           .filter((i) => i !== null);
         
-        // CRITICAL: Build ownership map to persist who checked each item
-        // Format: index=userId,index=userId,...
+        // Build ownership map to persist who checked each item
         const ownershipPairs = nextItems
           .map((item, i) => {
             if (item.completed && item.completed_by_id) {
@@ -274,8 +289,6 @@ const ProgressUpdate = ({
           })
           .filter(pair => pair !== null);
         
-        // Encode both indices AND ownership in the notes
-        // This ensures ownership survives page refreshes and session changes
         const note = `Complete: ${checkedCount} of ${total} checklist items completed. [indices:${indices.join(',')}]${ownershipPairs.length > 0 ? `[ownership:${ownershipPairs.join(',')}]` : ''}`;
         
         const payload = {
@@ -290,12 +303,9 @@ const ProgressUpdate = ({
         // After API call, refresh from backend to ensure data consistency
         const responseData = res.data?.data;
         if (responseData && responseData.mov_checklist && Array.isArray(responseData.mov_checklist)) {
-          // Backend returned structured data with proper ownership - use it directly
           setItems(responseData.mov_checklist);
           initializedItemsRef.current = responseData.mov_checklist;
         } else {
-          // Fallback: use local state with ownership tracking
-          // This preserves all ownership info from nextItems
           setItems(nextItems);
           initializedItemsRef.current = nextItems;
         }
@@ -305,6 +315,13 @@ const ProgressUpdate = ({
           onUpdate(data?.progress || nextProgress, note, data);
         }
       }
+
+      // Check if we should show the custom prompt
+      const isTaskAlreadyCompleted = String(taskStatus).toLowerCase() === 'completed';
+      if (allCompleted && !isTaskAlreadyCompleted && onShowMovCompletionPrompt) {
+        onShowMovCompletionPrompt();
+      }
+
       toast.success('Progress updated');
     } catch (e2) {
       const msg = e2.response?.data?.message || 'Failed to update progress.';

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../../../../utils/axios';
 import Navbar from '../../../../Navbar';
-import PageHeader from '../../../../common/PageHeader';
+import PageHeader from '../../../../common/PageHeader'
+import { RefreshButton } from '../../../../common/filters';
 import ConfirmationModal from '../../../../common/ConfirmationModal';
 import FormSelect from '../../../../common/FormSelect';
 import { FiTrash2 } from 'react-icons/fi';
@@ -110,7 +111,12 @@ const DistrictsList = () => {
         {loading ? (
           <p>Loading...</p>
         ) : (
-          <div className="table-container">
+          <>
+            <div className="list-refresh-bar">
+              <RefreshButton onClick={fetchDistricts} loading={loading} />
+            </div>
+
+            <div className="table-container">
             <table className="data-table">
               <thead>
                 <tr>
@@ -140,6 +146,7 @@ const DistrictsList = () => {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
       <ConfirmationModal

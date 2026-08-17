@@ -6,8 +6,9 @@ import PageHeader from '../../../common/PageHeader';
 import ActionMenu from '../../../common/ActionMenu';
 import ConfirmationModal from '../../../common/ConfirmationModal';
 import Pagination from '../../../common/Pagination';
-import { SearchFilter, DropdownFilter, DateRangeFilter } from '../../../common/filters';
+import { SearchFilter, DropdownFilter, DateRangeFilter, CollapsibleFilters } from '../../../common/filters';
 import { SearchButton, ClearButton } from '../../../common/filters';
+import useFiltersPanel from '../../../../hooks/useFiltersPanel';
 import { FiEye, FiEdit, FiTrash2, FiCalendar, FiUsers } from 'react-icons/fi';
 
 const EventsList = () => {
@@ -17,6 +18,7 @@ const EventsList = () => {
   const [error, setError] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [eventToDelete, setEventToDelete] = useState(null);
+  const { filtersOpen, toggleFilters } = useFiltersPanel();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -193,8 +195,13 @@ const EventsList = () => {
       <Navbar />
       <div className="list-wrapper">
         <PageHeader
+          onRefresh={fetchEvents}
+          refreshing={loading}
           title="Events"
           showBackButton={false}
+          showFilterToggle
+          filtersOpen={filtersOpen}
+          onFilterToggle={toggleFilters}
           showAdd={true}
           addPath="/dms/events/add"
         />
@@ -202,15 +209,8 @@ const EventsList = () => {
         <div className="list-content">
           {error && <div className="status-message status-message--error">{error}</div>}
 
-          <div className="filters-section" style={{
-            display: 'flex',
-            gap: '20px',
-            flexWrap: 'wrap',
-            marginBottom: '20px',
-            padding: '20px',
-            backgroundColor: '#f9fafb',
-            borderRadius: '8px'
-          }}>
+          <CollapsibleFilters open={filtersOpen}>
+          <div className="filters-section">
             <SearchFilter
               filterKey="search"
               label="Search"
@@ -247,6 +247,7 @@ const EventsList = () => {
               <ClearButton onClick={handleClearFilters} text="Clear" />
             </div>
           </div>
+          </CollapsibleFilters>
 
           <div className="table-container">
             <table className="data-table">

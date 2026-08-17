@@ -7,7 +7,7 @@ import ActionMenu from '../../../common/ActionMenu';
 import ConfirmationModal from '../../../common/ConfirmationModal';
 import Pagination from '../../../common/Pagination';
 import SearchableDropdown from '../../../common/SearchableDropdown';
-import { SearchFilter, SearchButton, ClearButton } from '../../../common/filters';
+import { SearchFilter, SearchButton, ClearButton, RefreshButton } from '../../../common/filters';
 import { FiEdit2, FiEye, FiTrash2 } from 'react-icons/fi';
 import './index.css';
 
@@ -201,6 +201,7 @@ const SubprogramsList = () => {
               </div>
             </div>
             <div className="filters-actions">
+            <RefreshButton onClick={fetchSubprograms} loading={loading} />
               <SearchButton onClick={handleApplyFilters} />
               <ClearButton onClick={handleClearFilters} />
             </div>

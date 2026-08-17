@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../../../../utils/axios';
 import Navbar from '../../../../Navbar';
-import PageHeader from '../../../../common/PageHeader';
+import PageHeader from '../../../../common/PageHeader'
+import { RefreshButton } from '../../../../common/filters';
 import ActionMenu from '../../../../common/ActionMenu';
 import { FiEdit2, FiEye } from 'react-icons/fi';
 
@@ -75,6 +76,10 @@ const TemplatesList = () => {
         />
         <div className="list-content">
           {error && <div className="status-message status-message--error">{error}</div>}
+                    <div className="list-refresh-bar">
+            <RefreshButton onClick={fetchData} loading={loading} />
+          </div>
+
           <div className="table-container">
             <table className="data-table">
               <thead>

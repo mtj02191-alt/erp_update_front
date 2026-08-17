@@ -4,6 +4,7 @@ import usePersistedFilters from '../../../../hooks/usePersistedFilters';
 import FundraisingCards from '../fundraising_cards';
 import CumulativeChart from '../cumulative_chart';
 import OverviewComparisonChart from '../overview_comparison_chart';
+import RaisedEachMonthChart from '../raised_each_month_chart';
 import { DateFilter, DateRangeFilter } from '../../filters';
 import { SearchButton, ClearButton } from '../../filters/index';
 import './styles.css';
@@ -17,16 +18,28 @@ const EMPTY_FILTERS = {
 };
 
 function mapApiToCharts(apiData) {
-  if (!apiData?.cumulative?.length) {
-    return {
-      cumulative: { labels: [], values: [] },
-    };
-  }
+  const cumulativeSeries = apiData?.cumulative || [];
+  const recurringDonationsSeries = apiData?.recurring_donations_series || [];
+  const recurringDonorsSeries = apiData?.recurring_donors_series || [];
+
   const cumulative = {
-    labels: (apiData.cumulative || []).map((r) => r.month),
-    values: (apiData.cumulative || []).map((r) => Number(r.total_cumulative ?? 0)),
+    labels: cumulativeSeries.map((r) => r.month),
+    values: cumulativeSeries.map((r) => Number(r.total_cumulative ?? 0)),
   };
-  return { cumulative };
+
+  const recurringDonations = {
+    labels: recurringDonationsSeries.map((r) => r.month),
+    values: recurringDonationsSeries.map((r) => Number(r.total_cumulative ?? 0)),
+    monthly: recurringDonationsSeries.map((r) => Number(r.month_amount ?? 0)),
+  };
+
+  const recurringDonors = {
+    labels: recurringDonorsSeries.map((r) => r.month),
+    values: recurringDonorsSeries.map((r) => Number(r.total_cumulative ?? 0)),
+    monthly: recurringDonorsSeries.map((r) => Number(r.donors_count ?? 0)),
+  };
+
+  return { cumulative, recurringDonations, recurringDonors };
 }
 
 const FundraisingDashboard = ({ months = DEFAULT_MONTHS }) => {
@@ -35,6 +48,16 @@ const FundraisingDashboard = ({ months = DEFAULT_MONTHS }) => {
   const [isForbidden, setIsForbidden] = useState(false);
   const [cards, setCards] = useState(null);
   const [cumulativeData, setCumulativeData] = useState({ labels: [], values: [] });
+  const [recurringDonationsData, setRecurringDonationsData] = useState({
+    labels: [],
+    values: [],
+    monthly: [],
+  });
+  const [recurringDonorsData, setRecurringDonorsData] = useState({
+    labels: [],
+    values: [],
+    monthly: [],
+  });
   const [tempFilters, setTempFilters] = usePersistedFilters('fundraising-dashboard:temp', EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters, clearAppliedFilters] = usePersistedFilters('fundraising-dashboard:applied', EMPTY_FILTERS);
 
@@ -82,6 +105,38 @@ const FundraisingDashboard = ({ months = DEFAULT_MONTHS }) => {
     return { labels, values };
   }, [cards]);
 
+  const recurringDonationsMonthlyChart = useMemo(() => {
+    if (!recurringDonationsData.labels?.length) {
+      return { labels: [], datasets: [] };
+    }
+    return {
+      labels: recurringDonationsData.labels,
+      datasets: [
+        {
+          label: 'Recurring donations',
+          data: recurringDonationsData.monthly,
+          backgroundColor: 'rgba(59, 130, 246, 0.85)',
+        },
+      ],
+    };
+  }, [recurringDonationsData]);
+
+  const recurringDonorsMonthlyChart = useMemo(() => {
+    if (!recurringDonorsData.labels?.length) {
+      return { labels: [], datasets: [] };
+    }
+    return {
+      labels: recurringDonorsData.labels,
+      datasets: [
+        {
+          label: 'Recurring donors',
+          data: recurringDonorsData.monthly,
+          backgroundColor: 'rgba(99, 102, 241, 0.85)',
+        },
+      ],
+    };
+  }, [recurringDonorsData]);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -95,8 +150,10 @@ const FundraisingDashboard = ({ months = DEFAULT_MONTHS }) => {
         if (raw?.cards) {
           setCards(raw.cards);
         }
-        const { cumulative } = mapApiToCharts(raw);
+        const { cumulative, recurringDonations, recurringDonors } = mapApiToCharts(raw);
         setCumulativeData(cumulative);
+        setRecurringDonationsData(recurringDonations);
+        setRecurringDonorsData(recurringDonors);
       })
       .catch((err) => {
         if (!cancelled) {
@@ -107,6 +164,8 @@ const FundraisingDashboard = ({ months = DEFAULT_MONTHS }) => {
           setError(err?.response?.data?.message || err?.message || 'Failed to load fundraising data');
           setCards(null);
           setCumulativeData({ labels: [], values: [] });
+          setRecurringDonationsData({ labels: [], values: [], monthly: [] });
+          setRecurringDonorsData({ labels: [], values: [], monthly: [] });
         }
       })
       .finally(() => {
@@ -150,7 +209,7 @@ const FundraisingDashboard = ({ months = DEFAULT_MONTHS }) => {
             <FundraisingCards cards={cards} title="Fundraising overview" />
           </div>
 
-          <div className="fundraising-charts-demo__charts-row">
+          <div className="fundraising-charts-demo__charts-row fundraising-charts-demo__charts-row--single">
             <div className="fundraising-charts-demo__chart">
               <CumulativeChart
                 title="Cumulative Donations"
@@ -159,6 +218,9 @@ const FundraisingDashboard = ({ months = DEFAULT_MONTHS }) => {
                 height={280}
               />
             </div>
+          </div>
+
+          <div className="fundraising-charts-demo__charts-row fundraising-charts-demo__charts-row--single">
             <div className="fundraising-charts-demo__chart">
               <OverviewComparisonChart
                 title="Overview Comparison"
@@ -166,6 +228,39 @@ const FundraisingDashboard = ({ months = DEFAULT_MONTHS }) => {
                 data={overviewComparisonData}
                 height={280}
               />
+            </div>
+          </div>
+
+          <div className="fundraising-charts-demo__charts-row fundraising-charts-demo__charts-row--recurring">
+            <div className="fundraising-charts-demo__chart">
+              {recurringDonationsMonthlyChart.labels.length > 0 ? (
+                <RaisedEachMonthChart
+                  title="Recurring Donations"
+                  data={recurringDonationsMonthlyChart}
+                  height={280}
+                  downloadFileName="recurring-donations-by-month"
+                />
+              ) : (
+                <div className="fundraising-charts-demo__chart-empty">
+                  <h2 className="fundraising-charts-demo__chart-empty-title">Recurring Donations</h2>
+                  <p>No recurring donation installments in the selected period.</p>
+                </div>
+              )}
+            </div>
+            <div className="fundraising-charts-demo__chart">
+              {recurringDonorsMonthlyChart.labels.length > 0 ? (
+                <RaisedEachMonthChart
+                  title="Recurring Donors"
+                  data={recurringDonorsMonthlyChart}
+                  height={280}
+                  downloadFileName="recurring-donors-by-month"
+                />
+              ) : (
+                <div className="fundraising-charts-demo__chart-empty">
+                  <h2 className="fundraising-charts-demo__chart-empty-title">Recurring Donors</h2>
+                  <p>No recurring donor activity in the selected period.</p>
+                </div>
+              )}
             </div>
           </div>
         </>

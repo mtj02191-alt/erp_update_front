@@ -1,0 +1,152 @@
+.donor-register-page {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.25rem 2.5rem;
+}
+
+.donor-register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.donor-register-card {
+  background: #fff;
+  border: 1px solid #e8eef5;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  padding: 1.15rem 1.25rem 1.25rem;
+}
+
+.donor-register-card__title {
+  margin: 0 0 0.95rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.donor-register-card__row {
+  margin-top: 0.85rem;
+}
+
+.donor-register-card .form-grid-2,
+.donor-register-card .form-grid-3 {
+  gap: 0.85rem 1rem;
+}
+
+.donor-register-lookup {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+
+.donor-register-lookup .primary_btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 36px;
+  padding: 0 0.9rem;
+  font-size: 0.82rem;
+}
+
+.donor-register-lookup__msg {
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
+.donor-register-actions {
+  margin-top: 0.35rem;
+  padding-top: 0.25rem;
+}
+
+.donor-register-cancel {
+  height: 40px;
+  padding: 0 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.donor-register-cancel:hover {
+  background: #f8fafc;
+}
+
+.donor-edit-status-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.donor-edit-status-field__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary, #0f172a);
+}
+
+.donor-edit-status-btn {
+  height: 40px;
+  padding: 0 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  color: #fff;
+}
+
+.donor-edit-status-btn--active {
+  background: #2563eb;
+}
+
+.donor-edit-status-btn--inactive {
+  background: #64748b;
+}
+
+.donor-edit-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 36px;
+  padding: 0 0.9rem;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff;
+  color: #dc2626;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.donor-edit-reset-btn:hover {
+  background: #fef2f2;
+}
+
+@media (max-width: 900px) {
+  .donor-register-card .form-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .donor-register-page {
+    padding: 0 0.85rem 2rem;
+  }
+
+  .donor-register-card .form-grid-2,
+  .donor-register-card .form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}

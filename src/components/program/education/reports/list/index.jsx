@@ -4,7 +4,8 @@ import axiosInstance from '../../../../../utils/axios';
 import '../../../../../styles/variables.css';
 import '../../../../../styles/components.css';
 import Navbar from '../../../../Navbar';
-import PageHeader from '../../../../common/PageHeader';
+import PageHeader from '../../../../common/PageHeader'
+import { RefreshButton } from '../../../../common/filters';
 import ActionMenu from '../../../../common/ActionMenu';
 import Pagination from '../../../../common/Pagination';
 import ConfirmationModal from '../../../../common/ConfirmationModal';
@@ -192,7 +193,11 @@ const ListEducationReports = () => {
             
             {error && <div className="error-message">{error}</div>}
             
-            <div className="table-container">
+                      <div className="list-refresh-bar">
+            <RefreshButton onClick={fetchReports} loading={loading} />
+          </div>
+
+          <div className="table-container">
               <table className="data-table">
                 <thead>
                   <tr>

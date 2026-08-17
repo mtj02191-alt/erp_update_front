@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axiosInstance from '../../../../utils/axios';
 import FormInput from '../../../common/FormInput';
@@ -12,6 +12,10 @@ import { FiPlus, FiTrash2 } from 'react-icons/fi';
 import { useInKindItems } from '../../../../context/InKindItemsContext';
 import ReloadButton from '../../../common/buttons/reload';
 import { projectCards } from '../../../../utils/program';
+import DonationPendingAttachments, {
+  uploadPendingDonationAttachments,
+} from '../../../dms/donations/shared/DonationPendingAttachments';
+import { toast } from 'react-toastify';
 
 const AddDonation = () => {
   const navigate = useNavigate();
@@ -137,6 +141,8 @@ const AddDonation = () => {
   
   const [selectedDonor, setSelectedDonor] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState([]);
+  const attachmentsRef = useRef(null);
   const [error, setError] = useState('');
 
   const handleChange = (e) => {
@@ -279,8 +285,8 @@ const AddDonation = () => {
         date: form.date,
         donation_type: form.donation_type,
         donation_method: form.donation_method,
-        source: form.source,
-        collection_center: form.collection_center || null,
+        // API field is donation_source (not `source`); empty → website default
+        donation_source: String(form.source || '').trim() || 'website',
         status: form.status,
         project_id: form.project_id || null,
         project_name: form.project_name,
@@ -317,14 +323,43 @@ const AddDonation = () => {
       const res = await axiosInstance.post('/donations', donationData);
       const payload = res.data?.data;
       const newDonationId =
-        payload &&
-        typeof payload === 'object' &&
-        Number.isFinite(Number(payload.id)) &&
-        Number(payload.id) > 0
-          ? Number(payload.id)
+        payload && typeof payload === 'object'
+          ? String(payload.id || payload.local_id || '').startsWith('local_')
+            ? String(payload.id || payload.local_id)
+            : Number.isFinite(Number(payload.id)) && Number(payload.id) > 0
+              ? Number(payload.id)
+              : null
           : null;
 
-      // Progress tracking, batch tags, allocate parts — use the shared donation view.
+      if (
+        newDonationId &&
+        !String(newDonationId).startsWith('local_')
+      ) {
+        const toUpload =
+          attachmentsRef.current?.collectForSubmit?.() || pendingAttachments;
+        if (toUpload.length > 0) {
+          const { uploaded, failed } = await uploadPendingDonationAttachments({
+            axiosInstance,
+            donationId: newDonationId,
+            items: toUpload,
+          });
+          if (uploaded > 0) {
+            toast.success(
+              uploaded === 1
+                ? 'Attachment uploaded successfully.'
+                : `${uploaded} attachments uploaded successfully.`,
+            );
+          }
+          if (failed > 0) {
+            toast.error(
+              failed === 1
+                ? 'Donation saved, but failed to upload 1 attachment.'
+                : `Donation saved, but failed to upload ${failed} attachments.`,
+            );
+          }
+        }
+      }
+
       if (newDonationId) {
         navigate(`/donations/online_donations/view/${newDonationId}`);
         return;
@@ -538,7 +573,7 @@ const AddDonation = () => {
 
           {/* Donation Details */}
           <div className="form-section">
-            <h3 style={{ marginBottom: '15px', color: '#333' }}>Donation Details</h3>
+            <h3 className="form-section-heading">Donation Details</h3>
             <div className="form-grid-2">
               <FormInput
                 label="Amount"
@@ -710,7 +745,7 @@ const AddDonation = () => {
            {isInKindSelected && (
              <div className='form-section'>
                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                 <h3 style={{ color: '#2563eb', borderBottom: '2px solid #e5e7eb', paddingBottom: '0.5rem', margin: 0 }}>
+                 <h3 className="form-section-heading form-section-heading--accent" style={{ margin: 0 }}>
                    In-Kind Donation Details
                  </h3>
                </div>
@@ -928,7 +963,7 @@ const AddDonation = () => {
           {/* Project Information */}
           <div className="form-section">
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
-              <h3 style={{ margin: 0, color: '#333' }}>Project Information (Optional)</h3>
+              <h3 className="form-section-heading" style={{ margin: 0 }}>Project Information (Optional)</h3>
               {!isQurbaniProject && (
                 <button
                   type="button"
@@ -1105,7 +1140,7 @@ const AddDonation = () => {
 
           {/* Payment Details */}
           {/* <div className="form-section">
-            <h3 style={{ marginBottom: '15px', color: '#333' }}>Payment Details (Optional)</h3>
+            <h3 className="form-section-heading">Payment Details (Optional)</h3>
             <div className="form-grid-2">
               <FormInput
                 label="Order ID"
@@ -1126,6 +1161,15 @@ const AddDonation = () => {
               />
             </div>
           </div> */}
+
+          <div className="form-section">
+            <DonationPendingAttachments
+              ref={attachmentsRef}
+              items={pendingAttachments}
+              onChange={setPendingAttachments}
+              disabled={isSubmitting}
+            />
+          </div>
 
           <div className="form-actions">
             <button 

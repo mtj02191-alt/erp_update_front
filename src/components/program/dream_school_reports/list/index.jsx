@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { FiEdit2, FiEye, FiTrash2 } from 'react-icons/fi';
 import axiosInstance from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
-import PageHeader from '../../../common/PageHeader';
+import PageHeader from '../../../common/PageHeader'
+import { RefreshButton } from '../../../common/filters';
 import ActionMenu from '../../../common/ActionMenu';
 import ConfirmationModal from '../../../common/ConfirmationModal';
 import Pagination from '../../../common/Pagination';
@@ -98,7 +99,12 @@ const DreamSchoolReportsList = () => {
           {loading && rows.length === 0 ? (
             <div className="loading">Loading…</div>
           ) : (
-            <div className="table-container">
+            <>
+              <div className="list-refresh-bar">
+                <RefreshButton onClick={fetchRows} loading={loading} />
+              </div>
+
+              <div className="table-container">
               <table className="data-table">
                 <thead>
                   <tr>
@@ -120,6 +126,7 @@ const DreamSchoolReportsList = () => {
                 </tbody>
               </table>
             </div>
+            </>
           )}
           {totalItems > 0 && (
             <Pagination

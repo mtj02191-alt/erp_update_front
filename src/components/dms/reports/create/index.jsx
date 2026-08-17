@@ -421,7 +421,7 @@ const DonationReports = () =>{
               marginBottom: '20px'
             }}>
               <ImQrcode style={{ fontSize: '20px', color: '#2c5aa0' }} />
-              <h3 style={{ margin: 0, color: '#2c5aa0', fontSize: '18px', fontWeight: '600' }}>
+              <h3 className="form-section-heading form-section-heading--accent" style={{ margin: 0, fontSize: '18px' }}>
                 Generate QR Code
               </h3>
             </div>
@@ -541,14 +541,11 @@ const DonationReports = () =>{
 
             {/* Display Generated QR Code */}
             {generatedQr && (
-              <div style={{
+              <div className="theme-panel" style={{
                 marginTop: '20px',
                 padding: '20px',
-                backgroundColor: 'white',
-                borderRadius: '8px',
-                border: '1px solid #ddd'
               }}>
-                <h4 style={{ marginTop: 0, marginBottom: '15px', color: '#2c5aa0' }}>
+                <h4 style={{ marginTop: 0, marginBottom: '15px', color: 'var(--color-primary)' }}>
                   Generated QR Code
                 </h4>
                 
@@ -675,7 +672,7 @@ const DonationReports = () =>{
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#2c5aa0' }}>
+                <h2 className="form-section-heading form-section-heading--accent" style={{ marginTop: 0, marginBottom: '20px' }}>
                   Generate Custom Report
                 </h2>
                 

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { useNavigate } from 'react-router-dom';
 import axiosInstance, { setAuthContextHandlingInitialLoad } from '../utils/axios';
 import { clearAllPersistedFilters } from '../hooks/usePersistedFilters';
+import { getOfflineMode } from '../offline/mode';
 
 const AuthContext = createContext(null);
 
@@ -13,11 +14,43 @@ export const AuthProvider = ({ children }) => {
   const isCheckingRef = useRef(false);
   const lastAuthCheckRef = useRef(null); // Track last successful auth check time
 
+  const restoreSessionFromStorage = () => {
+    const storedUser = localStorage.getItem('user_data');
+    const storedPermissions = localStorage.getItem('user_permissions');
+    if (!storedUser) {
+      setUser(null);
+      setPermissions(null);
+      return false;
+    }
+    try {
+      setUser(JSON.parse(storedUser));
+      if (storedPermissions) {
+        setPermissions(JSON.parse(storedPermissions));
+      }
+      lastAuthCheckRef.current = Date.now();
+      return true;
+    } catch (error) {
+      console.error('Failed to restore session from storage:', error);
+      setUser(null);
+      setPermissions(null);
+      localStorage.removeItem('user_data');
+      localStorage.removeItem('user_permissions');
+      localStorage.removeItem('jwt_token');
+      return false;
+    }
+  };
+
   const checkAuth = async () => {
     // Mark that AuthContext is handling initial load to prevent axios interceptor from redirecting
     setAuthContextHandlingInitialLoad(true);
     
     try {
+      // Offline mode: use cached session only — no /auth/me call
+      if (getOfflineMode()) {
+        restoreSessionFromStorage();
+        return;
+      }
+
       // First check localStorage
       const storedUser = localStorage.getItem('user_data');
       const storedPermissions = localStorage.getItem('user_permissions');
@@ -93,6 +126,8 @@ export const AuthProvider = ({ children }) => {
     
     // Handle visibility change - re-check auth when user returns to tab
     const handleVisibilityChange = async () => {
+      if (getOfflineMode()) return;
+
       // Get current user from localStorage to avoid dependency on state
       const currentUser = localStorage.getItem('user_data');
       
@@ -188,6 +223,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
+      // Login always hits the server (even in offline mode) so wrong passwords are rejected.
       console.log('Attempting login with:', credentials);
       const response = await axiosInstance.post('/auth/login', credentials);
       console.log('Login response:', response.data);
@@ -279,6 +315,11 @@ export const AuthProvider = ({ children }) => {
    * @example
    * // Multiple permissions (OR logic - returns true if user has ANY)
    * hasAnyPermission(['fund_raising.donations.create', 'super_admin', 'fund_raising_manager'])
+   *
+   * @example
+   * // Donation receipt preview / email
+   * hasAnyPermission(['super_admin', 'communication.donation_receipts.view'])
+   * hasAnyPermission(['super_admin', 'communication.donation_receipts.send'])
    */
   const hasAnyPermission = (requiredPermissions) => {
     if (!permissions || !requiredPermissions) {

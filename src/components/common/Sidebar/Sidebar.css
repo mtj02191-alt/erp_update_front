@@ -4,8 +4,8 @@
   /* min-width: 240px;
   max-width: 300px; */
   height: calc(100vh - 64px); /* Subtract navbar height */
-  background: linear-gradient(180deg, #e3edfa 0%, #f5faff 100%); /* soft blue gradient */
-  border-right: 1px solid #dbeafe;
+  background: linear-gradient(180deg, var(--sidebar-gradient-start) 0%, var(--sidebar-gradient-end) 100%);
+  border-right: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
@@ -69,20 +69,20 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 1.2rem 0 0.5rem 0;
-  border-bottom: 1px solid #dbeafe;
+  padding: 0 0 0.5rem 0;
+  border-bottom: 1px solid var(--sidebar-border);
   margin-bottom: 0.5rem;
 }
 
 .sidebar-toggle {
-  background: #3b82f6;
+  background: var(--sidebar-toggle-bg);
   color: #fff;
   border: none;
   font-size: 1.6rem;
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(59,130,246,0.08);
+  box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -91,7 +91,7 @@
 }
 
 .sidebar-toggle:hover {
-  background: #2563eb;
+  background: var(--sidebar-toggle-hover-bg);
   color: #fff;
 }
 
@@ -105,9 +105,9 @@
   align-items: center;
   gap: 8px;
   font-weight: bold;
-  color: #2563eb;
-  border-left: 4px solid #3b82f6;
-  background: #f0f6ff;
+  color: var(--sidebar-group-header-text);
+  border-left: 4px solid var(--sidebar-group-header-accent);
+  background: var(--sidebar-group-header-bg);
   padding: 1rem;
   margin-bottom: 0.5rem;
   font-size: 1.1rem;
@@ -169,11 +169,28 @@
   padding: 0.7rem 1.5rem;
   border-radius: 0.5rem;
   margin: 0 0.5rem 0.2rem 0.5rem;
-  color: #1e293b;
+  color: var(--sidebar-item-text);
   background: transparent;
-  transition: background 0.2s, color 0.2s;
-  border: 2px solid #d1d5db;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+  border: 2px solid var(--sidebar-item-border);
+  box-shadow: var(--sidebar-item-shadow);
+}
+
+a.sidebar-item-header,
+a.sidebar-sub-item {
+  text-decoration: none;
+  color: inherit;
+}
+
+a.sidebar-item-header:visited,
+a.sidebar-sub-item:visited,
+a.sidebar-item-header:hover,
+a.sidebar-sub-item:hover,
+a.sidebar-item-header:active,
+a.sidebar-sub-item:active,
+a.sidebar-item-header:focus,
+a.sidebar-sub-item:focus {
+  color: inherit;
 }
 
 .sidebar-item-icon {
@@ -185,17 +202,17 @@
 }
 
 .sidebar-item-header:hover {
-  background: #e0eaff;
-  color: #2563eb;
-  border-color: #9ca3af;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: var(--sidebar-item-hover-bg);
+  color: var(--sidebar-item-hover-text);
+  border-color: var(--sidebar-item-hover-border);
+  box-shadow: var(--shadow-md);
 }
 
 .sidebar-item-header--active {
-  background: #3b82f6;
-  color: #fff;
-  border-color: #1d4ed8;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background: var(--sidebar-item-active-bg);
+  color: var(--sidebar-item-active-text);
+  border-color: var(--sidebar-item-active-border);
+  box-shadow: var(--shadow-md);
 }
 
 .sidebar-item-label {
@@ -231,8 +248,9 @@
   cursor: pointer;
   border-radius: var(--border-radius-sm);
   margin: 0 var(--spacing-sm) var(--spacing-xs);
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, color 0.2s;
   font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
 }
 
 .sidebar-sub-item-icon {
@@ -244,13 +262,20 @@
 }
 
 .sidebar-sub-item:hover {
-  background: var(--color-bg-secondary);
+  background: var(--sidebar-item-hover-bg);
+  color: var(--sidebar-item-hover-text);
 }
 
 .sidebar-sub-item--active {
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  font-weight: var(--font-weight-medium);
+  background: var(--sidebar-sub-item-active-bg);
+  color: var(--sidebar-sub-item-active-text);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: none;
+}
+
+.sidebar-sub-item--active:hover {
+  background: var(--sidebar-sub-item-active-bg);
+  color: var(--sidebar-sub-item-active-text);
 }
 
 .sidebar-sub-item-label {

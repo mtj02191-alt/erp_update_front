@@ -378,7 +378,7 @@ const QuickNote = () => {
         <div className="quick-note-header">
           <h3>Quick CEO Note</h3>
 
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+          <div className="quick-note-header-actions">
             <div className="quick-toggle-group">
               <button
                 className={`view-toggle-btn ${!isDetailedMode ? 'active' : ''}`}

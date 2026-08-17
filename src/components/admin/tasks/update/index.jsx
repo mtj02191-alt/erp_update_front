@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { FiAlignJustify, FiClipboard, FiFlag, FiGitBranch, FiPlus, FiTrash2 } from 'react-icons/fi';
 import axiosInstance from '../../../../utils/axios';
 import { toast } from 'react-toastify';
 import Navbar from '../../../Navbar';
@@ -11,6 +12,9 @@ import { getTaskPermissions } from '../../../../utils/permissions';
 import { tasksBasePath } from '../../../../utils/admin';
 import { splitDescriptionAndMov } from '../../../../utils/movEncoding';
 import SearchableMultiSelect from '../../../common/SearchableMultiSelect';
+import TaskPendingAttachments, {
+  uploadPendingTaskAttachments,
+} from '../shared/TaskPendingAttachments';
 import '../../../../styles/variables.css';
 import './index.css';
 
@@ -25,6 +29,8 @@ const TaskFormSelect = ({
   disabled = false,
   showDefaultOption = false,
   defaultOptionText = null,
+  icon: Icon,
+  iconClassName = '',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -51,7 +57,7 @@ const TaskFormSelect = ({
   };
 
   const getDisplayLabel = () => {
-    const selectedOption = options.find(opt => 
+    const selectedOption = options.find(opt =>
       (typeof opt === 'string' ? opt : opt.value) === value
     );
     if (selectedOption) {
@@ -71,8 +77,13 @@ const TaskFormSelect = ({
           className={`task-custom-select-display ${isOpen ? 'is-open' : ''} ${error ? 'has-error' : ''} ${disabled ? 'is-disabled' : ''}`}
           onClick={handleToggle}
         >
-          <span className={`task-custom-select-value ${!value ? 'is-placeholder' : ''}`}>
-            {getDisplayLabel()}
+          <span className="task-custom-select-leading">
+            {Icon && (
+              <Icon className={`task-custom-select-field-icon ${iconClassName}`} />
+            )}
+            <span className={`task-custom-select-value ${!value ? 'is-placeholder' : ''}`}>
+              {getDisplayLabel()}
+            </span>
           </span>
           <span className="task-custom-select-arrow">▼</span>
         </div>
@@ -205,7 +216,7 @@ const ProjectProgramSelect = ({ value, onChange, error }) => {
         Project/Program <span className="required-mark">*</span>
       </label>
       <div className="task-custom-select-container">
-        <div 
+        <div
           className={`task-custom-select-display ${isOpen ? 'is-open' : ''} ${error ? 'has-error' : ''}`}
           onClick={handleToggle}
         >
@@ -218,7 +229,7 @@ const ProjectProgramSelect = ({ value, onChange, error }) => {
         </div>
 
         {value && (
-          <button type="button" className="task-custom-select-clear-btn" onClick={handleClear}>✕</button>
+          <button type="button" className="task-custom-select-clear-btn" onClick={handleClear}>❌</button>
         )}
 
         {isOpen && (
@@ -229,7 +240,7 @@ const ProjectProgramSelect = ({ value, onChange, error }) => {
               </span>
               {selectionStep === 'item' && (
                 <button type="button" className="task-custom-select-back-link" onClick={handleBack}>
-                  ← Back
+                  ◀ Back
                 </button>
               )}
             </div>
@@ -248,9 +259,9 @@ const ProjectProgramSelect = ({ value, onChange, error }) => {
                 </>
               ) : (
                 (projectCategory === 'Projects' ? projects : programs).map(item => (
-                  <button 
-                    key={item} 
-                    type="button" 
+                  <button
+                    key={item}
+                    type="button"
                     className={`task-custom-select-option ${value === item ? 'is-selected' : ''}`}
                     onClick={() => handleItemSelect(item)}
                   >
@@ -267,9 +278,15 @@ const ProjectProgramSelect = ({ value, onChange, error }) => {
   );
 };
 
-const UpdateTask = () => {
+const UpdateTask = ({
+  taskId: taskIdProp,
+  isModal = false,
+  onClose,
+  onSaved,
+} = {}) => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id: routeId } = useParams();
+  const id = taskIdProp ?? routeId;
   const { user, permissions } = useAuth();
   const [form, setForm] = useState({
     title: '',
@@ -301,10 +318,10 @@ const UpdateTask = () => {
   const [reportedByUsers, setReportedByUsers] = useState([]);
   const [approverUsers, setApproverUsers] = useState([]);
   const [movItems, setMovItems] = useState(['']);
-  const [attachmentFile, setAttachmentFile] = useState(null);
-  const [attachmentDescription, setAttachmentDescription] = useState('');
-  const [showAttachment, setShowAttachment] = useState(false);
-  const [showAttachmentTrigger, setShowAttachmentTrigger] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState([]);
+  const [existingAttachments, setExistingAttachments] = useState([]);
+  const [removingAttachmentId, setRemovingAttachmentId] = useState(null);
+  const attachmentsRef = useRef(null);
 
   const formatDepartment = (dept) => {
     if (!dept) return '';
@@ -316,13 +333,21 @@ const UpdateTask = () => {
 
   const taskRouteBase = useMemo(() => tasksBasePath(), []);
 
+  const handleBack = useCallback(() => {
+    if (isModal) {
+      onClose?.();
+      return;
+    }
+    navigate(`${taskRouteBase}/list`); // Navigate to tasks list at /tasks/list instead of previous page
+  }, [isModal, navigate, onClose, taskRouteBase]);
+
   const taskPerms = useMemo(
     () => getTaskPermissions(permissions || {}, user?.department, user?.role),
     [permissions, user?.department, user?.role],
   );
   const multiSelectParams = useMemo(() => ({ active: true }), []);
 
-  
+
   // Custom search function for assignees - allows self-assignment
   const searchAssignees = useMemo(() => {
     return async (searchTerm) => {
@@ -339,9 +364,9 @@ const UpdateTask = () => {
       }
     };
   }, []);
-  
+
   const canEditCompleted = taskPerms.canEditCompleted === true;
-  
+
   const editTitle =
     String(form.status).toLowerCase() === 'completed' && !canEditCompleted
       ? 'Your role cannot edit completed tasks'
@@ -366,12 +391,12 @@ const UpdateTask = () => {
   // Auto-calculate due date based on recurrence frequency
   const calculateDueDate = (startDate, frequency) => {
     if (!startDate || !frequency) return '';
-    
+
     const start = new Date(startDate);
     if (isNaN(start.getTime())) return '';
-    
+
     const dueDate = new Date(start);
-    
+
     switch (frequency) {
       case 'daily':
         dueDate.setDate(dueDate.getDate() + 1);
@@ -396,7 +421,7 @@ const UpdateTask = () => {
       default:
         return '';
     }
-    
+
     // Format as YYYY-MM-DD
     return dueDate.toISOString().split('T')[0];
   };
@@ -449,29 +474,30 @@ const UpdateTask = () => {
         });
         const existingMovItems = Array.isArray(t.mov_items)
           ? t.mov_items
-              .map((text) => String(text || '').trim())
-              .filter((text) => text.length > 0)
+            .map((text) => String(text || '').trim())
+            .filter((text) => text.length > 0)
           : [];
         const combinedMovItems =
           existingMovItems.length > 0
             ? existingMovItems
             : movFromDescription && movFromDescription.length > 0
-            ? movFromDescription
-            : [];
+              ? movFromDescription
+              : [];
         setMovItems(combinedMovItems.length > 0 ? combinedMovItems : ['']);
+        setExistingAttachments(Array.isArray(t.attachments) ? t.attachments : []);
 
         const idsFromAssigned = Array.isArray(t.assigned_user_ids)
           ? t.assigned_user_ids.filter((n) => Number.isInteger(n) && n > 0)
           : [];
         const idsFromMeta = Array.isArray(t.assigned_users_meta)
           ? t.assigned_users_meta
-              .map((m) => (m && m.user_id ? m.user_id : null))
-              .filter((n) => Number.isInteger(n) && n > 0)
+            .map((m) => (m && m.user_id ? m.user_id : null))
+            .filter((n) => Number.isInteger(n) && n > 0)
           : [];
         const idsFromApprovers = Array.isArray(t.approval_required_user_ids)
           ? t.approval_required_user_ids.filter(
-              (n) => Number.isInteger(Number(n)) && Number(n) > 0
-            )
+            (n) => Number.isInteger(Number(n)) && Number(n) > 0
+          )
           : [];
         const uniqueIds = Array.from(
           new Set([
@@ -581,11 +607,38 @@ const UpdateTask = () => {
     }));
   }, [originalStatus, originalWorkflowType]);
 
+  const getAttachmentHref = (urlStr) => {
+    if (!urlStr) return '#';
+    if (urlStr.startsWith('http://') || urlStr.startsWith('https://')) {
+      return urlStr;
+    }
+    const base = axiosInstance.defaults.baseURL || '';
+    return `${base.replace(/\/$/, '')}${urlStr}`;
+  };
+
+  const handleRemoveExistingAttachment = async (attachmentId) => {
+    if (!window.confirm('Remove this attachment?')) return;
+    setRemovingAttachmentId(attachmentId);
+    try {
+      await axiosInstance.delete(`/tasks/${id}/attachments/${attachmentId}`);
+      setExistingAttachments((prev) =>
+        prev.filter((a) => a.id !== attachmentId),
+      );
+      toast.success('Attachment removed.');
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message || 'Failed to remove attachment.',
+      );
+    } finally {
+      setRemovingAttachmentId(null);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => {
       const next = { ...prev, [name]: value };
-      
+
       // Auto-calculate due date when start_date or recurrence_frequency changes
       if ((name === 'start_date' || name === 'recurrence_frequency') && prev.task_type === 'recurring') {
         const startDate = name === 'start_date' ? value : prev.start_date;
@@ -595,7 +648,7 @@ const UpdateTask = () => {
           next.due_date = calculatedDueDate;
         }
       }
-      
+
       if (name === 'custom_recurrence_days') {
         next.recurrence_rule = value ? `${value} days` : '';
       }
@@ -607,7 +660,7 @@ const UpdateTask = () => {
     const { name, value } = e.target;
     setForm((prev) => {
       const next = { ...prev, [name]: value };
-      
+
       // Auto-calculate due date when recurrence_frequency changes
       if (name === 'recurrence_frequency' && prev.task_type === 'recurring') {
         const calculatedDueDate = calculateDueDate(prev.start_date, value);
@@ -615,7 +668,7 @@ const UpdateTask = () => {
           next.due_date = calculatedDueDate;
         }
       }
-      
+
       if (name === 'recurrence_frequency') {
         if (value === 'other') {
           next.recurrence_rule = next.custom_recurrence_days ? `${next.custom_recurrence_days} days` : '';
@@ -635,8 +688,8 @@ const UpdateTask = () => {
     try {
       const movItemsClean = Array.isArray(movItems)
         ? movItems
-            .map((text) => String(text || '').trim())
-            .filter((text) => text.length > 0)
+          .map((text) => String(text || '').trim())
+          .filter((text) => text.length > 0)
         : [];
       if (movItemsClean.length === 0) {
         const msg =
@@ -646,7 +699,7 @@ const UpdateTask = () => {
         setSaving(false);
         return;
       }
-      
+
       // FIXED: Do NOT encode MOV into description - send it separately via mov_items field
       const payload = {
         title: form.title || undefined,
@@ -664,12 +717,12 @@ const UpdateTask = () => {
         assigned_users_meta:
           assignedUsers && assignedUsers.length > 0
             ? assignedUsers.map((u) => ({
-                user_id: u.id,
-                department:
-                  assignedUserDepartments[u.id] ||
-                  form.department ||
-                  'admin'
-              }))
+              user_id: u.id,
+              department:
+                assignedUserDepartments[u.id] ||
+                form.department ||
+                'admin'
+            }))
             : undefined,
         approval_required_user_ids:
           approverUsers && approverUsers.length > 0
@@ -688,34 +741,41 @@ const UpdateTask = () => {
         recurrence_end_occurrences: form.recurrence_end_occurrences ? parseInt(form.recurrence_end_occurrences) : undefined,
         mov_items: movItemsClean
       };
-      await axiosInstance.patch(`/tasks/${id}`, payload);
+      const res = await axiosInstance.patch(`/tasks/${id}`, payload);
+      const updatedTask = res?.data?.data || null;
       toast.success('Task updated. Email notification will be sent if configured.');
 
-      if (showAttachment && attachmentFile) {
-        try {
-          const formData = new FormData();
-          formData.append('file', attachmentFile);
-          formData.append('is_initial', 'true');
-          if (attachmentDescription) {
-            formData.append('description', attachmentDescription);
-          }
-          await axiosInstance.post(
-            `/tasks/${id}/attachments/upload`,
-            formData,
-            {
-              headers: {
-                'Content-Type': 'multipart/form-data'
-              }
-            }
+      const toUpload =
+        attachmentsRef.current?.collectForSubmit?.() || pendingAttachments;
+      if (toUpload.length > 0) {
+        const { uploaded, failed } = await uploadPendingTaskAttachments({
+          axiosInstance,
+          taskId: id,
+          items: toUpload,
+          isInitial: true,
+        });
+        if (uploaded > 0) {
+          toast.success(
+            uploaded === 1
+              ? 'Attachment uploaded successfully.'
+              : `${uploaded} attachments uploaded successfully.`,
           );
-          toast.success('Attachment uploaded successfully.');
-        } catch (attErr) {
-          console.error('Attachment upload error:', attErr);
-          toast.error('Task updated, but failed to upload attachment.');
+        }
+        if (failed > 0) {
+          toast.error(
+            failed === 1
+              ? 'Task updated, but failed to upload 1 attachment.'
+              : `Task updated, but failed to upload ${failed} attachments.`,
+          );
         }
       }
 
-      navigate(`${taskRouteBase}/view/${id}`);
+      if (isModal) {
+        onSaved?.(updatedTask || { id: Number(id) });
+        onClose?.();
+        return;
+      }
+      navigate(`${taskRouteBase}/view/${id}`, { replace: true });
     } catch (e2) {
       setError(e2.response?.data?.message || 'Failed to update task.');
       toast.error(e2.response?.data?.message || 'Failed to update task.');
@@ -727,10 +787,24 @@ const UpdateTask = () => {
   if (loading) {
     return (
       <>
-        <Navbar />
+        {!isModal && <Navbar />}
         <div className="add-task-page">
-          <div className="add-task-card">
-            <PageHeader title="Update Task" showBackButton={true} />
+          <div className={`add-task-card${isModal ? ' add-task-card--modal' : ''}`}>
+            {isModal ? (
+              <div className="task-form-modal-header">
+                <h2 className="task-form-modal-title">Update Task</h2>
+                <button
+                  type="button"
+                  className="task-form-modal-close"
+                  onClick={handleBack}
+                  aria-label="Close"
+                >
+                  Ã—
+                </button>
+              </div>
+            ) : (
+              <PageHeader title="Update Task" showBackButton={true} onBackClick={handleBack} />
+            )}
             <div className="status-message">Loading task...</div>
           </div>
         </div>
@@ -740,13 +814,27 @@ const UpdateTask = () => {
 
   return (
     <>
-      <Navbar />
+      {!isModal && <Navbar />}
       <div className="add-task-page">
-        <div className="add-task-card">
-          <PageHeader title="Update Task" showBackButton={true} />
+        <div className={`add-task-card${isModal ? ' add-task-card--modal' : ''}`}>
+          {isModal ? (
+            <div className="task-form-modal-header">
+              <h2 className="task-form-modal-title">Update Task</h2>
+              <button
+                type="button"
+                className="task-form-modal-close"
+                onClick={handleBack}
+                aria-label="Close"
+              >
+                Ã—
+              </button>
+            </div>
+          ) : (
+            <PageHeader title="Update Task" showBackButton={true} onBackClick={handleBack} />
+          )}
           {error && <div className="status-message status-message--error">{error}</div>}
           <form onSubmit={handleSubmit}>
-            <div className="add-task-section">
+            <div className="add-task-section add-task-section--compact">
               <div className="add-task-section-title">1. Basic Details</div>
               <div className="add-task-grid-2">
                 <ProjectProgramSelect
@@ -757,29 +845,289 @@ const UpdateTask = () => {
                 />
                 <FormInput
                   name="title"
-                  label="Title"
+                  label="Task Title"
                   value={form.title}
                   onChange={handleChange}
+                  placeholder="Enter task title"
                 />
               </div>
-              <div className="add-task-grid-1">
+              <div className="add-task-description-wrap">
                 <FormTextarea
                   name="description"
                   label="Description"
                   value={form.description}
                   onChange={handleChange}
+                  placeholder="Enter a brief description of the task..."
+                  rows={3}
+                  maxLength={500}
                 />
+                <div className="add-task-char-count">
+                  {(form.description || '').length}/500
+                </div>
               </div>
             </div>
 
-            <div className="add-task-section">
-              <div className="add-task-section-title">2. Means of Verification (MOV)</div>
-              <div className="add-task-grid-1">
+            <div className="add-task-section add-task-section--compact" style={{ marginBottom: '0.85rem' }}>
+              <div className="add-task-section-title">2. Task Setup</div>
+              <div className="add-task-setup-grid add-task-setup-grid--update">
+                <TaskFormSelect
+                  name="status"
+                  label="Status"
+                  value={form.status}
+                  onChange={handleChange}
+                  icon={FiFlag}
+                  iconClassName="task-custom-select-field-icon--status"
+                  options={statusOptions}
+                />
+                <div className="add-task-setup-assignees">
+                  <SearchableMultiSelect
+                    label="Assigned Users"
+                    onSearch={searchAssignees}
+                    onSelect={(users) => setAssignedUsers(users)}
+                    onClear={() => setAssignedUsers([])}
+                    value={assignedUsers}
+                    displayKey="first_name"
+                    valueKey="id"
+                    allowResearch={true}
+                    debounceDelay={500}
+                    minSearchLength={2}
+                    placeholder="Select users..."
+                    renderOption={(user) => (
+                      <div className="assign-user-option">
+                        <div className="assign-user-name">
+                          {user.first_name} {user.last_name}
+                        </div>
+                        <div className="assign-user-email">{user.email}</div>
+                        {user.department && (
+                          <div className="assign-user-meta">
+                            {user.department} â€¢ {user.role || 'User'}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  />
+                </div>
+                <TaskFormSelect
+                  name="workflow_type"
+                  label="Workflow Type"
+                  value={form.workflow_type}
+                  onChange={handleChange}
+                  icon={FiGitBranch}
+                  iconClassName="task-custom-select-field-icon--workflow"
+                  options={['standard', 'approval_required'].map((w) => ({
+                    value: w,
+                    label: w
+                      .split('_')
+                      .map((x) => x[0].toUpperCase() + x.slice(1))
+                      .join(' ')
+                  }))}
+                />
+                {form.workflow_type === 'approval_required' && (
+                  <div className="add-task-conditional-block">
+                    <SearchableMultiSelect
+                      label="Approvers"
+                      apiEndpoint="/users/options"
+                      apiParams={multiSelectParams}
+                      onSelect={(users) => setApproverUsers(users)}
+                      onClear={() => setApproverUsers([])}
+                      value={approverUsers}
+                      displayKey="first_name"
+                      valueKey="id"
+                      allowResearch={true}
+                      debounceDelay={500}
+                      minSearchLength={2}
+                      renderOption={(user) => (
+                        <div className="assign-user-option">
+                          <div className="assign-user-name">
+                            {user.first_name} {user.last_name}
+                          </div>
+                          <div className="assign-user-email">
+                            {user.email}
+                          </div>
+                          {user.department && (
+                            <div className="assign-user-meta">
+                              {user.department} â€¢ {user.role || 'User'}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    />
+                  </div>
+                )}
+                <TaskFormSelect
+                  name="priority"
+                  label="Priority"
+                  value={form.priority}
+                  onChange={handleChange}
+                  icon={FiAlignJustify}
+                  iconClassName="task-custom-select-field-icon--priority"
+                  options={['low', 'medium', 'high', 'critical'].map((p) => ({
+                    value: p,
+                    label: p[0].toUpperCase() + p.slice(1)
+                  }))}
+                />
+                <TaskFormSelect
+                  name="task_type"
+                  label="Task Type"
+                  value={form.task_type}
+                  onChange={handleChange}
+                  icon={FiClipboard}
+                  iconClassName="task-custom-select-field-icon--task-type"
+                  options={[
+                    { value: 'one_time', label: 'One-time task' },
+                    { value: 'recurring', label: 'Recurring task' },
+                    { value: 'project_linked', label: 'Project-linked task' }
+                  ]}
+                />
+              </div>
+              {form.task_type === 'recurring' && (
+                <div className="add-task-conditional-block">
+                  <div className="add-task-grid-2">
+                    <TaskFormSelect
+                      name="recurrence_frequency"
+                      label="Recurring Frequency"
+                      value={form.recurrence_frequency}
+                      onChange={handleSelectChange}
+                      showDefaultOption
+                      options={['daily', 'weekly', 'monthly', 'quarterly', 'annually', 'other'].map(
+                        (f) => ({
+                          value: f,
+                          label: f[0].toUpperCase() + f.slice(1)
+                        })
+                      )}
+                    />
+                    {form.recurrence_frequency === 'other' && (
+                      <FormInput
+                        name="custom_recurrence_days"
+                        label="Custom Recurrence Days"
+                        type="number"
+                        min="1"
+                        value={form.custom_recurrence_days}
+                        onChange={handleChange}
+                        placeholder="Enter number of days"
+                        required
+                      />
+                    )}
+                  </div>
+                  <div className="recurrence-end-section" style={{ marginTop: '0.75rem' }}>
+                    <div className="add-task-conditional-label">End Condition</div>
+                    <div className="add-task-grid-2">
+                      <TaskFormSelect
+                        name="recurrence_end_type"
+                        label="End After"
+                        value={form.recurrence_end_type}
+                        onChange={handleSelectChange}
+                        options={[
+                          { value: 'never', label: 'Indefinitely (No end date)' },
+                          { value: 'on_date', label: 'On specific date' },
+                          { value: 'after_occurrences', label: 'After number of occurrences' }
+                        ]}
+                      />
+                      {form.recurrence_end_type === 'on_date' && (
+                        <FormInput
+                          name="recurrence_end_date"
+                          label="End Date"
+                          type="date"
+                          value={form.recurrence_end_date}
+                          onChange={handleChange}
+                          required
+                        />
+                      )}
+                      {form.recurrence_end_type === 'after_occurrences' && (
+                        <FormInput
+                          name="recurrence_end_occurrences"
+                          label="Number of Occurrences"
+                          type="number"
+                          min="1"
+                          value={form.recurrence_end_occurrences}
+                          onChange={handleChange}
+                          required
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {assignedUsers.length > 0 && (
+                <div className="add-task-assignees-summary-compact">
+                  <div className="assign-users-hint">
+                    {'\u2713'} {assignedUsers.length}{' '}
+                    {assignedUsers.length === 1 ? 'user selected' : 'users selected'}
+                  </div>
+                  <div className="assign-users-summary">
+                    <div className="assign-users-summary-label">
+                      Selected Assignees:
+                    </div>
+                    {assignedUsers.map((u) => (
+                      <div
+                        key={u.id}
+                        className="assign-users-row"
+                      >
+                        <div className="assign-users-row-col">
+                          <FormInput
+                            name={`user_${u.id}_label`}
+                            label=""
+                            value={
+                              `${u.first_name || ''} ${u.last_name || ''}`.trim() ||
+                              u.email ||
+                              `User #${u.id}`
+                            }
+                            onChange={() => { }}
+                            disabled
+                          />
+                        </div>
+                        <div className="assign-users-row-col">
+                          <FormInput
+                            name={`dept_${u.id}`}
+                            label=""
+                            value={formatDepartment(
+                              assignedUserDepartments[u.id] ||
+                              u.department ||
+                              form.department ||
+                              ''
+                            )}
+                            onChange={() => { }}
+                            disabled
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="add-task-split-row">
+              <div className="add-task-section add-task-section--compact add-task-section--schedule">
+                <div className="add-task-section-title">3. Schedule</div>
+                <div className="add-task-grid-1">
+                  <FormInput
+                    name="start_date"
+                    label="Start Date"
+                    type="date"
+                    value={form.start_date}
+                    onChange={handleChange}
+                  />
+                  <FormInput
+                    name="due_date"
+                    label={form.task_type === 'recurring' ? 'Due Date (of first task) - Auto-calculated' : 'Due Date'}
+                    type="date"
+                    value={form.due_date}
+                    onChange={handleChange}
+                    disabled={form.task_type === 'recurring' && form.recurrence_frequency}
+                    placeholder={form.task_type === 'recurring' ? 'Select frequency to auto-calculate' : undefined}
+                  />
+                </div>
+              </div>
+
+              <div className="add-task-section add-task-section--compact add-task-section--mov">
+                <div className="add-task-section-title">4. Means of Verification (MOV)</div>
                 {movItems.map((value, index) => (
                   <div key={index} className="mov-item-row">
                     <FormInput
                       name={`mov_item_${index}`}
-                      label={index === 0 ? 'MOV item' : ''}
+                      label={index === 0 ? 'MOV Item' : ''}
                       value={value}
                       onChange={(e) => handleMovChange(index, e.target.value)}
                       placeholder="Define a clear, specific, and measurable verification point"
@@ -804,384 +1152,81 @@ const UpdateTask = () => {
                     className="mov-item-add-button"
                     onClick={handleMovAdd}
                   >
-                    + Add MOV item
+                    <FiPlus /> Add MOV Item
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className="add-task-section">
-              <div className="add-task-section-title">3. Task Configuration</div>
-              <div className="add-task-grid-2">
-                <TaskFormSelect
-                  name="status"
-                  label="Status"
-                  value={form.status}
-                  onChange={handleChange}
-                  options={statusOptions}
-                />
-                <TaskFormSelect
-                  name="priority"
-                  label="Priority"
-                  value={form.priority}
-                  onChange={handleChange}
-                  options={['low', 'medium', 'high', 'critical'].map((p) => ({
-                    value: p,
-                    label: p[0].toUpperCase() + p.slice(1)
-                  }))}
-                />
-                <TaskFormSelect
-                  name="task_type"
-                  label="Task Type"
-                  value={form.task_type}
-                  onChange={handleChange}
-                  options={[
-                    { value: 'one_time', label: 'One-time task' },
-                    { value: 'recurring', label: 'Recurring task' },
-                    { value: 'project_linked', label: 'Project-linked task' }
-                  ]}
-                />
-                <TaskFormSelect
-                  name="workflow_type"
-                  label="Workflow Type"
-                  value={form.workflow_type}
-                  onChange={handleChange}
-                  options={['standard', 'approval_required'].map((w) => ({
-                    value: w,
-                    label: w
-                      .split('_')
-                      .map((x) => x[0].toUpperCase() + x.slice(1))
-                      .join(' ')
-                  }))}
-                />
-              </div>
-              
-              {form.task_type === 'recurring' && (
-                <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #f3f4f6' }}>
-                  <div className="add-task-grid-2">
-                    <TaskFormSelect
-                      name="recurrence_frequency"
-                      label="Recurring Frequency"
-                      value={form.recurrence_frequency}
-                      onChange={handleSelectChange}
-                      showDefaultOption
-                      options={['daily', 'weekly', 'monthly', 'quarterly', 'annually', 'other'].map(
-                        (f) => ({
-                          value: f,
-                          label: f[0].toUpperCase() + f.slice(1)
-                        })
-                      )}
-                    />
-                    {form.recurrence_frequency === 'other' && (
-                      <FormInput
-                        name="custom_recurrence_days"
-                        label="Custom Recurrence Days"
-                        type="number"
-                        min="1"
-                        value={form.custom_recurrence_days}
-                        onChange={handleChange}
-                        placeholder="Enter number of days"
-                        required
-                      />
-                    )}
-                  </div>
-                  <div className="recurrence-end-section" style={{ marginTop: '1rem' }}>
-                    <div className="form-label" style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#6b7280' }}>END CONDITION</div>
-                    <div className="add-task-grid-2">
-                      <TaskFormSelect
-                        name="recurrence_end_type"
-                        label="End After"
-                        value={form.recurrence_end_type}
-                        onChange={handleSelectChange}
-                        options={[
-                          { value: 'never', label: 'Indefinitely (No end date)' },
-                          { value: 'on_date', label: 'On specific date' },
-                          { value: 'after_occurrences', label: 'After number of occurrences' }
-                        ]}
-                      />
-                      {form.recurrence_end_type === 'on_date' && (
-                        <FormInput
-                          name="recurrence_end_date"
-                          label="End Date"
-                          type="date"
-                          value={form.recurrence_end_date}
-                          onChange={handleChange}
-                          required
-                        />
-                      )}
-                      {form.recurrence_end_type === 'after_occurrences' && (
-                        <FormInput
-                          name="recurrence_end_occurrences"
-                          label="Number of Occurrences"
-                          type="number"
-                          min="1"
-                          value={form.recurrence_end_occurrences}
-                          onChange={handleChange}
-                          required
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {form.workflow_type === 'approval_required' && (
-                <div className="add-task-grid-1" style={{ marginTop: '1rem' }}>
-                  <SearchableMultiSelect
-                    label="Approvers"
-                    apiEndpoint="/users/options"
-                    apiParams={multiSelectParams}
-                    onSelect={(users) => setApproverUsers(users)}
-                    onClear={() => setApproverUsers([])}
-                    value={approverUsers}
-                    displayKey="first_name"
-                    valueKey="id"
-                    allowResearch={true}
-                    debounceDelay={500}
-                    minSearchLength={2}
-                    renderOption={(user) => (
-                      <div className="assign-user-option">
-                        <div className="assign-user-name">
-                          {user.first_name} {user.last_name}
-                        </div>
-                        <div className="assign-user-email">
-                          {user.email}
-                        </div>
-                        {user.department && (
-                          <div className="assign-user-meta">
-                            {user.department} • {user.role || 'User'}
+            <div className="add-task-section add-task-section--compact" style={{ marginBottom: '0.85rem' }}>
+              {existingAttachments.length > 0 && (
+                <div className="task-existing-attachments" style={{ marginBottom: '1rem' }}>
+                  <div className="add-task-section-title">Current attachments</div>
+                  <ul className="task-pending-attachments__list">
+                    {existingAttachments.map((a) => {
+                      const displayName = a.description || a.file_name;
+                      return (
+                        <li key={a.id} className="task-pending-attachments__item">
+                          <div className="task-pending-attachments__item-main">
+                            <strong>{displayName}</strong>
+                            {a.description &&
+                              a.file_name &&
+                              a.description !== a.file_name && (
+                                <span>{a.file_name}</span>
+                              )}
                           </div>
-                        )}
-                      </div>
-                    )}
-                  />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <a
+                              href={getAttachmentHref(a.file_url)}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ fontSize: '0.85rem', color: '#2563eb' }}
+                            >
+                              View
+                            </a>
+                            <button
+                              type="button"
+                              className="task-pending-attachments__remove"
+                              onClick={() => handleRemoveExistingAttachment(a.id)}
+                              disabled={
+                                removingAttachmentId === a.id ||
+                                saving ||
+                                (String(form.status).toLowerCase() === 'completed' &&
+                                  !canEditCompleted)
+                              }
+                              title="Remove"
+                            >
+                              <FiTrash2 />
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
               )}
+
+              <TaskPendingAttachments
+                ref={attachmentsRef}
+                items={pendingAttachments}
+                onChange={setPendingAttachments}
+                title={
+                  existingAttachments.length > 0
+                    ? 'Add more attachments'
+                    : 'Attachments'
+                }
+                disabled={saving || (String(form.status).toLowerCase() === 'completed' && !canEditCompleted)}
+              />
             </div>
 
-            <div className="add-task-section">
-              <div className="add-task-section-title">4. Assignment</div>
-              <div className="add-task-grid-1">
-                <SearchableMultiSelect
-                  label="Assign Users"
-                  onSearch={searchAssignees}
-                  onSelect={(users) => setAssignedUsers(users)}
-                  onClear={() => setAssignedUsers([])}
-                  value={assignedUsers}
-                  displayKey="first_name"
-                  valueKey="id"
-                  allowResearch={true}
-                  debounceDelay={500}
-                  minSearchLength={2}
-                  renderOption={(user) => (
-                    <div className="assign-user-option">
-                      <div className="assign-user-name">
-                        {user.first_name} {user.last_name}
-                      </div>
-                      <div className="assign-user-email">{user.email}</div>
-                      {user.department && (
-                        <div className="assign-user-meta">
-                          {user.department} • {user.role || 'User'}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                />
-                {assignedUsers.length > 0 && (
-                  <div className="assign-users-hint">
-                    {'\u2713'} {assignedUsers.length}{' '}
-                    {assignedUsers.length === 1 ? 'user selected' : 'users selected'}
-                  </div>
-                )}
-              </div>
-              {assignedUsers.length > 0 && (
-                <div className="assign-users-summary">
-                  <div className="assign-users-summary-label">
-                    Selected Assignees:
-                  </div>
-                  {assignedUsers.map((u) => (
-                    <div
-                      key={u.id}
-                      className="assign-users-row"
-                    >
-                      <div className="assign-users-row-col">
-                        <FormInput
-                          name={`user_${u.id}_label`}
-                          label=""
-                          value={
-                            `${u.first_name || ''} ${u.last_name || ''}`.trim() ||
-                            u.email ||
-                            `User #${u.id}`
-                          }
-                          onChange={() => {}}
-                          disabled
-                        />
-                      </div>
-                      <div className="assign-users-row-col">
-                        <FormInput
-                          name={`dept_${u.id}`}
-                          label=""
-                          value={formatDepartment(
-                            assignedUserDepartments[u.id] ||
-                              u.department ||
-                              form.department ||
-                              ''
-                          )}
-                          onChange={() => {}}
-                          disabled
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="add-task-section">
-              <div className="add-task-section-title">5. Schedule & Recurrence</div>
-              <div className="add-task-grid-2">
-                <FormInput
-                  name="start_date"
-                  label="Start Date"
-                  type="date"
-                  value={form.start_date}
-                  onChange={handleChange}
-                />
-                <FormInput
-                  name="due_date"
-                  label={form.task_type === 'recurring' ? 'Due Date (of first task) - Auto-calculated' : 'Due Date'}
-                  type="date"
-                  value={form.due_date}
-                  onChange={handleChange}
-                  disabled={form.task_type === 'recurring' && form.recurrence_frequency}
-                  placeholder={form.task_type === 'recurring' ? 'Select frequency to auto-calculate' : undefined}
-                />
-              </div>
-              {form.task_type === 'recurring' && (
-                <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #f3f4f6' }}>
-                  <div className="add-task-grid-2">
-                    <TaskFormSelect
-                      name="recurrence_frequency"
-                      label="Recurring Frequency"
-                      value={form.recurrence_frequency}
-                      onChange={handleSelectChange}
-                      showDefaultOption
-                      options={['daily', 'weekly', 'monthly', 'quarterly', 'annually', 'other'].map(
-                        (f) => ({
-                          value: f,
-                          label: f[0].toUpperCase() + f.slice(1)
-                        })
-                      )}
-                    />
-                    {form.recurrence_frequency === 'other' && (
-                      <FormInput
-                        name="custom_recurrence_days"
-                        label="Custom Recurrence Days"
-                        type="number"
-                        min="1"
-                        value={form.custom_recurrence_days}
-                        onChange={handleChange}
-                        placeholder="Enter number of days"
-                        required
-                      />
-                    )}
-                  </div>
-                  <div className="recurrence-end-section" style={{ marginTop: '1rem' }}>
-                    <div className="form-label" style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#6b7280' }}>END CONDITION</div>
-                    <div className="add-task-grid-2">
-                      <TaskFormSelect
-                        name="recurrence_end_type"
-                        label="End After"
-                        value={form.recurrence_end_type}
-                        onChange={handleSelectChange}
-                        options={[
-                          { value: 'never', label: 'Indefinitely (No end date)' },
-                          { value: 'on_date', label: 'On specific date' },
-                          { value: 'after_occurrences', label: 'After number of occurrences' }
-                        ]}
-                      />
-                      {form.recurrence_end_type === 'on_date' && (
-                        <FormInput
-                          name="recurrence_end_date"
-                          label="End Date"
-                          type="date"
-                          value={form.recurrence_end_date}
-                          onChange={handleChange}
-                          required
-                        />
-                      )}
-                      {form.recurrence_end_type === 'after_occurrences' && (
-                        <FormInput
-                          name="recurrence_end_occurrences"
-                          label="Number of Occurrences"
-                          type="number"
-                          min="1"
-                          value={form.recurrence_end_occurrences}
-                          onChange={handleChange}
-                          required
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="add-task-section">
-              <div className="add-task-section-title">6. Attachments</div>
-              <div className="add-task-attachment-toggle">
-                {!showAttachmentTrigger ? (
-                  <div
-                    className="attachment-prompt-wrapper"
-                    onClick={() => setShowAttachmentTrigger(true)}
-                  >
-                    <span className="attachment-prompt-icon">📎</span>
-                    <span className="attachment-prompt-text">
-                      Click here if you want to add an attachment
-                    </span>
-                  </div>
-                ) : (
-                  <div className="add-task-grid-1">
-                    <button
-                      type="button"
-                      className="mov-item-add-button"
-                      style={{ width: 'fit-content', marginBottom: '1rem' }}
-                      onClick={() => {
-                        if (showAttachment) {
-                          setAttachmentFile(null);
-                          setAttachmentDescription('');
-                        }
-                        setShowAttachment(!showAttachment);
-                      }}
-                    >
-                      {showAttachment ? '- Remove Attachment' : '+ Add Attachment'}
-                    </button>
-                    
-                    {showAttachment && (
-                      <div className="add-task-grid-2">
-                        <div className="form-group">
-                          <label className="form-label">File</label>
-                          <input
-                            type="file"
-                            className="form-input"
-                            onChange={(e) => setAttachmentFile(e.target.files[0] || null)}
-                          />
-                        </div>
-                        <FormInput
-                          name="attachmentDescription"
-                          label="Attachment Description"
-                          value={attachmentDescription}
-                          onChange={(e) => setAttachmentDescription(e.target.value)}
-                          placeholder="Optional notes about this file"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="add-task-footer">
+            <div className="add-task-footer add-task-footer--actions">
+              <button
+                type="button"
+                className="add-task-cancel-btn"
+                onClick={handleBack}
+              >
+                Cancel
+              </button>
               <button
                 className="add-task-submit primary-button"
                 type="submit"

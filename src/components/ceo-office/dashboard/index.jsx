@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import axios from '../../../utils/axios';
 import Navbar from '../../Navbar';
 import { useAuth } from '../../../context/AuthContext';
-
+import { getStatusLabel, normalizeStatusValue } from '../note/statusConfig';
 
 
 import { 
@@ -566,8 +566,8 @@ const CeoDashboard = () => {
                               {getItemTitle(item)}
                             </div>
                           </div>
-                          <span className={`dashboard-note-status ${(item.status || 'pending').toLowerCase()}`}>
-                            {item.status}
+                          <span className={`dashboard-note-status ${normalizeStatusValue(item.status || 'pending')}`}>
+                            {getStatusLabel(item.status)}
                           </span>
                         </Link>
                       ))}

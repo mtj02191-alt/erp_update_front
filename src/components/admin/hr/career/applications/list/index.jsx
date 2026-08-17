@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../../../../../utils/axios';
-import PageHeader from '../../../../../common/PageHeader';
+import PageHeader from '../../../../../common/PageHeader'
+import { RefreshButton } from '../../../../../common/filters';
 import ActionMenu from '../../../../../common/ActionMenu';
 import Pagination from '../../../../../common/Pagination';
 import ConfirmationModal from '../../../../../common/ConfirmationModal';
@@ -185,6 +186,7 @@ const AdminApplicationsList = () => {
 
           {/* Filters Section */}
           <div className="filters-section">
+            <RefreshButton onClick={fetchApplications} loading={loading} />
             <div className="filters-header">
               <h3 className="section-title">
                 <FiFilter className="icon" />

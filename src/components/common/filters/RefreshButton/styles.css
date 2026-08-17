@@ -1,0 +1,82 @@
+.refresh-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--color-bg-tertiary, #e2e8f0);
+  background: #fff;
+  color: var(--color-text-primary, #0f172a);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.refresh-button:hover:not(:disabled):not(.refresh-button--loading) {
+  background-color: var(--color-bg-secondary, #f8fafc);
+  border-color: var(--color-primary, #3b82f6);
+  color: var(--color-primary, #3b82f6);
+}
+
+.refresh-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.refresh-button--header {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.refresh-button--header:hover:not(:disabled):not(.refresh-button--loading) {
+  transform: none;
+}
+
+.refresh-button--inline {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 6px;
+}
+
+.refresh-button__icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.refresh-button__icon--spin {
+  animation: refresh-button-spin 0.8s linear infinite;
+}
+
+.refresh-button__label {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+@keyframes refresh-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.list-refresh-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 768px) {
+  .refresh-button--header,
+  .refresh-button--inline {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
+  }
+
+  .refresh-button__icon {
+    font-size: 18px;
+  }
+}

@@ -13,12 +13,14 @@
 }
 
 .confirmation-modal {
-  background: white;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 24px;
   width: 90%;
   max-width: 400px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
   animation: slideIn 0.2s ease-in-out;
 }
 
@@ -30,7 +32,7 @@
 
 .confirmation-modal-text {
   font-size: 16px;
-  color: #333;
+  color: var(--color-text-primary);
   text-align: center;
   margin: 0;
   line-height: 1.5;
@@ -62,8 +64,8 @@
 }
 
 .confirmation-modal-button.cancel-button {
-  background-color: #e0e0e0;
-  color: #333;
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
 }
 
 .confirmation-modal-button:hover {

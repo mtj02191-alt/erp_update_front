@@ -4,7 +4,8 @@ import { FiEdit2, FiEye, FiTrash2 } from 'react-icons/fi';
 
 import axiosInstance from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
-import PageHeader from '../../../common/PageHeader';
+import PageHeader from '../../../common/PageHeader'
+import { RefreshButton } from '../../../common/filters';
 import ActionMenu from '../../../common/ActionMenu';
 import ConfirmationModal from '../../../common/ConfirmationModal';
 import Pagination from '../../../common/Pagination';
@@ -136,6 +137,10 @@ const AlHasanainClgList = () => {
 
         <div className="list-content">
           {error && <div className="status-message status-message--error">{error}</div>}
+
+                    <div className="list-refresh-bar">
+            <RefreshButton onClick={fetchRows} loading={loading} />
+          </div>
 
           <div className="table-container">
             <table className="data-table">

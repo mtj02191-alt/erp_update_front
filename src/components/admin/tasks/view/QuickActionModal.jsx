@@ -19,6 +19,7 @@ const QuickActionModal = ({
   userDepartment,
   taskRouteBase = '/tasks',
 }) => {
+  console.log('QuickActionModal props:', { isOpen, taskId, actionKey });
   const [formState, setFormState] = useState({
     assignee: '',
     dueDate: '',

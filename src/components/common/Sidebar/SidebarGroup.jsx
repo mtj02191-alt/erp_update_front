@@ -3,7 +3,7 @@ import { IoIosArrowDown } from "react-icons/io";
 import SidebarItem from './SidebarItem';
 import './Sidebar.css';
 
-const SidebarGroup = ({ group, collapsed, activeItem, onItemClick }) => {
+const SidebarGroup = ({ group, collapsed, activeItem, onNavigate }) => {
   const [expanded, setExpanded] = useState(false);
 
   const isActiveGroup = group.items.some(item => 
@@ -35,7 +35,7 @@ const SidebarGroup = ({ group, collapsed, activeItem, onItemClick }) => {
               key={index}
               item={item}
               activeItem={activeItem}
-              onItemClick={onItemClick}
+              onNavigate={onNavigate}
             />
           ))}
         </div>

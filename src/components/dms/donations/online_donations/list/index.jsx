@@ -1,18 +1,24 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation, useParams, Link } from 'react-router-dom';
 import axiosInstance from '../../../../../utils/axios';
 import '../../../../../styles/variables.css';
 import '../../../../../styles/components.css';
 // import { truncate } from '../../../../../utils/functions/column_function';
 import Pagination from '../../../../common/Pagination';
 import { DownloadCSV } from '../../../../common/download';
-import { SearchFilter, DropdownFilter, DateFilter, DateRangeFilter } from '../../../../common/filters';
+import { SearchFilter, DropdownFilter, DateFilter, DateRangeFilter, CollapsibleFilters } from '../../../../common/filters';
 import { ClearButton } from '../../../../common/filters/index';
 import { SearchButton } from '../../../../common/filters/index';
 import HybridDropdown from '../../../../common/HybridDropdown';
 import SearchableDropdown from '../../../../common/SearchableDropdown';
 import { getDate, getTime } from '../../../../../utils/functions';
 import usePersistedFilters from '../../../../../hooks/usePersistedFilters';
+import useOfflineDataRefresh from '../../../../../hooks/useOfflineDataRefresh';
+import useNotificationListRefresh from '../../../../../hooks/useNotificationListRefresh';
+import useFiltersPanel from '../../../../../hooks/useFiltersPanel';
+import useListRowSelection from '../../../../../hooks/useListRowSelection';
+import { useMultipleEntityOptions } from '../../../../../hooks/useEntityOptions';
+import { NotificationRefreshPresets } from '../../../../../utils/notifications/events';
 
 import { FiEye, FiEdit2, FiTrash2, FiDollarSign, FiFileText, FiDownload, FiTrendingUp } from 'react-icons/fi';
 import PageHeader from '../../../../common/PageHeader';
@@ -20,15 +26,19 @@ import Navbar from '../../../../Navbar';
 import ActionMenu from '../../../../common/ActionMenu';
 import ConfirmationModal from '../../../../common/ConfirmationModal';
 import MultiSelect from '../../../../common/MultiSelect';
+import OfflinePendingBadge from '../../../../common/OfflinePendingBadge';
 
 const OnlineDonationsList = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const urlDonorId = searchParams.get('donor_id'); // Get donor_id from URL query param
+  const { donorId: routeDonorId } = useParams();
+  // Dedicated donor donations page, or legacy ?donor_id= query
+  const urlDonorId = routeDonorId || searchParams.get('donor_id');
+  const isDonorDonationsRoute = Boolean(routeDonorId);
   const isOnlineRoute = location.pathname.includes('/donations/online_donations');
   const isOfflineRoute = location.pathname.includes('/donations/offline_donations');
-
+  
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -36,8 +46,13 @@ const OnlineDonationsList = () => {
   const [donationToDelete, setDonationToDelete] = useState(null);
   const [selectedDonor, setSelectedDonor] = useState(null);
   const [totalDonationAmount, setTotalDonationAmount] = useState(0);
-  const [workflowTemplates, setWorkflowTemplates] = useState([]);
+  const { filtersOpen, toggleFilters } = useFiltersPanel();
 
+  const { data: filterLookupData } = useMultipleEntityOptions([
+    'workflow_templates',
+    'appeals',
+  ]);
+  
   // Report generation state
   const [generatingReport, setGeneratingReport] = useState(false);
   const [reportMessage, setReportMessage] = useState({ type: '', text: '' });
@@ -47,11 +62,18 @@ const OnlineDonationsList = () => {
     endDate: '',
     type: 'daily'
   });
+  
+  // Separate storage for donor donations page so it does not pollute general list filters
+  const listStoragePrefix = isDonorDonationsRoute
+    ? `donations-donor-${routeDonorId}-list`
+    : isOfflineRoute
+      ? 'donations-offline-list'
+      : 'donations-online-list';
 
   // Pagination state — persisted so it survives navigation
   const [paginationState, setPaginationState] = usePersistedFilters(
-    'donations-online-list:pagination',
-    { currentPage: 1, pageSize: 10, sortField: 'created_at', sortOrder: 'DESC' }
+    `${listStoragePrefix}:pagination:v2`,
+    { currentPage: 1, pageSize: 10, sortField: 'id', sortOrder: 'DESC' }
   );
   const { currentPage, pageSize, sortField, sortOrder } = paginationState;
   const setCurrentPage = (v) => setPaginationState(prev => ({ ...prev, currentPage: typeof v === 'function' ? v(prev.currentPage) : v }));
@@ -74,6 +96,7 @@ const OnlineDonationsList = () => {
     end_date: '',
     amount: '',
     ref: [],
+    appeal_id: [],
     price_operator: '',
     donor_id: '',
     donor_search: '',
@@ -87,40 +110,49 @@ const OnlineDonationsList = () => {
 
   // Filter state - persisted across navigation via sessionStorage
   const [tempFilters, setTempFilters, clearTempFilters] = usePersistedFilters(
-    'donations-online-list:temp', EMPTY_FILTERS
+    `${listStoragePrefix}:temp`, EMPTY_FILTERS
   );
   const [appliedFilters, setAppliedFilters, clearAppliedFilters] = usePersistedFilters(
-    'donations-online-list:applied', EMPTY_FILTERS
+    `${listStoragePrefix}:applied`, EMPTY_FILTERS
   );
 
-  // Initialize donor_id from URL on mount
+  const selectionResetKey = useMemo(
+    () => JSON.stringify({ currentPage, pageSize, appliedFilters }),
+    [currentPage, pageSize, appliedFilters],
+  );
+  const {
+    selectedCount,
+    isSelected,
+    toggleOne,
+    toggleAllOnPage,
+    clearSelection,
+    allOnPageSelected,
+    headerCheckboxRef,
+  } = useListRowSelection(donations, 'id', selectionResetKey);
+
+  // Donor page: lock donor_id from route. General list: clear donor scope so sidebar list is full.
   useEffect(() => {
     if (urlDonorId) {
-      // Set donor_id from URL query param
-      setTempFilters(prev => ({
+      setTempFilters((prev) => ({
         ...prev,
-        donor_id: urlDonorId
+        donor_id: urlDonorId,
       }));
-      setAppliedFilters(prev => ({
+      setAppliedFilters((prev) => ({
         ...prev,
-        donor_id: urlDonorId
+        donor_id: urlDonorId,
       }));
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlDonorId]);
 
-  // Load workflow templates for filtering
-  useEffect(() => {
-    const run = async () => {
-      try {
-        const res = await axiosInstance.get('/progress/workflow-templates');
-        if (res.data?.success) setWorkflowTemplates(res.data.data || []);
-      } catch (_) {
-        // non-blocking
-      }
-    };
-    run();
-  }, []);
+    setSelectedDonor(null);
+    setTempFilters((prev) =>
+      prev.donor_id ? { ...prev, donor_id: '', donor_search: '' } : prev,
+    );
+    setAppliedFilters((prev) =>
+      prev.donor_id ? { ...prev, donor_id: '', donor_search: '' } : prev,
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlDonorId]);
 
   // Universal filter change handler - Updates temporary filters only
   const handleFilterChange = (key, value) => {
@@ -181,7 +213,7 @@ const OnlineDonationsList = () => {
   const handleApplyFilters = () => {
     // Check if filters have changed
     const filtersChanged = JSON.stringify(appliedFilters) !== JSON.stringify(tempFilters);
-
+    
     console.log("Temp filters", tempFilters);
     // return;
     // Always include donor_id from URL if present
@@ -189,7 +221,7 @@ const OnlineDonationsList = () => {
     if (urlDonorId) {
       filtersToApply.donor_id = urlDonorId;
     }
-
+    
     if (filtersChanged) {
       // If filters changed, apply them
       setAppliedFilters(filtersToApply);
@@ -212,16 +244,40 @@ const OnlineDonationsList = () => {
     fetchDonations();
   }, [currentPage, pageSize, sortField, sortOrder, appliedFilters]);
 
+  useOfflineDataRefresh(() => fetchDonations(), [
+    currentPage,
+    pageSize,
+    sortField,
+    sortOrder,
+    appliedFilters,
+  ]);
+
+  // Live donation attempt notification → refresh list while this page is open
+  useNotificationListRefresh(() => fetchDonations(), {
+    ...NotificationRefreshPresets.donations,
+    deps: [currentPage, pageSize, sortField, sortOrder, appliedFilters],
+  });
+
   const fetchDonations = async () => {
     try {
       setLoading(true);
-
+      
       // Always include donor_id from URL if present
       const donorIdForFilter = urlDonorId || appliedFilters.donor_id;
+      // Donor-scoped list: all sources for that donor (not online/offline route defaults)
+      const isDonorScopedList = Boolean(donorIdForFilter);
       // Use relationsFilters directly from applied filters
       const relationsFiltersPayload = appliedFilters.relationsFilters || {};
-
+      
       // Prepare filter payload
+      const routeSourceFilter = isDonorScopedList
+        ? {}
+        : isOfflineRoute
+          ? { _donation_source_not: 'website' }
+          : isOnlineRoute && appliedFilters.donation_source
+            ? { donation_source: appliedFilters.donation_source }
+            : {};
+
       const filterPayload = {
         pagination: {
           page: currentPage,
@@ -235,52 +291,63 @@ const OnlineDonationsList = () => {
           status: appliedFilters.status,
           donation_type: appliedFilters.donation_type,
           donation_method: appliedFilters.donation_method,
-          donation_source: appliedFilters.donation_source,
+          ...routeSourceFilter,
           progress_workflow_template_id: appliedFilters.progress_workflow_template_id || undefined,
           orderId: appliedFilters.orderId,
-
+          
           // Date filters
           date: appliedFilters.date,
           start_date: appliedFilters.start_date,
           end_date: appliedFilters.end_date,
-
+          
           // Donor filter - always use URL donor_id if present
           donor_id: donorIdForFilter,
-
+          
           // Future filters can be easily added here
           // amount_range: { min: 1000, max: 50000 },
           // donor_categories: ['premium', 'regular'],
           // payment_status: ['completed', 'pending'],
           // locations: ['karachi', 'lahore', 'islamabad']
         },
-        //multiselect filters like key will col name and value will be in a array and we will use IN operator in Backend 
-        // 1 ref filter
-        multiselectFilters: (() => {
-          if (appliedFilters.ref && appliedFilters.ref.length > 0) {
-            return {
-              ref: appliedFilters.ref,
+          //multiselect filters like key will col name and value will be in a array and we will use IN operator in Backend 
+          // 1 ref filter
+          multiselectFilters: (() => {
+            const ms = {};
+            if (appliedFilters.ref?.length > 0) {
+              ms.ref = appliedFilters.ref;
             }
-          }
-          return {};
-        })(),
+            if (appliedFilters.appeal_id?.length > 0) {
+              ms.appeal_id = appliedFilters.appeal_id;
+            }
+            return ms;
+          })(),
         relationsFilters: relationsFiltersPayload,
-        hybrid_filters: [{
-          value: appliedFilters.amount,
-          operator: appliedFilters.price_operator,
-          column: 'amount',
-        }
-        ]
+        hybrid_filters: (() => {
+          const amount = appliedFilters.amount;
+          const operator = appliedFilters.price_operator;
+          if (
+            amount === '' ||
+            amount === null ||
+            amount === undefined ||
+            !operator
+          ) {
+            return [];
+          }
+          const num = Number(String(amount).replace(/,/g, ''));
+          if (!Number.isFinite(num)) return [];
+          return [{ value: num, operator, column: 'amount' }];
+        })(),
       };
 
 
       console.log("filterPayload", filterPayload);
       // return;
-
+      
       //  adding endpoint for testing 
       // const test  = await axiosInstance.get('/payfast');
       // console.log("test", test.data?.data);
       // return;
-      const response = await axiosInstance.post('/donations/search', filterPayload);
+      const response = await axiosInstance.post('/donations/search', filterPayload); 
       if (response.data.success) {
         setDonations(response.data.data || []);
         setTotalItems(response.data.pagination?.total || 0);
@@ -339,26 +406,26 @@ const OnlineDonationsList = () => {
     try {
       setGeneratingReport(true);
       setReportMessage({ type: '', text: '' });
-
+      
       const response = await axiosInstance.post('/donations-report/daily', {});
-
+      
       if (response.data.success) {
-        setReportMessage({
-          type: 'success',
-          text: 'Daily report generated and sent successfully via email!'
+        setReportMessage({ 
+          type: 'success', 
+          text: 'Daily report generated and sent successfully via email!' 
         });
         // Clear message after 5 seconds
         setTimeout(() => setReportMessage({ type: '', text: '' }), 5000);
       } else {
-        setReportMessage({
-          type: 'error',
-          text: response.data.message || 'Failed to generate daily report'
+        setReportMessage({ 
+          type: 'error', 
+          text: response.data.message || 'Failed to generate daily report' 
         });
       }
     } catch (err) {
-      setReportMessage({
-        type: 'error',
-        text: err.response?.data?.message || 'Failed to generate daily report'
+      setReportMessage({ 
+        type: 'error', 
+        text: err.response?.data?.message || 'Failed to generate daily report' 
       });
       console.error('Error generating daily report:', err);
     } finally {
@@ -370,25 +437,25 @@ const OnlineDonationsList = () => {
     try {
       setGeneratingReport(true);
       setReportMessage({ type: '', text: '' });
-
+      
       const response = await axiosInstance.post('/donations-report/weekly', {});
-
+      
       if (response.data.success) {
-        setReportMessage({
-          type: 'success',
-          text: 'Weekly report generated and sent successfully via email!'
+        setReportMessage({ 
+          type: 'success', 
+          text: 'Weekly report generated and sent successfully via email!' 
         });
         setTimeout(() => setReportMessage({ type: '', text: '' }), 5000);
       } else {
-        setReportMessage({
-          type: 'error',
-          text: response.data.message || 'Failed to generate weekly report'
+        setReportMessage({ 
+          type: 'error', 
+          text: response.data.message || 'Failed to generate weekly report' 
         });
       }
     } catch (err) {
-      setReportMessage({
-        type: 'error',
-        text: err.response?.data?.message || 'Failed to generate weekly report'
+      setReportMessage({ 
+        type: 'error', 
+        text: err.response?.data?.message || 'Failed to generate weekly report' 
       });
       console.error('Error generating weekly report:', err);
     } finally {
@@ -400,25 +467,25 @@ const OnlineDonationsList = () => {
     try {
       setGeneratingReport(true);
       setReportMessage({ type: '', text: '' });
-
+      
       const response = await axiosInstance.post('/donations-report/monthly', {});
-
+      
       if (response.data.success) {
-        setReportMessage({
-          type: 'success',
-          text: 'Monthly report generated and sent successfully via email!'
+        setReportMessage({ 
+          type: 'success', 
+          text: 'Monthly report generated and sent successfully via email!' 
         });
         setTimeout(() => setReportMessage({ type: '', text: '' }), 5000);
       } else {
-        setReportMessage({
-          type: 'error',
-          text: response.data.message || 'Failed to generate monthly report'
+        setReportMessage({ 
+          type: 'error', 
+          text: response.data.message || 'Failed to generate monthly report' 
         });
       }
     } catch (err) {
-      setReportMessage({
-        type: 'error',
-        text: err.response?.data?.message || 'Failed to generate monthly report'
+      setReportMessage({ 
+        type: 'error', 
+        text: err.response?.data?.message || 'Failed to generate monthly report' 
       });
       console.error('Error generating monthly report:', err);
     } finally {
@@ -428,9 +495,9 @@ const OnlineDonationsList = () => {
 
   const handleGenerateCustomReport = async () => {
     if (!customReportDates.startDate || !customReportDates.endDate) {
-      setReportMessage({
-        type: 'error',
-        text: 'Please select both start and end dates'
+      setReportMessage({ 
+        type: 'error', 
+        text: 'Please select both start and end dates' 
       });
       return;
     }
@@ -438,31 +505,31 @@ const OnlineDonationsList = () => {
     try {
       setGeneratingReport(true);
       setReportMessage({ type: '', text: '' });
-
+      
       const response = await axiosInstance.post('/donations-report/custom', {
         startDate: customReportDates.startDate,
         endDate: customReportDates.endDate,
         type: customReportDates.type
       });
-
+      
       if (response.data.success) {
-        setReportMessage({
-          type: 'success',
-          text: 'Custom report generated and sent successfully via email!'
+        setReportMessage({ 
+          type: 'success', 
+          text: 'Custom report generated and sent successfully via email!' 
         });
         setShowCustomReportModal(false);
         setCustomReportDates({ startDate: '', endDate: '', type: 'daily' });
         setTimeout(() => setReportMessage({ type: '', text: '' }), 5000);
       } else {
-        setReportMessage({
-          type: 'error',
-          text: response.data.message || 'Failed to generate custom report'
+        setReportMessage({ 
+          type: 'error', 
+          text: response.data.message || 'Failed to generate custom report' 
         });
       }
     } catch (err) {
-      setReportMessage({
-        type: 'error',
-        text: err.response?.data?.message || 'Failed to generate custom report'
+      setReportMessage({ 
+        type: 'error', 
+        text: err.response?.data?.message || 'Failed to generate custom report' 
       });
       console.error('Error generating custom report:', err);
     } finally {
@@ -485,7 +552,7 @@ const OnlineDonationsList = () => {
       'cancelled': { class: 'status-cancelled', text: 'Cancelled' },
       'registered': { class: 'status-registered', text: 'Registered' }
     };
-
+    
     const statusInfo = statusMap[status] || { class: 'status-pending', text: status };
     return <span className={`status-badge ${statusInfo.class}`}>{statusInfo.text}</span>;
   };
@@ -495,44 +562,36 @@ const OnlineDonationsList = () => {
       icon: <FiEye />,
       label: 'View',
       color: '#4CAF50',
-      onClick: () => navigate(`/donations/online_donations/view/${donation.id}`),
+      to: `/donations/online_donations/view/${donation.id}`,
       visible: true
     },
     {
       icon: <FiTrendingUp />,
       label: 'Tracking',
       color: '#7c3aed',
-      onClick: () => {
+      to: (() => {
         const t =
           (Array.isArray(donation?.progress_trackers) && donation.progress_trackers[0]) ||
           donation?.progress_tracker;
-        if (t?.id) navigate(`/progress/trackers/${t.id}/steps`);
-      },
+        return t?.id ? `/progress/trackers/${t.id}/steps` : undefined;
+      })(),
       visible: Boolean(
         (Array.isArray(donation?.progress_trackers) && donation.progress_trackers[0]?.id) ||
-        donation?.progress_tracker?.id,
+          donation?.progress_tracker?.id,
       ),
     },
     {
       icon: <FiEdit2 />,
       label: 'Edit',
       color: '#2196F3',
-      onClick: () =>
-        navigate(`/donations/online_donations/update/${donation.id}`, {
-          state: { fromList: location.pathname },
-        }),
+      to: `/donations/online_donations/update/${donation.id}`,
+      state: { fromList: location.pathname },
       visible: true
     },
-    // {
-    //   icon: <FiTrash2 />,
-    //   label: 'Delete',
-    //   color: '#f44336',
-    //   onClick: () => handleDeleteClick(donation),
-    //   visible: true
-    // }
   ];
 
   const sortOptions = [
+    { value: 'id', label: 'ID' },
     { value: 'created_at', label: 'Created Date' },
     { value: 'date', label: 'Donation Date' },
     { value: 'amount', label: 'Amount' },
@@ -555,17 +614,35 @@ const OnlineDonationsList = () => {
     { value: 'MTJ-1234567890', label: 'MTJ-1234567890' },
     { value: 'MTJ-1234567891', label: 'MTJ-1234567891' },
   ];
+
+  const appealFilterOptions = useMemo(() => {
+    const fromApi = filterLookupData.appeals || [];
+    return [{ value: '__none__', label: 'No appeal linked' }, ...fromApi];
+  }, [filterLookupData.appeals]);
   const donationTypeOptions = [
     { value: 'zakat', label: 'Zakat' },
     { value: 'sadqa', label: 'Sadqa' },
     { value: 'general', label: 'General' }
   ];
 
-  const donationMethodOptions = [
-    { value: 'meezan', label: 'Meezan Bank' },
-    { value: 'blinq', label: 'Blinq' },
-    { value: 'payfast', label: 'Payfast' }
-  ];
+  const donationMethodOptions = useMemo(() => {
+    if (isOfflineRoute) {
+      return [
+        { value: 'cash', label: 'Cash' },
+        { value: 'cheque', label: 'Cheque' },
+        { value: 'bank_transfer', label: 'Bank Transfer' },
+        { value: 'credit_card', label: 'Credit Card' },
+        { value: 'online', label: 'Online' },
+        { value: 'in_kind', label: 'In Kind' },
+        { value: 'reconciliation', label: 'Reconciliation' },
+      ];
+    }
+    return [
+      { value: 'meezan', label: 'Meezan Bank' },
+      { value: 'blinq', label: 'Blinq' },
+      { value: 'payfast', label: 'Payfast' },
+    ];
+  }, [isOfflineRoute]);
 
   const donationSourceOptions = [
     { value: 'website', label: 'Website' },
@@ -576,16 +653,13 @@ const OnlineDonationsList = () => {
     { value: 'event', label: 'Event' },
     { value: 'referral', label: 'Referral' },
     { value: 'collection_box', label: 'Collection Box' },
-    { value: 'bank', label: 'Bank' }
+    {value:'bank', label:'Bank'}
   ];
 
   const workflowTemplateOptions = useMemo(() => {
-    const opts = (workflowTemplates || []).map((t) => ({
-      value: String(t.id),
-      label: t.name || t.code || String(t.id),
-    }));
+    const opts = filterLookupData.workflow_templates || [];
     return [{ value: '', label: 'All Templates' }, ...opts];
-  }, [workflowTemplates]);
+  }, [filterLookupData.workflow_templates]);
 
   const priceRangeOptions = [
     { value: '', label: 'Any Amount' },
@@ -635,7 +709,7 @@ const OnlineDonationsList = () => {
       const donorName = donation.donor?.name || donation.donor_name || 'Anonymous';
       const donorEmail = donation.donor?.email || donation.donor_email || '-';
       const donorPhone = donation.donor?.phone || donation.donor_phone || '-';
-
+      
       return {
         ...donation,
         // Flatten donor data for CSV
@@ -648,9 +722,9 @@ const OnlineDonationsList = () => {
         donor_phone: donorPhone,
         amount: donation.amount ? parseFloat(donation.amount) : 0,
         currency: donation.currency || 'PKR',
-        donation_type: donation.donation_type === 'zakat' ? 'Zakat' :
-          donation.donation_type === 'sadqa' ? 'Sadqa' :
-            donation.donation_type || 'General',
+        donation_type: donation.donation_type === 'zakat' ? 'Zakat' : 
+        donation.donation_type === 'sadqa' ? 'Sadqa' : 
+        donation.donation_type || 'General',
         donation_method: donation.donation_method?.toUpperCase() || 'N/A',
         status: donation.status || 'pending',
         item_name: donation.item_name || '-',
@@ -675,8 +749,10 @@ const OnlineDonationsList = () => {
         <Navbar />
         <div className="list-wrapper">
           <PageHeader
-            title="Donations Listing"
-            showBackButton={false}
+          onRefresh={fetchDonations}
+          refreshing={loading} 
+            title="Donations Listing" 
+            showBackButton={false} 
             showAdd={true}
             addPath=''
           />
@@ -691,16 +767,31 @@ const OnlineDonationsList = () => {
       <Navbar />
       <div className="list-wrapper">
         <PageHeader
-          title="Donations Listing"
-          showBackButton={urlDonorId ? true : false}
+          onRefresh={fetchDonations}
+          refreshing={loading} 
+          title={
+            isDonorDonationsRoute || urlDonorId
+              ? 'Donor Donations'
+              : isOfflineRoute
+                ? 'Offline Donations'
+                : 'Donations Listing'
+          }
+          showBackButton={urlDonorId ? true :false} 
           backPath={urlDonorId ? `/dms/donors/view/${urlDonorId}` : null}
+          showFilterToggle
+          filtersOpen={filtersOpen}
+          onFilterToggle={toggleFilters}
           showAdd={true}
-          addPath='/donations/online_donations/add'
+          addPath={
+            urlDonorId
+              ? `/donations/online_donations/add?donor_id=${urlDonorId}`
+              : '/donations/online_donations/add'
+          }
         />
-
+        
         <div className="list-content">
           {error && <div className="status-message status-message--error">{error}</div>}
-
+          
 
 
           {/* Report Message */}
@@ -709,16 +800,10 @@ const OnlineDonationsList = () => {
               {reportMessage.text}
             </div>
           )}
-
+          
           {/* Filters Section */}
-          <div className="filters-section" style={{
-            display: 'flex',
-            gap: '20px',
-            flexWrap: 'wrap',
-            padding: '20px',
-            backgroundColor: '#f9fafb',
-            borderRadius: '8px'
-          }}>
+          <CollapsibleFilters open={filtersOpen}>
+          <div className="filters-section">
             {/* Only show Search filter if not filtered via URL query param */}
             {!urlDonorId && (
               <SearchFilter
@@ -729,7 +814,7 @@ const OnlineDonationsList = () => {
                 placeholder="Search by donor name, email, phone..."
               />
             )}
-
+            
             <DropdownFilter
               filterKey="status"
               label="Status"
@@ -758,7 +843,15 @@ const OnlineDonationsList = () => {
               placeholder="Select Campaigns"
             />
 
-
+            <MultiSelect
+              name="appeal_id"
+              label="Appeal"
+              options={appealFilterOptions}
+              value={tempFilters.appeal_id}
+              onChange={(value) => handleFilterChange('appeal_id', value)}
+              placeholder="Select appeals"
+            />
+            
             <DropdownFilter
               filterKey="donation_type"
               label="Donation Type"
@@ -767,7 +860,7 @@ const OnlineDonationsList = () => {
               onFilterChange={handleFilterChange}
               placeholder="All Types"
             />
-
+            
             <DropdownFilter
               filterKey="donation_method"
               label="Payment Method"
@@ -794,26 +887,25 @@ const OnlineDonationsList = () => {
               onFilterChange={handleFilterChange}
               placeholder="All Templates"
             />
-
-            {/* <HybridDropdown
+            
+            <HybridDropdown
               label="Amount"
               placeholder="Type or select amount..."
               options={priceRangeOptions}
               value={tempFilters.amount}
               onChange={(value) => handleFilterChange('amount', value)}
               allowCustom={true}
-            /> */}
+            />
 
-            {/* Custom plus specified options */}
-            {/* <HybridDropdown
+            <DropdownFilter
+              filterKey="price_operator"
               label="Amount Operator"
-              placeholder="Type or select operator..."
-              options={priceOperatorOptions}
-              value={tempFilters.price_operator}
-              onChange={(value) => handleFilterChange('price_operator', value)}
-              allowCustom={true}
-            /> */}
-
+              data={priceOperatorOptions}
+              filters={tempFilters}
+              onFilterChange={handleFilterChange}
+              placeholder="Select operator"
+            />
+            
             <DateFilter
               filterKey="date"
               label="Specific Date"
@@ -829,7 +921,7 @@ const OnlineDonationsList = () => {
               onFilterChange={handleFilterChange}
               placeholder="Enter transaction ID..."
             />
-
+            
             <DateRangeFilter
               startKey="start_date"
               endKey="end_date"
@@ -837,7 +929,7 @@ const OnlineDonationsList = () => {
               filters={tempFilters}
               onFilterChange={handleFilterChange}
             />
-
+            
             {/* Only show Filter by Donor dropdown if not filtered via URL query param */}
             {!urlDonorId && (
               <SearchableDropdown
@@ -852,11 +944,11 @@ const OnlineDonationsList = () => {
                 minSearchLength={2}
                 allowResearch={true}
                 renderOption={(donor, index) => (
-                  <div
+                  <div 
                     key={donor.id}
                     className="searchable-dropdown__option"
                     onClick={() => handleDonorSelect(donor)}
-                    style={{
+                    style={{ 
                       padding: '12px',
                       borderBottom: index < donor.length - 1 ? '1px solid #eee' : 'none',
                       cursor: 'pointer'
@@ -872,11 +964,11 @@ const OnlineDonationsList = () => {
                 )}
               />
             )}
-
+            
             {/* Filter Action Buttons */}
-            <div style={{
-              display: 'flex',
-              gap: '10px',
+            <div style={{ 
+              display: 'flex', 
+              gap: '10px', 
               alignItems: 'flex-end',
               marginTop: '20px',
               width: '100%',
@@ -893,19 +985,43 @@ const OnlineDonationsList = () => {
               />
             </div>
           </div>
-          {/* <FiDollarSign style={{ fontSize: '20px', color: '#28a745' }} /> */}
-          <div style={{ marginLeft: '10px' }}>
-            <div style={{ fontSize: '14px', color: '#6c757d', marginBottom: '2px', marginLeft: '10px' }}>
-              Total Donation Amount
+          </CollapsibleFilters>
+           <div style={{marginLeft: '10px'}}>
+                <div style={{ fontSize: '14px', color: '#6c757d', marginBottom: '2px' , marginLeft: '10px'}}>
+                  Total Donation Amount
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>
+                  PKR {totalDonationAmount.toLocaleString()}
+                </div>
+              </div>
+          {selectedCount > 0 && (
+            <div className="list-selection-bar">
+              <span className="list-selection-bar__count">
+                {selectedCount} donation{selectedCount === 1 ? '' : 's'} selected
+              </span>
+              <button
+                type="button"
+                className="list-selection-bar__clear"
+                onClick={clearSelection}
+              >
+                Clear selection
+              </button>
             </div>
-            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>
-              PKR {totalDonationAmount.toLocaleString()}
-            </div>
-          </div>
-          <div className="table-container">
+          )}
+          <div className="table-container"> 
             <table className="data-table">
               <thead>
                 <tr>
+                  <th className="table-select-col">
+                    <input
+                      ref={headerCheckboxRef}
+                      type="checkbox"
+                      checked={allOnPageSelected}
+                      onChange={toggleAllOnPage}
+                      disabled={donations.length === 0}
+                      aria-label="Select all donations on this page"
+                    />
+                  </th>
                   <th>Donor </th>
                   <th>Amount</th>
                   {/* <th>Type</th> */}
@@ -920,11 +1036,32 @@ const OnlineDonationsList = () => {
                 </tr>
               </thead>
               <tbody>
-                {donations.map(donation => (
-                  <tr key={donation.id}>
+                {donations.length === 0 ? (
+                  <tr>
+                    <td colSpan="10" className="no-data">
+                      No donations found
+                    </td>
+                  </tr>
+                ) : (
+                  donations.map(donation => (
+                  <tr key={donation.id} className={isSelected(donation.id) ? 'row-selected' : ''}>
+                    <td className="table-select-col">
+                      <input
+                        type="checkbox"
+                        checked={isSelected(donation.id)}
+                        onChange={() => toggleOne(donation.id)}
+                        aria-label={`Select donation ${donation.id}`}
+                      />
+                    </td>
                     <td>
                       <div className="donor-info">
-                        <div className="donor-name">{donation?.donor?.name?.slice(0, 15) + '...' || 'Anonymous'}</div>
+                        <Link
+                          to={`/donations/online_donations/view/${donation.id}`}
+                          className="donor-name"
+                          style={{ color: 'inherit', textDecoration: 'inherit' }}
+                        >
+                          {donation?.donor?.name?.slice(0, 15) + '...' || 'Anonymous'}
+                        </Link>
                         {donation.item_name && (
                           <div className="donor-item hide-on-mobile">{donation.item_name?.slice(0, 15) + '...'}</div>
                         )}
@@ -932,7 +1069,10 @@ const OnlineDonationsList = () => {
                     </td>
                     <td>
                       <div className="amount-info">
-                        <div className="amount-value">{formatAmount(donation.amount, donation.currency)}</div>
+                        <div className="amount-value">
+                          {formatAmount(donation.amount, donation.currency)}
+                          <OfflinePendingBadge show={donation._pending_sync} />
+                        </div>
                         {donation.item_price && (
                           <div className="item-price hide-on-mobile">
                             Item: {formatAmount(donation.item_price, donation.currency)}
@@ -966,14 +1106,15 @@ const OnlineDonationsList = () => {
                       <ActionMenu actions={getActionMenuItems(donation)} />
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-
-          <div className="list-header" style={{
-            display: 'flex',
-            justifyContent: 'space-between',
+          
+          <div className="list-header" style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
             alignItems: 'center',
             marginTop: '20px',
             padding: '15px 0'
@@ -989,7 +1130,7 @@ const OnlineDonationsList = () => {
             }}>
 
             </div>
-
+            
             {/* <DownloadCSV
               data={prepareCSVData()}
               filename={getCSVFilename()}
@@ -999,7 +1140,7 @@ const OnlineDonationsList = () => {
               onDownloadComplete={() => console.log('Download complete!')}
             /> */}
           </div>
-
+          
           {totalItems > 0 && (
             <Pagination
               currentPage={currentPage}
@@ -1014,7 +1155,7 @@ const OnlineDonationsList = () => {
               sortOptions={sortOptions}
             />
           )}
-
+          
           {donations.length === 0 && totalItems === 0 && (
             <div className="empty-state">
               <div className="empty-state-icon">💰</div>
@@ -1024,7 +1165,7 @@ const OnlineDonationsList = () => {
           )}
         </div>
       </div>
-
+      
       <ConfirmationModal
         isOpen={showDeleteModal}
         text={`Are you sure you want to delete the donation from ${donationToDelete?.donor?.name || 'Anonymous'}?`}
@@ -1058,7 +1199,7 @@ const OnlineDonationsList = () => {
             <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#2c5aa0' }}>
               Generate Custom Report
             </h2>
-
+            
             <div style={{ marginBottom: '15px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                 Start Date
@@ -1076,7 +1217,7 @@ const OnlineDonationsList = () => {
                 }}
               />
             </div>
-
+            
             <div style={{ marginBottom: '15px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                 End Date
@@ -1094,7 +1235,7 @@ const OnlineDonationsList = () => {
                 }}
               />
             </div>
-
+            
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                 Report Type
@@ -1115,7 +1256,7 @@ const OnlineDonationsList = () => {
                 <option value="monthly">Monthly</option>
               </select>
             </div>
-
+            
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => {

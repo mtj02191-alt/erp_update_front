@@ -35,7 +35,7 @@
   font-size: 14px;
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: 6px;
-  background-color: white;
+  background-color: var(--color-bg-primary);
   color: var(--color-text);
   transition: all 0.2s ease;
   cursor: pointer;
@@ -52,7 +52,7 @@
 }
 
 .date-filter-input:disabled {
-  background-color: #f3f4f6;
+  background-color: var(--color-bg-tertiary);
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -77,7 +77,7 @@
 }
 
 .date-filter-clear:hover {
-  background-color: #f3f4f6;
+  background-color: var(--color-bg-tertiary);
   color: #ef4444;
 }
 

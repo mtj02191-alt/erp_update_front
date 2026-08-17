@@ -10,6 +10,7 @@ import {
   FiPlusCircle,
   FiClipboard,
   FiCheckSquare,
+  FiCheckCircle,
   FiList,
   FiBarChart2,
   FiFileText,
@@ -39,11 +40,15 @@ import {
   FiCalendar,
   FiFlag,
   FiPackage,
-  FiCreditCard,
   FiAlertCircle,
   FiBookmark,
-  FiCoffee
+  FiRepeat,
+  FiRefreshCw,
+  FiMessageSquare,
+  FiSend,
+  FiCoffee,
 } from 'react-icons/fi';
+import { BiSolidDonateHeart } from 'react-icons/bi';
 import { departments } from '../../../utils/admin';
 
 const TASK_MODULE_KEYS = new Set(['tasks', 'tasking']);
@@ -102,7 +107,7 @@ const buildUnifiedTaskingGroup = (user, permissions) => {
 /** Super admin: single Tasks section (flat `/tasks/...` routes). */
 const buildSuperAdminTaskingGroup = () => ({
   id: 'tasking_global',
-  label: 'Tasks',
+  label: 'Tasking',
   icon: FiCheckSquare,
   items: [
     {
@@ -331,27 +336,6 @@ const procurementsDepartmentItems = (isUser = false) => [
   }
 ];
 
-const accountsFinanceDepartmentItems = (isUser = false) => [
-  {
-    label: 'Tasking',
-    path: '/tasks/list',
-    type: 'list',
-    module: 'tasks',
-    icon: FiCheckSquare,
-    subItems:[
-      {label:'Tasking List',path:'/tasks/list',type:'list',module:'tasks', icon: FiList},
-      {label:'Tasking Dashboard',path:'/tasks/dashboard',type:'list',module:'tasks', icon: FiBarChart2}
-    ]
-  },
-  {
-    label: 'Reports',
-    path: '/accounts_and_finance/reports/list',
-    type: 'list',
-    module: 'reports',
-    icon: FiDollarSign
-  }
-];
-
 const adminDepartmentItems = () => [
   {
     label: 'User Management',
@@ -381,41 +365,12 @@ const adminDepartmentItems = () => [
     module: 'program_admin',
     icon: FiLayers,
     subItems: [
-      { label: 'Program Dashboard', path: '/program', type: 'list', icon: FiHome },
       { label: 'Progress Tracking (Trackers)', path: '/progress/trackers', type: 'list', icon: FiTrendingUp },
       { label: 'Progress Tracking (Create Tracker)', path: '/progress/trackers/add', type: 'create', icon: FiPlusCircle },
       { label: 'Progress Tracking (Templates)', path: '/progress/templates', type: 'list', icon: FiLayers },
       { label: 'Progress Tracking (Create Template)', path: '/progress/templates/add', type: 'create', icon: FiPlusCircle },
-      {label: "Application Reports", path: "/program/applications_reports", type: "list", icon: FiFileText},
-      {label: "ration_report", path: "/program/ration_report/list", type: "list", icon: FiBox},
-      {label: "marriage_gifts", path: "/program/marriage_gifts/reports/list", type: "list", icon: FiGift},
-      {label: "financial_assistance", path: "/program/financial_assistance/reports/list", type: "list", icon: FiDollarSign},
-      {label: "sewing_machine", path: "/program/sewing_machine/reports/list", type: "list", icon: FiSettings},
-      {label: "wheel_chair_or_crutches", path: "/program/wheel_chair_or_crutches/reports/list", type: "list", icon: FiLifeBuoy},
-      {label: "health", path: "/program/health/reports/list", type: "list", icon: FiHeart},
-      {label: "water", path: "/program/water/reports/list", type: "list", icon: FiDroplet},
-      {label: "kasb", path: "/program/kasb/reports/list", type: "list", icon: FiBriefcase},
-      {label: "kasb_training", path: "/program/kasb-training/reports", type: "list", icon: FiBookOpen},
-      {label: "education", path: "/program/education/reports/list", type: "list", icon: FiBook},
-      {label: "tree_plantation", path: "/program/tree_plantation/reports/list", type: "list", icon: FiFeather},
-      {label: "area_ration", path: "/program/area_ration/reports/list", type: "list", icon: FiMapPin},
-      {label: "targets", path: "/program/targets/reports/list", type: "list", icon: FiTarget},
-      {label: "AAS Collection Centers", path: "/program/aas_collection_centers_reports", type: "list", icon: FiFileText},
-      {label: "Al Hasanain CLG", path: "/program/al_hasanain_clg", type: "list", icon: FiBook},
-      {label: "programs", path: "/program/programs", type: "list", icon: FiGrid},
-      {label: "Dream Schools", path: "/program/dream_schools", type: "list", icon: FiBookmark},
-      {label: "Dream School Reports", path: "/program/dream_school_reports", type: "list", icon: FiFileText},
-      {label: "subprograms", path: "/program/subprograms", type: "list", icon: FiList}
-    ]
-  },
-  {
-    label: 'Store',
-    path: '/store',
-    type: 'list',
-    module: 'store_admin',
-    icon: FiArchive,
-    subItems: [
-      {label: "store_reports", path: "/store/reports/list", type: "list", icon: FiBarChart2}
+      {label: "Programs", path: "/program/programs", type: "list", icon: FiGrid},
+      {label: "Subprograms", path: "/program/subprograms", type: "list", icon: FiList}
     ]
   },
   {
@@ -425,14 +380,25 @@ const adminDepartmentItems = () => [
     module: 'fund_raising_admin',
     icon: FiHeart,
     subItems: [ 
-      {label: "donations", path: "/donations/online_donations/list", type: "list", icon: FiCreditCard},
-      {label: "donation_box", path: "/dms/donation_box/list", type: "list", icon: FiBox},
-      {label: "donation_box_donations", path: "/dms/donation-box-donations/list", type: "list", icon: FiPackage},
-      {label: "Donor", path: "/dms/donors/list", type: "list", icon: FiUsers},
-      {label: "volunteers", path: "/dms/volunteers/list", type: "list", icon: FiUserPlus},
-      {label: "surveys", path: "/dms/surveys/list", type: "list", icon: FiClipboard},
-      {label: "events", path: "/dms/events/list", type: "list", icon: FiCalendar},
-      {label: "campaigns", path: "/dms/campaigns/list", type: "list", icon: FiFlag}
+      {label: "Donations", path: "/donations/online_donations/list", type: "list", icon: BiSolidDonateHeart},
+      {label: "Recurring Donations", path: "/dms/recurring-donations/list", type: "list", module: "recurring_donations", icon: FiRepeat},
+      {label: "Recurring Donors", path: "/dms/recurring-donors/list", type: "list", icon: FiRepeat},
+      {label: "Donation Boxes", path: "/dms/donation_box/list", type: "list", icon: FiBox},
+      {label: "Donation Box Donations", path: "/dms/donation-box-donations/list", type: "list", icon: FiPackage},
+      {label: "My To-Dos", path: "/dms/todos", type: "list", module: "dms_todos", icon: FiCheckSquare},
+      {label: "Donors", path: "/dms/donors/list", type: "list", icon: FiUsers},
+      // Enable later — Beneficiary Aid Applications (Phase 1)
+      // {label: "Aid Applications", path: "/dms/aid/applications/list", type: "list", module: "aid_applications", icon: FiLifeBuoy},
+      // {label: "Aid People", path: "/dms/aid/people/list", type: "list", module: "aid_people", icon: FiUsers},
+      {label: "Organizations", path: "/dms/organizations/list", type: "list", module: "organizations", icon: FiBriefcase},
+      {label: "Volunteers", path: "/dms/volunteers/list", type: "list", icon: FiUserPlus},
+      // {label: "Surveys", path: "/dms/surveys/list", type: "list", icon: FiClipboard},
+      // {label: "Events", path: "/dms/events/list", type: "list", icon: FiCalendar},
+      // {label: "Campaigns", path: "/dms/campaigns/list", type: "list", icon: FiFlag},
+      // {label: "Appeals", path: "/dms/appeals/list", type: "list", icon: FiAlertCircle},
+      // {label: "Social Media", path: "/dms/social-posts/list", type: "list", icon: FiFileText},
+      {label: "Reconciliation", path: "/dms/reconciliation/list", type: "list", icon: FiRefreshCw},
+      {label: "Donor Relationship", path: "/dms/donor-relationship/follow-ups", type: "list", icon: FiUsers}
     ]
   },
   {
@@ -451,53 +417,13 @@ const adminDepartmentItems = () => [
     ]
   },
   {
-    label: 'Procurements',
-    path: '/procurements',
-    type: 'list',
-    module: 'procurements_admin',
-    icon: FiShoppingCart,
-    subItems: [
-      {label: "procurements_reports", path: "/procurements/reports/list", type: "list", icon: FiBarChart2}
-    ]
-  },
-  {
-    label: 'Accounts & Finance',
-    path: '/accounts_and_finance',
-    type: 'list',
-    module: 'accounts_finance_admin',
-    icon: FiDollarSign,
-    subItems: [
-      {label: "accounts_and_finance_reports", path: "/accounts_and_finance/reports/list", type: "list", icon: FiBarChart2}
-    ]
-  },
-  {
-    label: 'IT',
-    path: '/it',
-    type: 'list',
-    module: 'it_admin',
-    icon: FiCpu,
-    subItems: [
-      {label: "it_reports", path: "/it/reports/list", type: "list", icon: FiBarChart2}
-    ]
-  },
-  {
     label: 'Marketing',
     path: '/marketing',
     type: 'list',
     module: 'marketing_admin',
     icon: FiTrendingUp,
     subItems: [
-      {label: "marketing_reports", path: "/marketing/reports/list", type: "list", icon: FiBarChart2}
-    ]
-  },
-  {
-    label: 'Audio Video',
-    path: '/audio_video',
-    type: 'list',
-    module: 'audio_video_admin',
-    icon: FiVideo,
-    subItems: [
-      {label: "audio_video_reports", path: "/audio_video/reports/list", type: "list", icon: FiBarChart2}
+      {label: "Marketing Reports", path: "/marketing/reports/list", type: "list", icon: FiBarChart2}
     ]
   },
   {
@@ -508,37 +434,10 @@ const adminDepartmentItems = () => [
     icon: FiUserCheck,
     subItems: [
       { label: 'Jobs', path: '/hr/careers/jobs/list', type: 'list', icon: FiBriefcase },
-      { label: 'Applications', path: '/hr/career/applications/list', type: 'list', icon: FiFileText }
+      { label: 'Applications', path: '/hr/career/applications/list', type: 'list', icon: FiFileText },
+      { label: 'Resume Collection', path: '/hr/resume-collection/list', type: 'list', icon: FiFileText }
     ]
   },
-  {
-    label: 'Programs',
-    path: '/program/programs',
-    type: 'list',
-    module: 'programs',
-    icon: FiGrid
-  },
-  {
-    label: 'Dream Schools',
-    path: '/program/dream_schools',
-    type: 'list',
-    module: 'programs',
-    icon: FiBookmark
-  },
-  {
-    label: 'Dream School Reports',
-    path: '/program/dream_school_reports',
-    type: 'list',
-    module: 'programs',
-    icon: FiFileText
-  },
-  {
-    label: 'Subprograms',
-    path: '/program/subprograms',
-    type: 'list',
-    module: 'subprograms',
-    icon: FiList
-  }
 ];
 
 const hrDepartmentItems = (isUser = false) => [
@@ -555,6 +454,17 @@ const hrDepartmentItems = (isUser = false) => [
     type: 'list',
     module: 'applications',
     icon: FiFileText
+  },
+  {
+    label: 'Resume Collection',
+    path: '/hr/resume-collection/list',
+    type: 'list',
+    module: 'resume_collection',
+    icon: FiFileText,
+    subItems: [
+      { label: 'Collection List', path: '/hr/resume-collection/list', type: 'list', icon: FiList },
+      { label: 'Upload Resume', path: '/hr/resume-collection/add', type: 'list', icon: FiPlusCircle }
+    ]
   },
   {
     label: 'Tasking',
@@ -580,21 +490,36 @@ const hrDepartmentItems = (isUser = false) => [
 ];
 
 const geographicItems = (isUser = false) => [
-  { label: 'Countries', path: '/dms/geographic/countries/list', type: 'list', module: 'geographic_countries', icon: FiGlobe },
-  { label: 'Regions', path: '/dms/geographic/regions/list', type: 'list', module: 'geographic_regions', icon: FiMap },
-  { label: 'Districts', path: '/dms/geographic/districts/list', type: 'list', module: 'geographic_districts', icon: FiMap },
-  { label: 'Tehsils', path: '/dms/geographic/tehsils/list', type: 'list', module: 'geographic_tehsils', icon: FiMap },
-  { label: 'Cities', path: '/dms/geographic/cities/list', type: 'list', module: 'geographic_cities', icon: FiMapPin },
-  { label: 'Routes', path: '/dms/geographic/routes/list', type: 'list', module: 'geographic_routes', icon: FiNavigation }
+  { label: 'Countries', path: '/dms/geographic/countries/list', type: 'list', module: 'countries', icon: FiGlobe },
+  { label: 'Regions', path: '/dms/geographic/regions/list', type: 'list', module: 'regions', icon: FiMap },
+  { label: 'Districts', path: '/dms/geographic/districts/list', type: 'list', module: 'districts', icon: FiMap },
+  { label: 'Tehsils', path: '/dms/geographic/tehsils/list', type: 'list', module: 'tehsils', icon: FiMap },
+  { label: 'Cities', path: '/dms/geographic/cities/list', type: 'list', module: 'cities', icon: FiMapPin },
+  { label: 'Routes', path: '/dms/geographic/routes/list', type: 'list', module: 'routes', icon: FiNavigation }
 ];
 
 const fundRaisingDepartmentItems = (isUser = false) => [
+  // Enable later — Beneficiary Aid Applications (Phase 1)
+  // {
+  //   label: 'Aid Applications',
+  //   path: '/dms/aid/applications/list',
+  //   type: 'list',
+  //   module: 'aid_applications',
+  //   icon: FiLifeBuoy
+  // },
+  // {
+  //   label: 'Aid People',
+  //   path: '/dms/aid/people/list',
+  //   type: 'list',
+  //   module: 'aid_people',
+  //   icon: FiUsers
+  // },
   {
     label: 'Donations',
     path: '/donations/online_donations/list',
     type: 'list',
     module: 'online_donations',
-    icon: FiCreditCard
+    icon: BiSolidDonateHeart
   },
   // {
   //   label: 'Offline Donations',
@@ -624,33 +549,105 @@ const fundRaisingDepartmentItems = (isUser = false) => [
     icon: FiPackage
   },
   {
+    label: 'Organizations',
+    path: '/dms/organizations/list',
+    type: 'list',
+    module: 'organizations',
+    icon: FiBriefcase
+  },
+  {
+    label: 'My To-Dos',
+    path: '/dms/todos',
+    type: 'list',
+    module: 'dms_todos',
+    icon: FiCheckSquare
+  },
+  {
     label: 'Volunteers',
     path: '/dms/volunteers/list',
     type: 'list',
     module: 'volunteers',
     icon: FiUserPlus
   },
+  // {
+  //   label: 'Surveys',
+  //   path: '/dms/surveys/list',
+  //   type: 'list',
+  //   module: 'surveys',
+  //   icon: FiClipboard
+  // },
+  // {
+  //   label: 'Events',
+  //   path: '/dms/events/list',
+  //   type: 'list',
+  //   module: 'events',
+  //   icon: FiCalendar
+  // },
+  // {
+  //   label: 'Campaigns',
+  //   path: '/dms/campaigns/list',
+  //   type: 'list',
+  //   module: 'campaigns',
+  //   icon: FiFlag
+  // },
+  // {
+  //   label: 'Appeals',
+  //   path: '/dms/appeals/list',
+  //   type: 'list',
+  //   module: 'appeals',
+  //   icon: FiAlertCircle
+  // },
+  // {
+  //   label: 'Social Media',
+  //   path: '/dms/social-posts/list',
+  //   type: 'list',
+  //   module: 'social_posts',
+  //   icon: FiFileText
+  // },
   {
-    label: 'Surveys',
-    path: '/dms/surveys/list',
+    label: 'Recurring Donations',
+    path: '/dms/recurring-donations/list',
     type: 'list',
-    module: 'surveys',
-    icon: FiClipboard
+    module: 'recurring_donations',
+    icon: FiRepeat
   },
   {
-    label: 'Events',
-    path: '/dms/events/list',
+    label: 'Reconciliation',
+    path: '/dms/reconciliation/list',
     type: 'list',
-    module: 'events',
-    icon: FiCalendar
+    module: 'reconciliation',
+    icon: FiRefreshCw
   },
   {
-    label: 'Campaigns',
-    path: '/dms/campaigns/list',
+    label: 'Donor Relationship',
+    path: '/dms/donor-relationship/follow-ups',
     type: 'list',
-    module: 'campaigns',
-    icon: FiFlag
+    module: 'donor_relationship',
+    icon: FiUsers,
+    subItems: [
+      { label: 'Follow Ups & Interactions', path: '/dms/donor-relationship/follow-ups', type: 'list', icon: FiList },
+      { label: 'Add Interaction', path: '/dms/donor-relationship/add', type: 'list', icon: FiPlusCircle },
+      { label: 'Management Overview', path: '/dms/donor-relationship/overview', type: 'list', icon: FiBarChart2 },
+    ],
   },
+  // {
+  //   label: 'Allotment Approvals',
+  //   path: '/donations/allotments/pending',
+  //   type: 'list',
+  //   module: 'donation_allotments',
+  //   icon: FiCheckCircle,
+  // },
+  // {
+  //   label: 'Receipt Templates',
+  //   path: '/dms/receipt_templates/list',
+  //   type: 'list',
+  //   module: 'receipt_templates',
+  //   icon: FiFileText,
+  //   subItems: [
+  //     { label: 'Templates List', path: '/dms/receipt_templates/list', type: 'list', icon: FiList },
+  //     { label: 'Add Template', path: '/dms/receipt_templates/add', type: 'list', icon: FiPlusCircle }
+  //   ]
+  // },
   // {
   //   label: 'Reports',
   //   path: '/dms/reports/create',
@@ -744,78 +741,48 @@ const marketingDepartmentItems = () => [
   // }
 ];
 
-// Audio Video department menu
-const audioVideoDepartmentItems = () => [
-  {
-    label: 'Tasking',
-    path: '/tasks/list',
-    type: 'list',
-    module: 'tasks',
-    icon: FiCheckSquare,
-    subItems: [
-      { label: 'Tasking List', path: '/tasks/list', type: 'list', module: 'tasks', icon: FiList },
-      { label: 'Tasking Dashboard', path: '/tasks/dashboard', type: 'list', module: 'tasks', icon: FiBarChart2 }
-    ]
-  },
-  // {
-  //   label: 'Complaints',
-  //   path: '/audio_video/complaints/list',
-  //   type: 'list',
-  //   module: 'complaints',
-  //   subItems: [
-  //     { label: 'Complaints List', path: '/audio_video/complaints/list', type: 'list', module: 'complaints' },
-  //     { label: 'Complaints Dashboard', path: '/audio_video/complaints/reports', type: 'list', module: 'complaints' }
-  //   ]
-  // }
-];
-
 // Email Templates module items
-const ceoOfficeItems = () => [
-  {
-    label: 'CEO Dashboard',
-    path: '/ceo-office/dashboard',
-    type: 'list',
-    module: 'ceo_office',
-    icon: FiCoffee
-  },
-  // {
-  //   label: 'Quick CEO Note',
-  //   path: '/ceo-office/quick-note',
-  //   type: 'create',
-  //   module: 'ceo_office',
-  //   icon: FiPlusCircle
-  // },
-  {
-    label: 'Instruction Register',
-    path: '/ceo-office/instruction-register',
-    type: 'list',
-    module: 'ceo_office',
-    icon: FiList
-  },
-];
-
 const emailTemplatesItems = () => [
   {
-    label: 'Email Templates',
+    label: 'Templates',
     path: '/dms/email_templates/list',
     type: 'list',
     module: 'email_templates',
     icon: FiMail,
     subItems: [
       { label: 'Templates List', path: '/dms/email_templates/list', type: 'list', icon: FiList },
-      { label: 'Add Template', path: '/dms/email_templates/add', type: 'list', icon: FiPlusCircle }
+      { label: 'Create Template', path: '/dms/email_templates/add', type: 'list', icon: FiPlusCircle },
+      { label: 'Send Communication', path: '/dms/email_templates/send', type: 'list', icon: FiSend },
+      { label: 'Send History', path: '/dms/email_templates/batches?source=communication', type: 'list', icon: FiFileText },
     ]
+  },
+  {
+    label: 'Email Checklist',
+    path: '/email-checklist',
+    type: 'list',
+    module: 'email_checklist',
+    icon: FiCheckSquare,
   }
+];
+const ceoOfficeItems = () => [
+  {
+    label: 'CEO Dashboard',
+    path: '/ceo-office/dashboard',
+    type: 'list',
+    module: 'dashboard',
+    icon: FiCoffee
+  },
+  {
+    label: 'Instruction Register',
+    path: '/ceo-office/instruction-register',
+    type: 'list',
+    module: 'instruction_register',
+    icon: FiList
+  },
 ];
 
 // All department items for permission-based access
 const allDepartmentItems = (isUser = false) => [
-  {
-    id: 'ceo_office',
-    label: 'CEO Office',
-    icon: FiCoffee,
-    items: ceoOfficeItems()
-  },
   {
     id: 'program',
     label: 'Program Department',
@@ -823,27 +790,33 @@ const allDepartmentItems = (isUser = false) => [
     items: programDepartmentItems(isUser)
   },
   {
-    id: 'store',
-    label: 'Store Department',
-    icon: FiArchive,
-    items: storeDepartmentItems(isUser)
+    id: 'ceo_office',
+    label: 'CEO Office',
+    icon: FiCoffee,
+    items: ceoOfficeItems()
   },
-  {
-    id: 'procurements',
-    label: 'Procurements Department',
-    icon: FiShoppingCart,
-    items: procurementsDepartmentItems(isUser)
-  },
-  {
-    id: 'accounts_and_finance',
-    label: 'Accounts & Finance',
-    icon: FiDollarSign,
-    items: accountsFinanceDepartmentItems(isUser)
-  },
+  // {
+  //   id: 'store',
+  //   label: 'Store Department',
+  //   icon: FiArchive,
+  //   items: storeDepartmentItems(isUser)
+  // },
+  // {
+  //   id: 'procurements',
+  //   label: 'Procurements Department',
+  //   icon: FiShoppingCart,
+  //   items: procurementsDepartmentItems(isUser)
+  // },
+  // {
+  //   id: 'accounts_and_finance',
+  //   label: 'Accounts & Finance',
+  //   icon: FiDollarSign,
+  //   items: accountsFinanceDepartmentItems(isUser)
+  // },
   {
     id: 'admin',
-    label: 'Admin Panel',
-    icon: FiHome,
+    label: 'DMS Menu',
+    icon: BiSolidDonateHeart,
     items: adminDepartmentItems(isUser)
   },
   {
@@ -882,12 +855,12 @@ const allDepartmentItems = (isUser = false) => [
     icon: FiTrendingUp,
     items: marketingDepartmentItems(isUser)
   },
-  {
-    id: 'audio_video',
-    label: 'Audio Video',
-    icon: FiVideo,
-    items: audioVideoDepartmentItems(isUser)
-  },
+  // {
+  //   id: 'audio_video',
+  //   label: 'Audio Video',
+  //   icon: FiVideo,
+  //   items: audioVideoDepartmentItems(isUser)
+  // },
   {
     id: 'email_templates',
     label: 'Communication',
@@ -897,9 +870,10 @@ const allDepartmentItems = (isUser = false) => [
 ];
 
 
+
 // Department configurations
 const departmentConfigs = {
-  ceo_office: (isUser = false) => ({
+ceo_office: (isUser = false) => ({
     id: 'ceo_office',
     label: 'CEO Office',
     icon: FiCoffee,
@@ -912,31 +886,31 @@ const departmentConfigs = {
     items: programDepartmentItems(isUser)
   }),
   
-  store: (isUser = false) => ({
-    id: 'store',
-    label: 'Store Department',
-    icon: FiArchive,
-    items: storeDepartmentItems(isUser)
-  }),
+  // store: (isUser = false) => ({
+  //   id: 'store',
+  //   label: 'Store Department',
+  //   icon: FiArchive,
+  //   items: storeDepartmentItems(isUser)
+  // }),
   
-  procurements: (isUser = false) => ({
-    id: 'procurements',
-    label: 'Procurements Department',
-    icon: FiShoppingCart,
-    items: procurementsDepartmentItems(isUser)
-  }),
+  // procurements: (isUser = false) => ({
+  //   id: 'procurements',
+  //   label: 'Procurements Department',
+  //   icon: FiShoppingCart,
+  //   items: procurementsDepartmentItems(isUser)
+  // }),
   
-  accounts_and_finance: (isUser = false) => ({
-    id: 'accounts_and_finance',
-    label: 'Accounts & Finance',
-    icon: FiDollarSign,
-    items: accountsFinanceDepartmentItems(isUser)
-  }),
+  // accounts_and_finance: (isUser = false) => ({
+  //   id: 'accounts_and_finance',
+  //   label: 'Accounts & Finance',
+  //   icon: FiDollarSign,
+  //   items: accountsFinanceDepartmentItems(isUser)
+  // }),
   
   admin: (isUser = false) => ({
     id: 'admin',
-    label: 'Admin Panel',
-    icon: FiHome,
+    label: 'DMS Menu',
+    icon: BiSolidDonateHeart,
     items: adminDepartmentItems(isUser)
   }),
   fund_raising: (isUser = false) => ({
@@ -1012,14 +986,50 @@ export const getSidebarConfig = (user, permissions = null) => {
   const isSuperAdminRole = user.role === 'super_admin';
   const isSuperAdminPermission = isSuperAdmin(permissions);
   const isUser = user.role === 'user';
+  const isCeoRole = user.role === 'ceo' || user.role === 'pa';
+  const isCeoDepartment = user.department === 'ceo';
 
-  // Super admin: CEO Office + Admin Panel + one Tasks group (list + dashboard only; no per-department task rows).
+  // Super admin: DMS Menu (admin) + dedicated Fund Raising list + Tasks + Communication + CEO Office.
+  // Fund Raising is included explicitly so Aid Applications / Aid People are easy to find
+  // (not only nested under DMS Menu → Fund Raising).
   if (isSuperAdminRole || isSuperAdminPermission) {
     const sections = [
+      departmentConfigs.admin(false),
+      departmentConfigs.fund_raising(false),
       departmentConfigs.ceo_office(false),
-      departmentConfigs.admin(false)
     ];
     sections.push(buildSuperAdminTaskingGroup());
+    sections.push(departmentConfigs.email_templates());
+    return sections;
+  }
+
+  // CEO / PA role or CEO department: include CEO Office section but with items filtered by actual permissions
+  if (isCeoRole || isCeoDepartment) {
+    const sections = [];
+
+    if (permissions) {
+      const permissionSections = allDepartmentItems(isUser)
+        .map((config) => {
+          const filteredItems = filterItemsByPermissions(
+            config.items,
+            permissions,
+            config.id,
+          );
+
+          return {
+            ...config,
+            items: filteredItems,
+          };
+        })
+        .filter((section) => section.items.length > 0);
+      sections.push(...permissionSections);
+    }
+
+    const unifiedTaskingGroup = buildUnifiedTaskingGroup(user, permissions);
+    if (unifiedTaskingGroup) {
+      sections.push(unifiedTaskingGroup);
+    }
+
     return sections;
   }
 

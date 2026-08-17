@@ -538,8 +538,9 @@ const CeoNoteView = () => {
                 )}
               </div>
 
-              <div className="note-view-content-section">
-                <div className="note-view-form-group">
+              <div className="note-view-content-section">               
+                <div className="note-view-two-column-grid">
+                  <div className="note-view-form-group">
                   <label>Title</label>
                   <p className="note-view-content-text">{note.title}</p>
                 </div>
@@ -550,8 +551,6 @@ const CeoNoteView = () => {
                     <p className="note-view-content-text">{note.details}</p>
                   </div>
                 )}
-
-                <div className="note-view-two-column-grid">
                   {hasValue(note.related_person) && (
                     <div className="note-view-form-group">
                       <label>Related Person</label>
@@ -572,14 +571,13 @@ const CeoNoteView = () => {
                       <p className="note-view-content-text">{new Date(note.due_date).toLocaleDateString()}</p>
                     </div>
                   )}
-                  <div className="note-view-two-column-grid">
+                  <div className="note-view-form-group">
                     {hasValue(note.pa_remarks) && (
                       <div className="note-view-form-group">
                         <label>PA Remarks</label>
                         <p className="note-view-content-text">{note.pa_remarks}</p>
                       </div>
                     )}
-
                     {hasValue(note.ceo_remarks) && (
                       <div className="note-view-form-group">
                         <label>CEO Remarks</label>
@@ -588,7 +586,7 @@ const CeoNoteView = () => {
                     )}
                   </div>
 
-                  <div className="note-view-two-column-grid">
+                  <div className="note-view-form-group">
                     {hasValue(note.attachment) && (
                       <div className="note-view-form-group">
                         <label>Attachment</label>

@@ -28,6 +28,7 @@ import './styles.css';
  * @param {any} value - Controlled value (selected item)
  * @param {Function} onClear - Callback when selection is cleared
  * @param {boolean} allowResearch - Allow searching again after selection (default: true)
+ * @param {Array} staticOptions - Options shown on focus / before min search length (no API)
  */
 const SearchableDropdown = ({
   label,
@@ -47,7 +48,8 @@ const SearchableDropdown = ({
   required = false,
   value = null,
   onClear,
-  allowResearch = true
+  allowResearch = true,
+  staticOptions = [],
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState([]);
@@ -58,6 +60,24 @@ const SearchableDropdown = ({
   
   const dropdownRef = useRef(null);
   const inputRef = useRef(null);
+
+  const filterStaticOptions = (term = '') => {
+    if (!staticOptions?.length) return [];
+    const query = String(term || '').trim().toLowerCase();
+    if (!query) return staticOptions;
+    return staticOptions.filter((item) => {
+      const labelText = String(item[displayKey] || item.name || '').toLowerCase();
+      const email = String(item.email || '').toLowerCase();
+      return labelText.includes(query) || email.includes(query);
+    });
+  };
+
+  const showStaticResults = (term = '') => {
+    const filtered = filterStaticOptions(term);
+    setResults(filtered);
+    setIsLoading(false);
+    return filtered;
+  };
 
   // Perform search function
   const performSearch = async (term) => {
@@ -109,8 +129,7 @@ const SearchableDropdown = ({
       setIsLoading(true);
       debouncedSearch(value);
     } else {
-      setResults([]);
-      setIsLoading(false);
+      showStaticResults(value);
     }
   };
 
@@ -134,13 +153,14 @@ const SearchableDropdown = ({
       return;
     }
     
-    if (searchTerm && searchTerm.length >= minSearchLength) {
-      setIsOpen(true);
-      // Re-trigger search if there's a term
-      if (results.length === 0) {
-        setIsLoading(true);
-        debouncedSearch(searchTerm);
-      }
+    setIsOpen(true);
+    if (searchTerm.length < minSearchLength) {
+      showStaticResults(searchTerm);
+      return;
+    }
+    if (results.length === 0) {
+      setIsLoading(true);
+      debouncedSearch(searchTerm);
     }
   };
 
@@ -280,7 +300,7 @@ const SearchableDropdown = ({
         )}
       </div>
 
-      {isOpen && searchTerm.length >= minSearchLength && (
+      {isOpen && (results.length > 0 || isLoading) && (
         <div className="searchable-dropdown__dropdown">
           {isLoading ? (
             <div className="searchable-dropdown__message">

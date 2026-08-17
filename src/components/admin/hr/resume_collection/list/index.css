@@ -1,0 +1,121 @@
+.resume-collection-list {
+  padding: 0 1.5rem 1.5rem;
+}
+
+.resume-collection-filters {
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.resume-collection-table-container {
+  margin-top: 0;
+}
+
+.resume-collection-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.resume-collection-table th,
+.resume-collection-table td {
+  padding: 12px 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resume-collection-table th {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.resume-collection-table .col-applicant {
+  width: 16%;
+}
+
+.resume-collection-table .col-phone {
+  width: 12%;
+  white-space: nowrap;
+}
+
+.resume-collection-table .col-email {
+  width: 18%;
+}
+
+.resume-collection-table .col-role {
+  width: 16%;
+}
+
+.resume-collection-table .col-city {
+  width: 12%;
+}
+
+.resume-collection-table .col-department {
+  width: 14%;
+}
+
+.resume-collection-table .table-actions {
+  width: 12%;
+  min-width: 88px;
+  text-align: center;
+}
+
+.resume-collection-applicant {
+  font-weight: 500;
+  color: var(--color-text-primary, #111827);
+}
+
+.resume-collection-table .no-data {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #6b7280;
+}
+
+.resume-collection-filters-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.resume-collection-filters-grid .search-filter-container,
+.resume-collection-filters-grid .dropdown-filter-container {
+  flex: 1 1 200px;
+  min-width: 180px;
+  max-width: 240px;
+}
+
+.resume-collection-filters-grid .search-filter-container--wide {
+  flex: 1 1 280px;
+  max-width: 360px;
+}
+
+.resume-collection-filters-actions {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+  align-items: center;
+  padding-bottom: 2px;
+}
+
+@media (max-width: 768px) {
+  .resume-collection-list {
+    padding: 0 1rem 1rem;
+  }
+
+  .resume-collection-table {
+    table-layout: auto;
+    min-width: 720px;
+  }
+
+  .resume-collection-filters-grid .search-filter-container,
+  .resume-collection-filters-grid .dropdown-filter-container,
+  .resume-collection-filters-grid .search-filter-container--wide {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+
+  .resume-collection-filters-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

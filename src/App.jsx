@@ -4,11 +4,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css'; // REQUIRED
 
 import Login from './components/login/login';
-import CeoDashboard from './components/ceo-office/dashboard';
-import QuickNote from './components/ceo-office/note/quick-note';
-import InstructionRegister from './components/ceo-office/instruction-register';
-import CeoNoteView from './components/ceo-office/note/note-view';
-// import Reports from './components/ceo-office/reports';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import Store from './components/store/Store';
 import Procurements from './components/procurements/Procurements';
 import Program from './components/program/Program';
@@ -19,11 +15,16 @@ import UpdateUser from './components/admin/user/UpdateUser';
 import UserList from './components/admin/user/UserList';
 import ProtectedRoute, { ProtectedRoutes } from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { NavigationHistoryProvider } from './context/NavigationHistoryContext';
+import { OfflineProvider } from './context/OfflineContext';
 import { SummaryProvider } from './context/SummaryContext';
 import { InKindItemsProvider } from './context/InKindItemsContext';
 import { NotificationProvider } from './context/NotificationContext';
 import Sidebar from './components/common/Sidebar/Sidebar';
 import UserView from './components/admin/user/UserView';
+import UserPerformance from './components/admin/user/UserPerformance';
+import ProfileRedirect from './components/profile/ProfileRedirect';
 import ApplicationReportsList from './components/program/applications_report/application_reports_list';
 import CreateApplicationReport from './components/program/applications_report/create_application_report';
 import UpdateApplicationReport from './components/program/applications_report/update_application_report';
@@ -126,19 +127,48 @@ import AdminApplicationView from './components/admin/hr/career/applications/view
 import JobsList from './components/admin/hr/careers/jobs/list/index';
 import AddJob from './components/admin/hr/careers/jobs/add/index';
 import ViewJob from './components/admin/hr/careers/jobs/view/index';
+import ResumeCollectionList from './components/admin/hr/resume_collection/list';
+import ResumeCollectionAdd from './components/admin/hr/resume_collection/add';
+import ResumeCollectionView from './components/admin/hr/resume_collection/view';
 import { OnlineDonationsList, ViewOnlineDonation, UpdateOnlineDonation } from './components/dms/donations/online_donations/index';
-import { DonorsList, RegisterDonor, ViewDonor, EditDonor, VolunteersList, RegisterVolunteer, ViewVolunteer, EditVolunteer, SurveysList, AddSurvey, ViewSurvey, EditSurvey, SurveyReport, FillSurvey, EventsList, AddEvent, EditEvent, ViewEvent, CampaignsList, AddCampaign, EditCampaign, ViewCampaign } from './components/dms';
+import PendingAllotmentsList from './components/dms/donations/allotments/pending';
+import { DonorsList, RegisterDonor, ViewDonor, EditDonor, OrganizationsList, AddOrganization, ViewOrganization, EditOrganization, VolunteersList, RegisterVolunteer, ViewVolunteer, EditVolunteer, SurveysList, AddSurvey, ViewSurvey, EditSurvey, SurveyReport, FillSurvey, EventsList, AddEvent, EditEvent, ViewEvent, CampaignsList, AddCampaign, EditCampaign, ViewCampaign, AppealsList, AddAppeal, EditAppeal, ViewAppeal } from './components/dms';
+import AidApplicationsList from './components/dms/aid/applications/list';
+import AidApplicationAdd from './components/dms/aid/applications/add';
+import AidApplicationView from './components/dms/aid/applications/view';
+import AidPeopleList from './components/dms/aid/people/list';
+import AidPersonView from './components/dms/aid/people/view';
+import { RecurringDonationsList, RecurringDonationView } from './components/dms/recurring_donations';
+import RecurringDonorsList from './components/dms/recurring_donors/list';
+import ManualRecurringList from './components/dms/manual_recurring/list';
+import { SocialPostsList, SocialPostAdd, SocialPostView, SocialPostEdit } from './components/dms/social_posts';
 import AddDonation from './components/donations/online_donations/add';
 import AddDonationBox from './components/dms/donation_box/add';
 import DonationBoxList from './components/dms/donation_box/list';
 import ViewDonationBox from './components/dms/donation_box/view';
+import EditDonationBox from './components/dms/donation_box/edit';
 import AddDonationBoxDonation from './components/dms/donations/donation_box/add';
 import DonationBoxDonationsList from './components/dms/donations/donation_box/list';
 import ViewDonationBoxDonation from './components/dms/donations/donation_box/view';
+import DmsTodosPage from './components/dms/todos/list';
 import FundRaising from './components/dms/fund_raising';
+import ReconciliationList from './components/dms/reconciliation/list';
+import ReconciliationAdd from './components/dms/reconciliation/add';
+import ReconciliationView from './components/dms/reconciliation/view';
+import FollowUpsList from './components/dms/donor_relationship/follow_ups';
+import InteractionsList from './components/dms/donor_relationship/interactions';
+import AddDonorInteraction from './components/dms/donor_relationship/add';
+import ManagementOverview from './components/dms/donor_relationship/overview';
 import FundRaisingDashboardPage from './components/dms/fund_raising_dashboard';
 import EmailTemplateList from './components/dms/email_templates/list';
 import EmailTemplateForm from './components/dms/email_templates/form';
+import CommunicationSend from './components/dms/email_templates/send';
+import CommunicationBatchList from './components/dms/email_templates/batches/list';
+import CommunicationBatchView from './components/dms/email_templates/batches/view';
+import EmailChecklist from './components/communication/email_checklist';
+import ReceiptTemplateList from './components/dms/receipt_templates/list';
+import ReceiptTemplateForm from './components/dms/receipt_templates/form';
+import ViewReceiptTemplate from './components/dms/receipt_templates/view';
 import AddInKindItem from './components/dms/in_kind/in_kind_items/add';
 import InKindItemsList from './components/dms/in_kind/in_kind_items/list';
 import EditInKindItem from './components/dms/in_kind/in_kind_items/edit';
@@ -156,7 +186,7 @@ import CitiesList from './components/dms/geographic/cities/list';
 import AddCity from './components/dms/geographic/cities/add';
 import RoutesList from './components/dms/geographic/routes/list';
 import AddRoute from './components/dms/geographic/routes/add';
-import TasksList from './components/admin/tasks/list';
+import TasksPage from './components/admin/tasks';
 import AddTask from './components/admin/tasks/add';
 import UpdateTask from './components/admin/tasks/update';
 import ViewTask from './components/admin/tasks/view';
@@ -173,11 +203,20 @@ import StepsList from './components/progress_tracking/admin/steps/list';
 import StepView from './components/progress_tracking/admin/steps/view';
 import EvidenceView from './components/progress_tracking/admin/evidence/view';
 import ProgressTemplateDashboard from './components/admin/dashboard/progress_template_dashboard';
+import CeoDashboard from './components/ceo-office/dashboard';
+import QuickNote from './components/ceo-office/note/quick-note';
+import InstructionRegister from './components/ceo-office/instruction-register';
+import CeoNoteView from './components/ceo-office/note/note-view';
+// import Reports from './components/ceo-office/reports';
+import './styles/screen-theme.css';
 
 const App = () => {
   return (<React.Fragment>
-            <Router> 
+            <Router>
+              <NavigationHistoryProvider>
+              <ThemeProvider>
               <AuthProvider>
+                <OfflineProvider>
                 <NotificationProvider>
                   <SummaryProvider>
                     <InKindItemsProvider>
@@ -185,6 +224,7 @@ const App = () => {
                         {/* Sidebar - only show on protected routes */}
                         <Routes>
                     <Route path="/" element={<Login />} />
+                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                     <Route
                       path="/*"
                       element={
@@ -211,20 +251,13 @@ const App = () => {
                                 <Route path="/admin/progress-template-dashboard" element={<ProgressTemplateDashboard />} />
                                 <Route path="/welcome" element={<Program />} />
 
-                                {/* CEO Office Routes */}
-                                <Route path="/ceo-office/dashboard" element={<CeoDashboard />} />
-                                <Route path="/ceo-office/quick-note" element={<QuickNote />} />
-                                <Route path="/ceo-notes" element={<QuickNote />} />
-                                <Route path="/ceo-office/instruction-register" element={<InstructionRegister />} />
-                                <Route path="/ceo-office/notes/:id" element={<CeoNoteView />} />
-                                <Route path="/ceo-office/reports" element={<Reports />} />
-                                <Route path="/ceo-office" element={<Navigate to="/ceo-office/dashboard" replace />} />
-
                                 {/* User Management Routes */}
                                 <Route path="/admin/users" element={<UserList />} />
                                 <Route path="/admin/users/create" element={<CreateUser />} />
                                 <Route path="/admin/users/edit/:id" element={<UpdateUser />} />
+                                <Route path="/profile" element={<ProfileRedirect />} />
                                 <Route path="/users/:id" element={<UserView />} />
+                                <Route path="/users/:id/performance" element={<UserPerformance />} />
                                 
                                 {/* Store Report Routes - Nested under /store */}
                                 <Route path="/store/reports/add" element={<AddStoreReport />} />
@@ -368,7 +401,11 @@ const App = () => {
                                 {/* Jobs Routes */}
                                 <Route path="/hr/careers/jobs/list" element={<JobsList />} />
                                 <Route path="/hr/careers/jobs/add" element={<AddJob />} />
-                                <Route path="/hr/careers/jobs/view/:id" element={<ViewJob />} /> 
+                                <Route path="/hr/careers/jobs/view/:id" element={<ViewJob />} />
+
+                                <Route path="/hr/resume-collection/list" element={<ResumeCollectionList />} />
+                                <Route path="/hr/resume-collection/add" element={<ResumeCollectionAdd />} />
+                                <Route path="/hr/resume-collection/view/:id" element={<ResumeCollectionView />} />
                                 
                                 {/* Fund Raising Welcome */}
                                 <Route path="/fund_raising" element={<FundRaising />} />
@@ -377,25 +414,53 @@ const App = () => {
                                 <Route path="/dms/donation_box/add" element={<AddDonationBox />} />
                                 <Route path="/dms/donation_box/list" element={<DonationBoxList />} />
                                 <Route path="/dms/donation_box/view/:id" element={<ViewDonationBox />} />
+                                <Route path="/dms/donation_box/edit/:id" element={<EditDonationBox />} />
                                 <Route path="/dms/donation-box-donations/add" element={<AddDonationBoxDonation />} />
                                 <Route path="/dms/donation-box-donations/add/:id" element={<AddDonationBoxDonation />} />
                                 <Route path="/dms/donation-box-donations/list" element={<DonationBoxDonationsList />} />
                                 <Route path="/dms/donation-box-donations/list/:id" element={<DonationBoxDonationsList />} />
                                 <Route path="/dms/donation-box-donations/view/:id" element={<ViewDonationBoxDonation />} />
                                 <Route path="/dms/donation_box/view/:id" element={<ViewDonationBox />} />
+                                <Route path="/dms/todos" element={<DmsTodosPage />} />
                                 
                                 {/* Donations Routes */}
-                                <Route path="/donations/online_donations/list" element={<OnlineDonationsList />} />
-                                <Route path="/donations/offline_donations/list" element={<OnlineDonationsList />} />
+                                <Route path="/donations/online_donations/list" element={<OnlineDonationsList key="online-donations-list" />} />
+                                <Route path="/donations/allotments/pending" element={<PendingAllotmentsList />} />
+                                <Route path="/donations/offline_donations/list" element={<OnlineDonationsList key="offline-donations-list" />} />
                                 <Route path="/donations/online_donations/view/:id" element={<ViewOnlineDonation />} />
                                 <Route path="/donations/online_donations/update/:id" element={<UpdateOnlineDonation />} />
                                 <Route path="/donations/online_donations/add" element={<AddDonation />} /> 
+
+                                {/* Recurring Donations (Stripe / ledger subscriptions) */}
+                                <Route path="/dms/recurring-donations/list" element={<RecurringDonationsList />} />
+                                <Route path="/dms/recurring-donations/view/:id" element={<RecurringDonationView />} />
+                                <Route path="/dms/recurring-donors/list" element={<RecurringDonorsList />} />
+                                <Route path="/dms/manual-recurring/list" element={<ManualRecurringList />} />
+
+                                {/* Social Posts (Buffer) */}
+                                <Route path="/dms/social-posts/list" element={<SocialPostsList />} />
+                                <Route path="/dms/social-posts/add" element={<SocialPostAdd />} />
+                                <Route path="/dms/social-posts/view/:id" element={<SocialPostView />} />
+                                <Route path="/dms/social-posts/edit/:id" element={<SocialPostEdit />} />
                                 
                                 {/* Donors Routes */}
                                 <Route path="/dms/donors/list" element={<DonorsList />} />
                                 <Route path="/dms/donors/view/:id" element={<ViewDonor />} />
+                                <Route path="/dms/donors/:donorId/donations" element={<OnlineDonationsList key="donor-donations-list" />} />
                                 <Route path="/dms/donors/add" element={<RegisterDonor />} />
                                 <Route path="/dms/donors/edit/:id" element={<EditDonor />} />
+
+                                {/* Organizations (Organization → Branch → Sub-branch) */}
+                                <Route path="/dms/organizations/list" element={<OrganizationsList />} />
+                                <Route path="/dms/organizations/add" element={<AddOrganization />} />
+                                <Route path="/dms/organizations/view/:id" element={<ViewOrganization />} />
+                                <Route path="/dms/organizations/edit/:id" element={<EditOrganization />} />
+
+                                <Route path="/dms/aid/applications/list" element={<AidApplicationsList />} />
+                                <Route path="/dms/aid/applications/add" element={<AidApplicationAdd />} />
+                                <Route path="/dms/aid/applications/view/:id" element={<AidApplicationView />} />
+                                <Route path="/dms/aid/people/list" element={<AidPeopleList />} />
+                                <Route path="/dms/aid/people/view/:id" element={<AidPersonView />} />
 
                                 
                                 {/* Volunteers Routes */}
@@ -447,13 +512,47 @@ const App = () => {
                                 <Route path="/dms/campaigns/view/:id" element={<ViewCampaign />} />
                                 <Route path="/dms/campaigns/edit/:id" element={<EditCampaign />} />
 
+                                {/* Appeals */}
+                                <Route path="/dms/appeals/list" element={<AppealsList />} />
+                                <Route path="/dms/appeals/add" element={<AddAppeal />} />
+                                <Route path="/dms/appeals/view/:id" element={<ViewAppeal />} />
+                                <Route path="/dms/appeals/edit/:id" element={<EditAppeal />} />
+
                                 {/* Email Template Routes */}
                                 <Route path="/dms/email_templates/list" element={<EmailTemplateList />} />
                                 <Route path="/dms/email_templates/add" element={<EmailTemplateForm />} />
+                                <Route path="/dms/email_templates/send" element={<CommunicationSend />} />
+                                <Route path="/dms/email_templates/batches" element={<CommunicationBatchList />} />
+                                <Route path="/dms/email_templates/batches/:batchId" element={<CommunicationBatchView />} />
+                                <Route path="/email-checklist" element={<EmailChecklist />} />
                                 <Route path="/dms/email_templates/edit/:id" element={<EmailTemplateForm />} />
 
+                                {/* CEO Office Routes */}
+                                <Route path="/ceo-office/dashboard" element={<CeoDashboard />} />
+                                <Route path="/ceo-office/quick-note" element={<QuickNote />} />
+                                <Route path="/ceo-notes" element={<QuickNote />} />
+                                <Route path="/ceo-office/instruction-register" element={<InstructionRegister />} />
+                                <Route path="/ceo-office/notes/:id" element={<CeoNoteView />} />
+                                {/* <Route path="/ceo-office/reports" element={<Reports />} /> */}
+                                <Route path="/ceo-office" element={<Navigate to="/ceo-office/dashboard" replace />} />
+
+                                {/* Receipt Template Routes */}
+                                <Route path="/dms/receipt_templates/list" element={<ReceiptTemplateList />} />
+                                <Route path="/dms/receipt_templates/add" element={<ReceiptTemplateForm />} />
+                                <Route path="/dms/receipt_templates/edit/:id" element={<ReceiptTemplateForm />} />
+                                <Route path="/dms/receipt_templates/view/:id" element={<ViewReceiptTemplate />} />
+
+                                <Route path="/dms/reconciliation/list" element={<ReconciliationList />} />
+                                <Route path="/dms/reconciliation/add" element={<ReconciliationAdd />} />
+                                <Route path="/dms/reconciliation/view/:id" element={<ReconciliationView />} />
+
+                                <Route path="/dms/donor-relationship/follow-ups" element={<FollowUpsList />} />
+                                <Route path="/dms/donor-relationship/interactions" element={<InteractionsList />} />
+                                <Route path="/dms/donor-relationship/add" element={<AddDonorInteraction />} />
+                                <Route path="/dms/donor-relationship/overview" element={<ManagementOverview />} />
+
                                 {/* Tasks — flat routes for all users */}
-                                <Route path="/tasks/list" element={<TasksList />} />
+                                <Route path="/tasks/list" element={<TasksPage />} />
                                 <Route path="/tasks/add" element={<AddTask />} />
                                 <Route path="/tasks/update/:id" element={<UpdateTask />} />
                                 <Route path="/tasks/view/:id" element={<ViewTask />} />
@@ -470,7 +569,10 @@ const App = () => {
                     </InKindItemsProvider>
                   </SummaryProvider>
                 </NotificationProvider>
+                </OfflineProvider>
             </AuthProvider>
+              </ThemeProvider>
+              </NavigationHistoryProvider>
             </Router>
             <ToastContainer />
           </React.Fragment>

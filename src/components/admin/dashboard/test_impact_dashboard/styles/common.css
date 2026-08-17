@@ -40,7 +40,7 @@
     font-style: italic;
     font-weight: 600;
     font-size: 12px;
-    color: #2c3e50;
+    color: var(--gray-font);
     margin-bottom: 5px;
   }
   .orange{
@@ -136,3 +136,11 @@
   .text-left {
     text-align: left;
   }
+
+[data-theme="dark"] {
+  --bg-color: #1f2937;
+  --border-color: #4b5563;
+  --font-color: #f3f4f6;
+  --gray-font: #e5e7eb;
+  --icon-color: #9ca3af;
+}

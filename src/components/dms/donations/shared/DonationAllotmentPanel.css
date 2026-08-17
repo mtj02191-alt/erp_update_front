@@ -1,0 +1,334 @@
+.donation-allotment-panel {
+  background: #fff;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 12px;
+  padding: 1.25rem 1.35rem 1.4rem;
+  color: var(--color-text-primary);
+}
+
+.donation-view-actions-panel .donation-allotment-panel {
+  margin-top: 1.25rem;
+  margin-bottom: 0;
+  padding-top: 1.25rem;
+  border-top: none;
+}
+
+.donation-allotment-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.donation-allotment-panel__header-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.donation-allotment-panel__header-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+}
+
+.donation-allotment-panel__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #1e293b);
+  line-height: 1.3;
+}
+
+.donation-allotment-panel__subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #64748b);
+  line-height: 1.4;
+}
+
+.donation-allotment-panel__inbox-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  background: #fff;
+  color: #1e40af;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: inherit;
+  transition: background-color 0.15s ease;
+}
+
+.donation-allotment-panel__inbox-btn:hover {
+  background: #f8fafc;
+}
+
+.donation-allotment-panel__credited {
+  margin-bottom: 1rem;
+}
+
+.donation-allotment-panel__section {
+  margin-top: 0.25rem;
+}
+
+.donation-allotment-panel__section + .donation-allotment-panel__section {
+  margin-top: 1.15rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--color-border, #e5e7eb);
+}
+
+.donation-allotment-panel__section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0 0 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #1e293b);
+}
+
+.donation-allotment-panel__section-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 15px;
+}
+
+.donation-allotment-panel__section-icon--self {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.donation-allotment-panel__section-icon--team {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.donation-allotment-panel__row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.donation-allotment-panel__row-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.donation-allotment-panel__row-field .searchable-dropdown {
+  margin-bottom: 0;
+}
+
+.donation-allotment-panel__row-field .searchable-dropdown__label {
+  display: none;
+}
+
+.donation-allotment-panel__textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.donation-allotment-panel__textarea:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.donation-allotment-panel__textarea::placeholder {
+  color: #94a3b8;
+}
+
+.donation-allotment-panel__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 72px;
+  padding: 0.75rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+}
+
+.donation-allotment-panel__btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.donation-allotment-panel__btn--primary {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+.donation-allotment-panel__btn--primary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.donation-allotment-panel__btn--secondary {
+  background: #f1f5f9;
+  color: #64748b;
+  border-color: #e2e8f0;
+  min-height: 46px;
+  align-self: center;
+}
+
+.donation-allotment-panel__btn--secondary:not(:disabled) {
+  background: #fff;
+  color: #1e40af;
+  border-color: #cbd5e1;
+}
+
+.donation-allotment-panel__btn--secondary:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.donation-allotment-panel__hint {
+  margin: 1rem 0 0;
+  font-size: 13px;
+  color: var(--color-text-secondary, #64748b);
+}
+
+.donation-allotment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.15rem;
+}
+
+.donation-allotment-card {
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 10px;
+  padding: 1rem;
+  background: var(--color-bg-secondary, #f8fafc);
+}
+
+.donation-allotment-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.donation-allotment-card__meta {
+  font-size: 12px;
+  color: var(--color-text-secondary, #64748b);
+}
+
+.allotment-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.allotment-badge--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.allotment-badge--approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.allotment-badge--rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.allotment-badge--cancelled {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.donation-allotment-review {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border, #e5e7eb);
+}
+
+.donation-allotment-review__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+
+.donation-allotment-review__actions .donation-allotment-panel__btn {
+  min-height: 40px;
+  flex: 1 1 auto;
+}
+
+.donation-allotment-panel__btn--approve {
+  background: #16a34a;
+  color: #fff;
+  border-color: #16a34a;
+}
+
+.donation-allotment-panel__btn--approve:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.donation-allotment-panel__btn--reject {
+  background: #fff;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+.donation-allotment-panel__btn--reject:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+@media (max-width: 720px) {
+  .donation-allotment-panel__header {
+    flex-direction: column;
+  }
+
+  .donation-allotment-panel__row {
+    flex-direction: column;
+  }
+
+  .donation-allotment-panel__btn {
+    min-height: 44px;
+    width: 100%;
+  }
+}

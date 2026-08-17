@@ -23,9 +23,10 @@
   min-width: 0;
   box-sizing: border-box;
   padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid var(--color-text-light);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-md);
   font-size: var(--font-size-md);
+  color: var(--color-text-primary);
   background: var(--color-bg-primary);
   transition: all 0.2s ease;
   cursor: pointer;
@@ -35,7 +36,6 @@
   background-position: right var(--spacing-sm) center;
   background-size: 1em;
   padding-right: calc(var(--spacing-md) * 2);
-  /* min-height: 80px; */
 }
 @media (max-width: 768px) {
   .form-input {

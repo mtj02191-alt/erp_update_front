@@ -9,7 +9,7 @@
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #333;
+  color: var(--color-text-primary);
   font-size: 14px;
 }
 
@@ -28,9 +28,10 @@
   align-items: center;
   min-height: 40px;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  background-color: #fff;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
   cursor: pointer;
   transition: border-color 0.2s ease;
 }
@@ -45,7 +46,7 @@
 }
 
 .searchable-multi-select__control.disabled {
-  background-color: #f8f9fa;
+  background-color: var(--color-bg-secondary);
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -157,6 +158,7 @@
   border: none;
   outline: none;
   background: transparent;
+  color: var(--color-text-primary);
   padding: 4px 0;
   font-size: 14px;
   min-width: 50px;
@@ -178,11 +180,12 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
-  border: 1px solid #ddd;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
   border-top: none;
   border-radius: 0 0 4px 4px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
   max-height: 200px;
   overflow-y: auto;
   z-index: 1000;
@@ -198,7 +201,7 @@
   padding: 8px 12px;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .searchable-multi-select__option:last-child {
@@ -207,12 +210,12 @@
 
 .searchable-multi-select__option:hover,
 .searchable-multi-select__option--highlighted {
-  background-color: #f8f9fa;
+  background-color: var(--color-bg-secondary);
 }
 
 .searchable-multi-select__option--selected {
-  background-color: #e3f2fd;
-  border-left: 3px solid #007bff;
+  background-color: var(--color-primary-light);
+  border-left: 3px solid var(--color-primary);
 }
 
 .searchable-multi-select__option--selected .searchable-multi-select__option-text,
@@ -229,13 +232,13 @@
 .searchable-multi-select__option-text {
   flex: 1;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .searchable-multi-select__custom-option {
   flex: 1;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .searchable-multi-select__loading {

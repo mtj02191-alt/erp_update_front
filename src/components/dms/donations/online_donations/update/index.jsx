@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import axiosInstance from '../../../../../utils/axios';
 import '../../../../../styles/variables.css';
@@ -7,6 +7,11 @@ import Navbar from '../../../../Navbar';
 import PageHeader from '../../../../common/PageHeader';
 import FormInput from '../../../../common/FormInput';
 import FormSelect from '../../../../common/FormSelect';
+import DonationPendingAttachments, {
+  uploadPendingDonationAttachments,
+} from '../../shared/DonationPendingAttachments';
+import '../../shared/DonationPendingAttachments.css';
+import { toast } from 'react-toastify';
 import './index.css';
 
 const donationTypeOptions = [
@@ -30,6 +35,7 @@ const donationMethodOptions = [
   { value: 'stripe', label: 'Stripe' },
   { value: 'stripe_embed', label: 'Stripe (embed)' },
   { value: 'in_kind', label: 'In Kind' },
+  { value: 'reconciliation', label: 'Reconciliation' },
 ];
 
 const donationSourceOptions = [
@@ -94,6 +100,10 @@ const UpdateOnlineDonation = () => {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [pendingAttachments, setPendingAttachments] = useState([]);
+  const [existingAttachments, setExistingAttachments] = useState([]);
+  const [removingAttachmentId, setRemovingAttachmentId] = useState(null);
+  const attachmentsRef = useRef(null);
   const [form, setForm] = useState({
     amount: '',
     paid_amount: '',
@@ -149,6 +159,7 @@ const UpdateOnlineDonation = () => {
           bank: d.bank ?? '',
           transaction_id: d.transaction_id ?? '',
         });
+        setExistingAttachments(Array.isArray(d.attachments) ? d.attachments : []);
       } catch (e) {
         setError(e.response?.data?.message || 'Failed to load donation');
       } finally {
@@ -157,6 +168,20 @@ const UpdateOnlineDonation = () => {
     };
     fetchDonation();
   }, [id]);
+
+  const handleRemoveExistingAttachment = async (attachmentId) => {
+    if (!window.confirm('Remove this attachment?')) return;
+    setRemovingAttachmentId(attachmentId);
+    try {
+      await axiosInstance.delete(`/donations/${id}/attachments/${attachmentId}`);
+      setExistingAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+      toast.success('Attachment removed.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to remove attachment.');
+    } finally {
+      setRemovingAttachmentId(null);
+    }
+  };
 
   const isInKind = form.donation_method === 'in_kind';
   const isCheque = form.donation_method === 'cheque';
@@ -222,6 +247,31 @@ const UpdateOnlineDonation = () => {
       });
 
       await axiosInstance.patch(`/donations/${id}`, payload);
+
+      const toUpload =
+        attachmentsRef.current?.collectForSubmit?.() || pendingAttachments;
+      if (toUpload.length > 0) {
+        const { uploaded, failed } = await uploadPendingDonationAttachments({
+          axiosInstance,
+          donationId: id,
+          items: toUpload,
+        });
+        if (uploaded > 0) {
+          toast.success(
+            uploaded === 1
+              ? 'Attachment uploaded successfully.'
+              : `${uploaded} attachments uploaded successfully.`,
+          );
+        }
+        if (failed > 0) {
+          toast.error(
+            failed === 1
+              ? 'Donation updated, but failed to upload 1 attachment.'
+              : `Donation updated, but failed to upload ${failed} attachments.`,
+          );
+        }
+      }
+
       navigate(`/donations/online_donations/view/${id}`);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update donation');
@@ -255,7 +305,7 @@ const UpdateOnlineDonation = () => {
           {error && <div className="status-message status-message--error">{error}</div>}
 
           <div className="form-section">
-            <h3 style={{ marginBottom: '15px', color: '#333' }}>Donation details</h3>
+            <h3 className="form-section-heading">Donation details</h3>
             <div className="form-grid-2">
               <FormInput
                 label="Amount"
@@ -325,7 +375,7 @@ const UpdateOnlineDonation = () => {
 
           {isCheque && (
             <div className="form-section">
-              <h3 style={{ marginBottom: '15px', color: '#333' }}>Cheque</h3>
+              <h3 className="form-section-heading">Cheque</h3>
               <div className="form-grid-2">
                 <FormInput
                   label="Cheque number"
@@ -347,7 +397,7 @@ const UpdateOnlineDonation = () => {
           )}
 
           <div className="form-section">
-            <h3 style={{ marginBottom: '15px', color: '#333' }}>Location &amp; project</h3>
+            <h3 className="form-section-heading">Location &amp; project</h3>
             <div className="form-grid-2">
               <FormInput label="Country" name="country" value={form.country} onChange={handleChange} />
               <FormInput label="City" name="city" value={form.city} onChange={handleChange} />
@@ -382,7 +432,7 @@ const UpdateOnlineDonation = () => {
           </div>
 
           <div className="form-section">
-            <h3 style={{ marginBottom: '15px', color: '#333' }}>Bank / reference</h3>
+            <h3 className="form-section-heading">Bank / reference</h3>
             <div className="form-grid-2">
               <FormInput label="Bank" name="bank" value={form.bank} onChange={handleChange} />
               <FormInput
@@ -392,6 +442,54 @@ const UpdateOnlineDonation = () => {
                 onChange={handleChange}
               />
             </div>
+          </div>
+
+          <div className="form-section">
+            {existingAttachments.length > 0 && (
+              <div style={{ marginBottom: '1rem' }}>
+                <h3 className="form-section-heading">Current attachments</h3>
+                <ul className="donation-attachments-list">
+                  {existingAttachments.map((a) => {
+                    const displayName = a.description || a.file_name;
+                    return (
+                      <li key={a.id} className="donation-attachments-list__item">
+                        <div className="donation-attachments-list__main">
+                          <strong>{displayName}</strong>
+                          {a.description &&
+                            a.file_name &&
+                            a.description !== a.file_name && (
+                              <span>{a.file_name}</span>
+                            )}
+                        </div>
+                        <div className="donation-attachments-list__actions">
+                          <a href={a.file_url} target="_blank" rel="noreferrer">
+                            View
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveExistingAttachment(a.id)}
+                            disabled={removingAttachmentId === a.id || isSubmitting}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+            <DonationPendingAttachments
+              ref={attachmentsRef}
+              items={pendingAttachments}
+              onChange={setPendingAttachments}
+              disabled={isSubmitting}
+              title={
+                existingAttachments.length > 0
+                  ? 'Add more attachments'
+                  : 'Attachments'
+              }
+            />
           </div>
 
           <div className="form-actions" style={{ marginTop: '1rem' }}>

@@ -6,6 +6,8 @@ import PageHeader from '../../../common/PageHeader';
 import ActionMenu from '../../../common/ActionMenu';
 import ConfirmationModal from '../../../common/ConfirmationModal';
 import FormSelect from '../../../common/FormSelect';
+import { CollapsibleFilters } from '../../../common/filters';
+import useFiltersPanel from '../../../../hooks/useFiltersPanel';
 import { FiEye, FiEdit, FiTrash2, FiCheckCircle, FiXCircle, FiBarChart2, FiEdit3, FiRefreshCw } from 'react-icons/fi';
 
 const QUESTION_TYPES = {
@@ -31,6 +33,7 @@ const SurveysList = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [surveyToDelete, setSurveyToDelete] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
+  const { filtersOpen, toggleFilters } = useFiltersPanel();
 
   const fetchSurveys = async () => {
     try {
@@ -132,9 +135,12 @@ const SurveysList = () => {
     <>
       <Navbar />
       <div className="list-wrapper">
-        <PageHeader title="Surveys" showBackButton={false} showAdd addPath="/dms/surveys/add" />
+        <PageHeader
+          onRefresh={fetchSurveys}
+          refreshing={loading} title="Surveys" showBackButton={false} showFilterToggle filtersOpen={filtersOpen} onFilterToggle={toggleFilters} showAdd addPath="/dms/surveys/add" />
         {error && <div className="status-message status-message--error">{error}</div>}
         <div className="list-content">
+          <CollapsibleFilters open={filtersOpen}>
           <div className="form-section" style={{ marginBottom: '16px' }}>
             <FormSelect
               label="Status"
@@ -146,6 +152,7 @@ const SurveysList = () => {
               defaultOptionText="All statuses"
             />
           </div>
+          </CollapsibleFilters>
           {loading ? (
             <div className="loading-container">
               <div className="loading-spinner" />

@@ -4,7 +4,8 @@ import axiosInstance from '../../../../../utils/axios';
 import '../../../../../styles/variables.css';
 import '../../../../../styles/components.css';
 import Navbar from '../../../../Navbar';
-import PageHeader from '../../../../common/PageHeader';
+import PageHeader from '../../../../common/PageHeader'
+import { RefreshButton } from '../../../../common/filters';
 import ActionMenu from '../../../../common/ActionMenu';
 import ConfirmationModal from '../../../../common/ConfirmationModal';
 import Pagination from '../../../../common/Pagination';
@@ -180,6 +181,10 @@ const WheelChairOrCrutchesList = () => {
         <div className="list-content">
           {error && <div className="status-message status-message--error">{error}</div>}
           
+                    <div className="list-refresh-bar">
+            <RefreshButton onClick={fetchReports} loading={loading} />
+          </div>
+
           <div className="table-container">
             <table className="data-table">
               <thead>

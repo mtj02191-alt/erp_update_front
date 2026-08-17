@@ -119,11 +119,8 @@ const SearchableMultiSelect = ({
 
   // Handle item selection/deselection
   const handleItemToggle = (item) => {
-    console.log('🎯 handleItemToggle called with item:', item);
     const itemValue = item[valueKey];
-    console.log('   itemValue:', itemValue, 'valueKey:', valueKey);
     const isSelected = selectedItems.some(selected => selected[valueKey] === itemValue);
-    console.log('   isSelected:', isSelected);
     
     let newSelectedItems;
     if (isSelected) {
@@ -133,7 +130,6 @@ const SearchableMultiSelect = ({
       // Add item
       newSelectedItems = [...selectedItems, item];
     }
-    console.log('   newSelectedItems:', newSelectedItems);
     
     setSelectedItems(newSelectedItems);
     

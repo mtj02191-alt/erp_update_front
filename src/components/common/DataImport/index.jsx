@@ -42,6 +42,7 @@ function ImportDialogContent({
   uploading,
   result,
   failedRows,
+  skippedRows,
   onClose,
   onDownloadTemplate,
   onFileChange,
@@ -105,7 +106,7 @@ function ImportDialogContent({
                   <strong>Total rows:</strong> {result.total_rows}
                 </p>
                 <p>
-                  <strong>Succeeded:</strong> {result.success_count}
+                  <strong>Created:</strong> {result.success_count}
                 </p>
                 <p>
                   <strong>Failed:</strong> {result.failed_count}
@@ -115,13 +116,40 @@ function ImportDialogContent({
                 </p>
               </div>
 
-              {failedRows.length > 0 && (
-                <div className="data-import-errors">
+              {skippedRows.length > 0 && (
+                <div className="data-import-errors" style={{ marginTop: 12 }}>
+                  <h4 style={{ margin: '0 0 8px', fontSize: 14 }}>Skipped rows (with reason)</h4>
                   <table>
                     <thead>
                       <tr>
                         <th>Row</th>
-                        <th>Email</th>
+                        <th>Shop / name</th>
+                        <th>Existing ID</th>
+                        <th>Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {skippedRows.map((row) => (
+                        <tr key={`skip-${row.row}-${row.email || row.skip_reason || row.error}`}>
+                          <td>{row.row}</td>
+                          <td>{row.email || '—'}</td>
+                          <td>{row.id || '—'}</td>
+                          <td>{row.skip_reason || row.error || 'Skipped'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {failedRows.length > 0 && (
+                <div className="data-import-errors">
+                  <h4 style={{ margin: '0 0 8px', fontSize: 14 }}>Failed rows</h4>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Row</th>
+                        <th>Email / shop</th>
                         <th>Error</th>
                       </tr>
                     </thead>
@@ -231,7 +259,11 @@ const DataImport = ({
     return null;
   }
 
-  const failedRows = result?.results?.filter((r) => !r.success) || [];
+  const failedRows = result?.results?.filter((r) => !r.success && !r.skipped) || [];
+  const skippedRows =
+    result?.results?.filter(
+      (r) => r.skipped === true || (r.success && (r.skip_reason || String(r.error || '').toLowerCase().includes('skip'))),
+    ) || [];
 
   return (
     <>
@@ -255,6 +287,7 @@ const DataImport = ({
           uploading={uploading}
           result={result}
           failedRows={failedRows}
+          skippedRows={skippedRows}
           onClose={handleClose}
           onDownloadTemplate={handleDownloadTemplate}
           onFileChange={handleFileChange}

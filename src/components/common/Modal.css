@@ -12,7 +12,9 @@
 }
 
 .custom-modal-content {
-  background: #fff;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
   padding: 2rem;
   border-radius: 8px;
   min-width: 320px;
@@ -20,13 +22,14 @@
   max-height: 80vh;
   overflow-y: auto;
   position: relative;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-lg);
 }
 
 .custom-modal-content h2 {
   margin: 0 0 8px;
   padding-right: 2rem;
   font-size: 1.25rem;
+  color: var(--color-text-primary);
 }
 
 .custom-modal-close {
@@ -38,7 +41,7 @@
   font-size: 2rem;
   line-height: 1;
   cursor: pointer;
-  color: #333;
+  color: var(--color-text-secondary);
 }
 
 .custom-modal-details .custom-modal-kv-list,
@@ -54,7 +57,7 @@
 }
 
 .custom-modal-kv-key {
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .custom-modal-kv-value {
@@ -71,11 +74,11 @@
   margin: 0 0 0.5rem;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text-primary);
 }
 
 .custom-modal-section-empty {
   margin: 0;
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }

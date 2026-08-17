@@ -5,7 +5,7 @@ import Navbar from '../../../../Navbar';
 import PageHeader from '../../../../common/PageHeader';
 import ActionMenu from '../../../../common/ActionMenu';
 import Pagination from '../../../../common/Pagination';
-import { SearchFilter } from '../../../../common/filters';
+import { SearchFilter, RefreshButton } from '../../../../common/filters';
 import { DropdownFilter } from '../../../../common/filters';
 import { SearchButton, ClearButton } from '../../../../common/filters';
 import { FiEye } from 'react-icons/fi';
@@ -228,6 +228,7 @@ const TrackersList = () => {
             <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
               <SearchButton onClick={handleApply} text="Search" loading={loading} />
               <ClearButton onClick={handleClear} text="Clear" />
+              <RefreshButton onClick={fetchData} loading={loading} />
             </div>
           </div>
 

@@ -11,8 +11,8 @@
   --surface: #ffffff;
   --canvas: #f7f8fc;
 
-  --accent: #4548e0;
-  --accent-deep: #34359f;
+  --accent: #2563EB;
+  --accent-deep: #2563EB;
   --accent-tint: #eef0ff;
 
   --success: #0e8f66;
@@ -21,7 +21,7 @@
   --warning-tint: #faf0dc;
   --danger: #c73a52;
   --danger-tint: #fbeaee;
-  --violet: #6f47c4;
+  --violet: #2563EB;
   --violet-tint: #f1ecfb;
   --neutral-tint: #eef0f5;
 
@@ -36,7 +36,7 @@
   font-family: -apple-system, "Inter", "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   padding: 20px;
-  margin: 32px auto 0;
+  margin-top: 50px;
   max-width: 1280px;
 }
 
@@ -254,6 +254,10 @@
 .note-view-status-completed { background-color: var(--success-tint); color: var(--success); }
 .note-view-status-closed { background-color: var(--neutral-tint); color: var(--ink-soft); }
 .note-view-status-cancelled { background-color: var(--danger-tint); color: var(--danger); }
+.note-view-status-on_hold { background-color: var(--violet-tint); color: var(--violet); }
+.note-view-status-request_clarification { background-color: var(--warning-tint); color: var(--warning); }
+
+
 
 /* ============================================================
    CONTENT

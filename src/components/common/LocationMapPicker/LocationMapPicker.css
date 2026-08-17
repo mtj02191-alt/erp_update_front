@@ -1,0 +1,190 @@
+.location-map-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.location-map-picker__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.location-map-picker__hint {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.location-map-picker__steps {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.location-map-picker__steps li + li {
+  margin-top: 6px;
+}
+
+.location-map-picker__map {
+  width: 100%;
+  height: 380px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #dbe3ee;
+  background: #f8fafc;
+}
+
+.location-map-picker__iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.location-map-picker__field-row,
+.location-map-picker__coords-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.location-map-picker__coords-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+}
+
+@media (max-width: 768px) {
+  .location-map-picker__coords-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.location-map-picker__label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 4px;
+}
+
+.location-map-picker__inline {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.location-map-picker__inline .form-input {
+  flex: 1;
+  min-width: 220px;
+}
+
+.location-map-picker__coords-action {
+  display: flex;
+  align-items: flex-end;
+}
+
+.location-map-picker__summary {
+  font-size: 13px;
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.location-map-picker__summary--muted {
+  color: #64748b;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.location-map-picker__link {
+  font-size: 13px;
+  color: #0369a1;
+  text-decoration: none;
+}
+
+.location-map-picker__link:hover {
+  text-decoration: underline;
+}
+
+.location-map-picker__distance-ok {
+  color: #166534;
+  font-weight: 600;
+}
+
+.location-map-picker__distance-bad {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.location-details-summary {
+  margin-top: 4px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.location-details-summary__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 10px;
+}
+
+.location-details-summary__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+}
+
+@media (max-width: 768px) {
+  .location-details-summary__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.location-details-summary__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.location-details-summary__label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.location-details-summary__value {
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.location-details-summary__coords,
+.location-details-summary__empty {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.location-details-summary__full {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.view-item--full {
+  grid-column: 1 / -1;
+}
+
+.view-item--full .view-item-value {
+  display: block;
+  width: 100%;
+}

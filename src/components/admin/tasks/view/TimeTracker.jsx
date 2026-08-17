@@ -190,7 +190,7 @@ const TimeTracker = ({ taskId, taskStatus }) => {
       <div className="task-time-header">
         <div className="task-time-main">
           <div className="task-time-total">
-            Total time logged: {formatSeconds(effectiveTotalSeconds)}
+            Total logged: {formatSeconds(effectiveTotalSeconds)}
           </div>
           {error && (
             <div className="task-time-error">
@@ -222,12 +222,11 @@ const TimeTracker = ({ taskId, taskStatus }) => {
         </div>
       </div>
 
+      <div className="task-time-manual-label">Log time manually</div>
       <form className="task-time-manual" onSubmit={handleManualSubmit}>
         <div className="task-time-manual-grid">
           <div className="task-time-field">
-            <label className="form-label">
-              Manual minutes
-            </label>
+            <label className="form-label">Minutes</label>
             <input
               type="number"
               className="form-input"
@@ -238,9 +237,7 @@ const TimeTracker = ({ taskId, taskStatus }) => {
             />
           </div>
           <div className="task-time-field">
-            <label className="form-label">
-              Notes
-            </label>
+            <label className="form-label">Notes (optional)</label>
             <input
               type="text"
               className="form-input"
@@ -255,7 +252,7 @@ const TimeTracker = ({ taskId, taskStatus }) => {
               className="task-time-button task-time-button--secondary"
               disabled={loading || isClosed}
             >
-              Add Time
+              Log Time
             </button>
           </div>
         </div>

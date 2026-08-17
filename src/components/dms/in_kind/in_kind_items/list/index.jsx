@@ -9,7 +9,8 @@ import Table from '../../../../common/table';
 import axiosInstance from '../../../../../utils/axios';
 import Navbar from '../../../../Navbar';
 import PageHeader from '../../../../common/PageHeader';
-import { DropdownFilter } from '../../../../common/filters';
+import { DropdownFilter, CollapsibleFilters } from '../../../../common/filters';
+import useFiltersPanel from '../../../../../hooks/useFiltersPanel';
 import { DownloadCSV } from '../../../../common/download';
 
 const InKindItemsList = () => {
@@ -17,6 +18,7 @@ const InKindItemsList = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { filtersOpen, toggleFilters } = useFiltersPanel();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -256,7 +258,9 @@ const InKindItemsList = () => {
       <>
         <Navbar />
         <div className="form-content">
-          <PageHeader title="In-Kind Items" />
+          <PageHeader
+          onRefresh={fetchItems}
+          refreshing={loading} title="In-Kind Items" />
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <div>Loading in-kind items...</div>
           </div>
@@ -269,9 +273,14 @@ const InKindItemsList = () => {
     <>
       <Navbar />
       <div className="form-content">
-        <PageHeader 
+        <PageHeader
+          onRefresh={fetchItems}
+          refreshing={loading} 
           title="In-Kind Items" 
           onBack={() => navigate('/dms')}
+          showFilterToggle
+          filtersOpen={filtersOpen}
+          onFilterToggle={toggleFilters}
         />
         
         {error && (
@@ -283,15 +292,8 @@ const InKindItemsList = () => {
         <div className="list-wrapper">
           <div className="list-content">
             {/* Filters */}
-            <div className="filters-section" style={{ 
-              display: 'flex', 
-              gap: '20px', 
-              flexWrap: 'wrap', 
-              marginBottom: '20px',
-              padding: '20px',
-              backgroundColor: '#f9fafb',
-              borderRadius: '8px'
-            }}>
+            <CollapsibleFilters open={filtersOpen}>
+            <div className="filters-section">
               <DropdownFilter
                 filterKey="category"
                 label="Category"
@@ -317,6 +319,7 @@ const InKindItemsList = () => {
                 </button>
               </div>
             </div>
+            </CollapsibleFilters>
 
             {/* Action Bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>

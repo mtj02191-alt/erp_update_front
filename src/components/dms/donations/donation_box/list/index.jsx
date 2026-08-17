@@ -1,55 +1,94 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import axiosInstance from '../../../../../utils/axios';
 import Navbar from '../../../../Navbar';
 import PageHeader from '../../../../common/PageHeader';
 import ActionMenu from '../../../../common/ActionMenu';
 import ConfirmationModal from '../../../../common/ConfirmationModal';
 import Pagination from '../../../../common/Pagination';
-import { DownloadCSV } from '../../../../common/download';
-import { SearchFilter, DateFilter, DateRangeFilter } from '../../../../common/filters';
+import DataImport from '../../../../common/DataImport';
+import { useAuth } from '../../../../../context/AuthContext';
+import { hasPermission } from '../../../../../utils/permissions';
+import {
+  SearchFilter,
+  DropdownFilter,
+  DateFilter,
+  DateRangeFilter,
+  CollapsibleFilters,
+} from '../../../../common/filters';
 import { ClearButton, SearchButton } from '../../../../common/filters/index';
 import FormInput from '../../../../common/FormInput';
+import useOfflineDataRefresh from '../../../../../hooks/useOfflineDataRefresh';
+import usePersistedFilters from '../../../../../hooks/usePersistedFilters';
+import useFiltersPanel from '../../../../../hooks/useFiltersPanel';
 
-import { FiEye, FiTrash2, FiDollarSign, FiCalendar, FiBox, FiTrendingUp } from 'react-icons/fi';
+import { FiEye, FiTrash2, FiCalendar, FiBox } from 'react-icons/fi';
+import OfflinePendingBadge from '../../../../common/OfflinePendingBadge';
+
+const EMPTY_FILTERS = {
+  search: '',
+  status: '',
+  payment_method: '',
+  min_amount: '',
+  max_amount: '',
+  date: '',
+  start_date: '',
+  end_date: '',
+};
 
 const DonationBoxDonationsList = () => {
   const navigate = useNavigate();
-  const { id: donationBoxId } = useParams(); // Get donation box ID from URL if present
+  const { id: donationBoxId } = useParams();
+  const { permissions } = useAuth();
   const [donations, setDonations] = useState([]);
-  const [donationBoxInfo, setDonationBoxInfo] = useState(null); // Store donation box info if filtering by ID
+  const [donationBoxInfo, setDonationBoxInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [donationToDelete, setDonationToDelete] = useState(null);
-  
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const { filtersOpen, toggleFilters } = useFiltersPanel();
+
+  const paginationKey = donationBoxId
+    ? `donation-box-donations-list:${donationBoxId}:pagination`
+    : 'donation-box-donations-list:pagination';
+  const tempFiltersKey = donationBoxId
+    ? `donation-box-donations-list:${donationBoxId}:temp`
+    : 'donation-box-donations-list:temp';
+  const appliedFiltersKey = donationBoxId
+    ? `donation-box-donations-list:${donationBoxId}:applied`
+    : 'donation-box-donations-list:applied';
+
+  const [paginationState, setPaginationState] = usePersistedFilters(paginationKey, {
+    currentPage: 1,
+    pageSize: 10,
+    sortField: 'collection_date',
+    sortOrder: 'DESC',
+  });
+  const { currentPage, pageSize, sortField, sortOrder } = paginationState;
+  const setCurrentPage = (v) =>
+    setPaginationState((prev) => ({
+      ...prev,
+      currentPage: typeof v === 'function' ? v(prev.currentPage) : v,
+    }));
+  const setPageSize = (v) =>
+    setPaginationState((prev) => ({ ...prev, pageSize: v, currentPage: 1 }));
+  const setSortField = (v) =>
+    setPaginationState((prev) => ({ ...prev, sortField: v, currentPage: 1 }));
+  const setSortOrder = (v) =>
+    setPaginationState((prev) => ({ ...prev, sortOrder: v, currentPage: 1 }));
+
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [sortField, setSortField] = useState('collection_date');
-  const [sortOrder, setSortOrder] = useState('DESC');
+  const [listRefreshNonce, setListRefreshNonce] = useState(0);
 
-  // Filter state - Temporary filters (not applied until search button is clicked)
-  const [tempFilters, setTempFilters] = useState({
-    search: '',
-    min_amount: '',
-    max_amount: '',
-    date: '',
-    start_date: '',
-    end_date: ''
-  });
-
-  // Applied filters - Actually sent to API
-  const [appliedFilters, setAppliedFilters] = useState({
-    search: '',
-    min_amount: '',
-    max_amount: '',
-    date: '',
-    start_date: '',
-    end_date: ''
-  });
+  const [tempFilters, setTempFilters, clearTempFilters] = usePersistedFilters(
+    tempFiltersKey,
+    EMPTY_FILTERS,
+  );
+  const [appliedFilters, setAppliedFilters, clearAppliedFilters] = usePersistedFilters(
+    appliedFiltersKey,
+    EMPTY_FILTERS,
+  );
 
   // Universal filter change handler - Updates temporary filters only
   const handleFilterChange = (key, value) => {
@@ -73,26 +112,18 @@ const DonationBoxDonationsList = () => {
       setAppliedFilters(tempFilters);
       setCurrentPage(1);
     } else {
-      fetchDonations();
+      handleRefresh();
     }
   };
 
   // Clear filters - Triggered by Clear button
   const handleClearFilters = () => {
-    const emptyFilters = {
-      search: '',
-      min_amount: '',
-      max_amount: '',
-      date: '',
-      start_date: '',
-      end_date: ''
-    };
-    
-    const filtersAreEmpty = JSON.stringify(appliedFilters) === JSON.stringify(emptyFilters);
-    
+    const filtersAreEmpty =
+      JSON.stringify(appliedFilters) === JSON.stringify(EMPTY_FILTERS);
+
     if (!filtersAreEmpty) {
-      setTempFilters(emptyFilters);
-      setAppliedFilters(emptyFilters);
+      clearTempFilters();
+      clearAppliedFilters();
       setCurrentPage(1);
     }
   };
@@ -107,7 +138,18 @@ const DonationBoxDonationsList = () => {
   // Fetch donations when filters or pagination changes
   useEffect(() => {
     fetchDonations();
-  }, [currentPage, pageSize, sortField, sortOrder, appliedFilters, donationBoxId]);
+  }, [currentPage, pageSize, sortField, sortOrder, appliedFilters, donationBoxId, listRefreshNonce]);
+
+  const handleRefresh = () => setListRefreshNonce((n) => n + 1);
+
+  useOfflineDataRefresh(() => setListRefreshNonce((n) => n + 1), [
+    currentPage,
+    pageSize,
+    sortField,
+    sortOrder,
+    appliedFilters,
+    donationBoxId,
+  ]);
 
   const fetchDonationBoxInfo = async () => {
     try {
@@ -120,36 +162,35 @@ const DonationBoxDonationsList = () => {
     }
   };
 
+  const buildListParams = () => {
+    const params = {
+      page: currentPage,
+      pageSize,
+      sortField,
+      sortOrder,
+      ...appliedFilters,
+    };
+    Object.keys(params).forEach((key) => {
+      if (params[key] === '' || params[key] == null) {
+        delete params[key];
+      }
+    });
+    return params;
+  };
+
   const fetchDonations = async () => {
     try {
       setLoading(true);
-      
-      // Prepare filter payload
-      const filterPayload = {
-        pagination: {
-          page: currentPage,
-          pageSize: pageSize,
-          sortField: sortField,
-          sortOrder: sortOrder
-        },
-        filters: {
-          search: appliedFilters.search,
-          min_amount: appliedFilters.min_amount,
-          max_amount: appliedFilters.max_amount,
-          date: appliedFilters.date,
-          start_date: appliedFilters.start_date,
-          end_date: appliedFilters.end_date
-        }
-      };
 
-      // Conditional API call based on URL params
+      const params = buildListParams();
       let response;
+
       if (donationBoxId) {
-        // Get donations for specific donation box
-        response = await axiosInstance.get(`/donation-box-donation/box/${donationBoxId}`, filterPayload);
+        response = await axiosInstance.get(`/donation-box-donation/box/${donationBoxId}`, {
+          params,
+        });
       } else {
-        // Get all donation box donations
-        response = await axiosInstance.get('/donation-box-donation', filterPayload); 
+        response = await axiosInstance.get('/donation-box-donation', { params });
       }
       
       if (response.data.success) {
@@ -190,7 +231,7 @@ const DonationBoxDonationsList = () => {
   const handleDeleteConfirm = async () => {
     if (donationToDelete) {
       try {
-        await axiosInstance.delete(`/dms/donation-box-donations/${donationToDelete.id}`);
+        await axiosInstance.delete(`/donation-box-donation/${donationToDelete.id}`);
         fetchDonations();
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to delete donation');
@@ -226,7 +267,8 @@ const DonationBoxDonationsList = () => {
       icon: <FiEye />,
       label: 'View',
       color: '#4CAF50',
-      onClick: () => navigate(`/dms/donation-box-donations/view/${donation.id}`, { state: { donation } }),
+      to: `/dms/donation-box-donations/view/${donation.id}`,
+      state: { donation },
       visible: true
     },
     {
@@ -241,43 +283,24 @@ const DonationBoxDonationsList = () => {
   const sortOptions = [
     { value: 'collection_date', label: 'Collection Date' },
     { value: 'collection_amount', label: 'Amount' },
+    { value: 'created_at', label: 'Created Date' },
+    { value: 'status', label: 'Status' },
   ];
 
-  // CSV Download Configuration
-  const csvColumns = [
-    { key: 'id', label: 'ID' },
-    { key: 'box_id_no', label: 'Box Number' },
-    { key: 'shop_name', label: 'Shop Name' },
-    { key: 'shopkeeper', label: 'Shopkeeper' },
-    { key: 'location', label: 'Location' },
-    { key: 'collection_amount', label: 'Collection Amount' },
-    { key: 'collection_date', label: 'Collection Date' },
+  const statusOptions = [
+    { value: 'pending', label: 'Pending' },
+    { value: 'verified', label: 'Verified' },
+    { value: 'deposited', label: 'Deposited' },
+    { value: 'cancelled', label: 'Cancelled' },
   ];
 
-  // Prepare CSV data with formatted values
-  const prepareCSVData = () => {
-    return donations.map(donation => ({
-      id: donation.id,
-      box_id_no: donation.donation_box?.box_id_no || '-',
-      shop_name: donation.donation_box?.shop_name || '-',
-      shopkeeper: donation.donation_box?.shopkeeper || '-',
-      location: donation.donation_box ? `${donation.donation_box.city}, ${donation.donation_box.region}` : '-',
-      collection_amount: donation.collection_amount || 0,
-      collection_date: donation.collection_date ? new Date(donation.collection_date).toLocaleDateString() : '-',
-      created_at: donation.created_at ? new Date(donation.created_at).toLocaleDateString() : '-'
-    }));
-  };
+  const paymentMethodOptions = [
+    { value: 'cash', label: 'Cash' },
+    { value: 'cheque', label: 'Cheque' },
+    { value: 'bank_transfer', label: 'Bank Transfer' },
+    { value: 'other', label: 'Other' },
+  ];
 
-  // Generate filename with current date
-  const getCSVFilename = () => {
-    const today = new Date().toISOString().split('T')[0];
-    if (donationBoxId && donationBoxInfo) {
-      return `donation-box-${donationBoxInfo.box_id_no}-collections-${today}`;
-    }
-    return `donation-box-collections-${today}`;
-  };
-
-  // Get back path based on context
   const getBackPath = () => {
     if (donationBoxId) {
       return `/dms/donation_box/view/${donationBoxId}`;
@@ -285,12 +308,22 @@ const DonationBoxDonationsList = () => {
     return null;
   };
 
-  if (loading && !donations.length) {
+  const canImportCsv = useMemo(() => {
+    if (!permissions) return false;
+    return (
+      permissions.super_admin === true ||
+      hasPermission(permissions, 'fund_raising', 'donation_box_donations', 'create')
+    );
+  }, [permissions]);
+
+  if (loading && donations.length === 0) {
     return (
       <>
         <Navbar />
         <div className="list-wrapper">
-          <PageHeader 
+          <PageHeader
+          onRefresh={handleRefresh}
+          refreshing={loading} 
             title = 'Donation Box Collections'  
             showBackButton={!!donationBoxId} 
             backPath={getBackPath()}
@@ -307,127 +340,117 @@ const DonationBoxDonationsList = () => {
     <>
       <Navbar />
       <div className="list-wrapper">
-        <PageHeader 
-            title = 'Donation Box Collections'  
-            showBackButton={!!donationBoxId} 
-            backPath={getBackPath()}
-            showAdd={true}
-            addPath= {donationBoxId ? `/dms/donation-box-donations/add/${donationBoxId}` : '/dms/donation-box-donations/add'}
+        <PageHeader
+          onRefresh={handleRefresh}
+          refreshing={loading}
+          title={
+            donationBoxId && donationBoxInfo
+              ? `Collections — ${donationBoxInfo.shop_name || donationBoxInfo.key_no}`
+              : 'Donation Box Collections'
+          }
+          showBackButton={!!donationBoxId}
+          backPath={getBackPath()}
+          showFilterToggle
+          filtersOpen={filtersOpen}
+          onFilterToggle={toggleFilters}
+          showAdd={true}
+          addPath={
+            donationBoxId
+              ? `/dms/donation-box-donations/add/${donationBoxId}`
+              : '/dms/donation-box-donations/add'
+          }
         />
-        
+
         <div className="list-content">
           {error && <div className="status-message status-message--error">{error}</div>}
-          
-          {/* Donation Box Info Card (only when filtering by specific box) */}
-          {/* {donationBoxId && donationBoxInfo && (
-            <div style={{ 
-              padding: '20px', 
-              backgroundColor: '#f0f9ff', 
-              borderRadius: '8px',
-              border: '1px solid #bae6fd',
-              marginBottom: '20px'
-            }}>
-              <div style={{ fontSize: '1.1em', fontWeight: '600', color: '#0369a1', marginBottom: '12px' }}>
-                <FiBox style={{ display: 'inline', marginRight: '8px' }} />
-                Donation Box Information
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-                <div>
-                  <div style={{ fontSize: '0.85em', color: '#666' }}>Key</div>
-                  <div style={{ fontWeight: '600', color: '#333' }}>{donationBoxInfo.key_no}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.85em', color: '#666' }}>Shop Name</div>
-                  <div style={{ fontWeight: '600', color: '#333' }}>{donationBoxInfo.shop_name}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.85em', color: '#666' }}>Shopkeeper</div>
-                  <div style={{ fontWeight: '600', color: '#333' }}>{donationBoxInfo.shopkeeper || 'N/A'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.85em', color: '#666' }}>Location</div>
-                  <div style={{ fontWeight: '600', color: '#333' }}>{donationBoxInfo.city}, {donationBoxInfo.region}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.85em', color: '#666' }}>Box Type</div>
-                  <div style={{ fontWeight: '600', color: '#333', textTransform: 'capitalize' }}>{donationBoxInfo.box_type}</div>
-                </div>
+
+          <CollapsibleFilters open={filtersOpen}>
+            <div className="filters-section">
+              <SearchFilter
+                filterKey="search"
+                label="Search"
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
+                placeholder="Search collector, receipt, shop, key no..."
+              />
+
+              <DropdownFilter
+                filterKey="status"
+                label="Status"
+                data={statusOptions}
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
+                placeholder="All Status"
+              />
+
+              <DropdownFilter
+                filterKey="payment_method"
+                label="Payment Method"
+                data={paymentMethodOptions}
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
+                placeholder="All Methods"
+              />
+
+              <FormInput
+                label="Min Amount"
+                type="number"
+                name="min_amount"
+                value={tempFilters.min_amount}
+                onChange={handleFormFilterChange}
+                placeholder="Min amount"
+                min="0"
+              />
+
+              <FormInput
+                label="Max Amount"
+                type="number"
+                name="max_amount"
+                value={tempFilters.max_amount}
+                onChange={handleFormFilterChange}
+                placeholder="Max amount"
+                min="0"
+              />
+
+              <DateFilter
+                filterKey="date"
+                label="Collection Date (exact)"
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
+              />
+
+              <DateRangeFilter
+                startKey="start_date"
+                endKey="end_date"
+                label="Collection Date Range"
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
+              />
+
+              <div className="filters-actions">
+                <SearchButton onClick={handleApplyFilters} text="Search" loading={loading} />
+                <ClearButton onClick={handleClearFilters} text="Clear" />
               </div>
             </div>
-          )} */}
-          
-          {/* Filters Section */}
-          {/* <div className="filters-section" style={{ 
-            display: 'flex', 
-            gap: '20px', 
-            flexWrap: 'wrap', 
-            marginBottom: '20px',
-            padding: '20px',
-            backgroundColor: '#f9fafb',
-            borderRadius: '8px'
-          }}>
-            <SearchFilter
-              filterKey="search"
-              label="Search"
-              filters={tempFilters}
-              onFilterChange={handleFilterChange}
-              placeholder="Search by key number, shopkeeper name..."
-            />
-            
-            <FormInput
-              label="Min Amount"
-              type="number"
-              name="min_amount"
-              value={tempFilters.min_amount}
-              onChange={handleFormFilterChange}
-              placeholder="Min amount"
-              min="0"
-            />
-            
-            <FormInput
-              label="Max Amount"
-              type="number"
-              name="max_amount"
-              value={tempFilters.max_amount}
-              onChange={handleFormFilterChange}
-              placeholder="Max amount"
-              min="0"
-            />
-            
-            <DateFilter
-              filterKey="date"
-              label="Specific Date"
-              filters={tempFilters}
-              onFilterChange={handleFilterChange}
-            />
-            
-            <DateRangeFilter
-              startKey="start_date"
-              endKey="end_date"
-              label="Date Range"
-              filters={tempFilters}
-              onFilterChange={handleFilterChange}
-            />
-            
-            <div style={{ 
-              display: 'flex', 
-              gap: '10px', 
-              alignItems: 'flex-end',
-              marginTop: '20px',
-              width: '100%'
-            }}>
-              <SearchButton
-                onClick={handleApplyFilters}
-                text="Search"
-                loading={loading}
-              />
-              <ClearButton
-                onClick={handleClearFilters}
-                text="Clear"
+          </CollapsibleFilters>
+
+          {canImportCsv && (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                marginBottom: '16px',
+              }}
+            >
+              <DataImport
+                entityName="donation_box_donations"
+                buttonText="Import CSV"
+                disabled={loading}
+                onImportComplete={() => fetchDonations()}
               />
             </div>
-          </div>
-           */}
+          )}
+
           <div className="table-container">
             <table className="data-table">
               <thead>
@@ -439,6 +462,7 @@ const DonationBoxDonationsList = () => {
                   <th>Collection Amount</th>
                   <th>Collection Date</th>
                   <th>Collected By</th>
+                  <th>Notes</th>
                   <th className="table-actions">Actions</th>
                 </tr>
               </thead>
@@ -446,17 +470,36 @@ const DonationBoxDonationsList = () => {
                 {donations.map(donation => (
                   <tr key={donation.id}>
                     <td>
-                      <div style={{ fontWeight: '600', color: '#0369a1' }}>
+                      <Link
+                        to={`/dms/donation-box-donations/view/${donation.id}`}
+                        state={{ donation }}
+                        style={{ fontWeight: '600', color: '#0369a1', textDecoration: 'inherit' }}
+                      >
                         COL-{donation.id}
-                      </div>
+                      </Link>
                     </td>
                     {!donationBoxId && (
                       <td>
                         <div className="box-info">
-                          <div style={{ fontWeight: '600', color: '#333' }}>
-                            <FiBox style={{ display: 'inline', marginRight: '5px' }} />
-                            Key: {donation.donation_box?.key_no || 'N/A'}
-                          </div>
+                          {donation.donation_box?.id ? (
+                            <Link
+                              to={`/dms/donation_box/view/${donation.donation_box.id}`}
+                              style={{
+                                fontWeight: '600',
+                                color: '#333',
+                                textDecoration: 'inherit',
+                                display: 'inline-block',
+                              }}
+                            >
+                              <FiBox style={{ display: 'inline', marginRight: '5px' }} />
+                              Key: {donation.donation_box?.key_no || 'N/A'}
+                            </Link>
+                          ) : (
+                            <div style={{ fontWeight: '600', color: '#333' }}>
+                              <FiBox style={{ display: 'inline', marginRight: '5px' }} />
+                              Key: {donation.donation_box?.key_no || 'N/A'}
+                            </div>
+                          )}
                           {donation.donation_box?.box_type && (
                             <div style={{ fontSize: '0.85em', color: '#666', marginTop: '3px' }}>
                               Type: {donation.donation_box.box_type}
@@ -503,6 +546,7 @@ const DonationBoxDonationsList = () => {
                       }}>
                         {/* <FiDollarSign style={{ display: 'inline', marginRight: '3px' }} /> */}
                         {formatAmount(donation.collection_amount)}
+                        <OfflinePendingBadge show={donation._pending_sync} />
                       </div>
                     </td>
                     <td>
@@ -516,6 +560,11 @@ const DonationBoxDonationsList = () => {
                         {donation.collected_by?.first_name + ' ' + donation.collected_by?.last_name || 'N/A'}
                       </div>
                     </td>
+                    <td>
+                      <div style={{ fontSize: '0.85em', color: '#6b7280', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={donation.notes || ''}>
+                        {donation.notes || '—'}
+                      </div>
+                    </td>
                     <td className="table-actions">
                       <ActionMenu actions={getActionMenuItems(donation)} />
                     </td>
@@ -524,18 +573,7 @@ const DonationBoxDonationsList = () => {
               </tbody>
             </table>
           </div>
-          
-          {/* <div className="list-header">
-            <DownloadCSV
-              data={prepareCSVData()}
-              filename={getCSVFilename()}
-              columns={csvColumns}
-              buttonText="Export to CSV"
-              onDownloadStart={() => console.log('Downloading donation box collections CSV...')}
-              onDownloadComplete={() => console.log('Download complete!')}
-            />
-          </div> */}
-          
+
           {totalItems > 0 && (
             <Pagination
               currentPage={currentPage}

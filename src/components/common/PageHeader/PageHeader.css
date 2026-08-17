@@ -52,6 +52,16 @@
   border-color: var(--color-bg-tertiary);
 }
 
+.filter-toggle-button--active {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.filter-toggle-button:hover {
+  transform: none;
+}
+
 .page-title {
   margin: 0;
   font-size: var(--font-size-xl);

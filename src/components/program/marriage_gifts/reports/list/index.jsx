@@ -5,7 +5,8 @@ import axiosInstance from '../../../../../utils/axios';
 import '../../../../../styles/variables.css';
 import '../../../../../styles/components.css';
 import Navbar from '../../../../Navbar';
-import PageHeader from '../../../../common/PageHeader';
+import PageHeader from '../../../../common/PageHeader'
+import { RefreshButton } from '../../../../common/filters';
 import ActionMenu from '../../../../common/ActionMenu';
 import ConfirmationModal from '../../../../common/ConfirmationModal';
 import Pagination from '../../../../common/Pagination';
@@ -175,6 +176,10 @@ const MarriageGiftsList = () => {
             {/* <h2 className="header-title">All Reports</h2> */}
           </div>
           
+                    <div className="list-refresh-bar">
+            <RefreshButton onClick={fetchReports} loading={loading} />
+          </div>
+
           <div className="table-container">
             <table className="data-table">
               <thead>

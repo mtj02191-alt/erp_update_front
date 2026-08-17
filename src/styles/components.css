@@ -37,9 +37,11 @@
   margin: 30px auto 3rem;
   padding: 2rem;
   background: var(--color-background);
+  color: var(--color-text-primary);
   border-radius: var(--border-radius);
   box-shadow: 0 2px 16px rgba(0,0,0,0.07);
   border: 1px solid var(--color-border);
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
 /* Box for form */
 .form-wrapper .form-content {
@@ -47,6 +49,24 @@
   flex-direction: column;
   gap: var(--spacing-lg);
   width: 100%;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+  padding: 0;
+  max-width: none;
+}
+
+.form-section {
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.form-section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 /* Form Grid Layouts */
@@ -124,9 +144,11 @@
 
 .form-input {
   padding: var(--spacing-sm);
-  border: 1px solid var(--color-text-light);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-md);
   font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
 }
 
 .form-input:focus {
@@ -168,13 +190,32 @@
 }
 
 /* Form Section Headings */
-.form-section-heading {
+.form-section-heading,
+.form-section-title {
   font-size: var(--font-size-lg);
   font-weight: 600;
   margin: var(--spacing-lg) 0 var(--spacing-md) 0;
-  color: var(--color-text);
+  color: var(--color-text-primary);
   border-bottom: 1px solid var(--color-border);
   padding-bottom: var(--spacing-sm);
+}
+
+.form-section-heading:first-child,
+.form-section-title:first-child {
+  margin-top: 0;
+}
+
+.form-section-heading--accent,
+.form-section-title--accent {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-border);
+}
+
+.form-section-heading--compact {
+  font-size: var(--font-size-sm);
+  margin: 0 0 8px;
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 /* Responsive Design for Form Wrapper */
@@ -229,9 +270,12 @@
   margin: 2rem;
   padding-top: 2.5rem;
   background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-md);
-  max-height: calc(100vh - 84px);
+  /* max-height: calc(100vh - 84px); */
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
   /* overflow-y: auto; */
 }
 
@@ -240,6 +284,7 @@
   flex-direction: column;
   width: 100%;
   padding-bottom: 0;
+  color: var(--color-text-primary);
 }
 
 /* List Header - Enhanced with Application Reports List Styling */
@@ -266,6 +311,26 @@
   align-items: flex-end;
 }
 
+/* Collapsible filter panels on list pages */
+.filters-section {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 20px;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+}
+
+.filters-container {
+  margin-bottom: 20px;
+  padding: 20px;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+}
+
 .list-filters .form-input {
   width: 200px;
 }
@@ -282,40 +347,150 @@
   margin-top: var(--spacing-md);
   border-radius: var(--border-radius);
   border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
   /* display: none; */ 
 }
 
 /* Common Table Styles - Updated with Application Reports List Styling */
-.data-table {
+.data-table,
+.custom-table {
   width: 100%;
   border-collapse: collapse;
-  background: var(--color-bg-primary);
+  background: var(--table-row-bg, var(--color-bg-primary));
   font-size: var(--font-size-sm);
   border-radius: var(--border-radius);
   overflow: hidden;
+  color: var(--color-text-primary);
 }
 
-.data-table th {
-  background: var(--color-bg-secondary);
+.data-table th,
+.custom-table th {
+  background: var(--table-header-bg, var(--color-bg-secondary));
   padding: var(--spacing-sm);
   text-align: left;
   /* font-weight: var(--font-weight-semibold); */
   color: var(--color-text-primary);
-  border-bottom: 1px solid var(--table-border, #e5e7eb);
+  border-bottom: 1px solid var(--table-border, var(--color-border));
   white-space: nowrap;
   text-transform: capitalize;
 }
 
-.data-table td {
-  padding: var(--spacing-sm);
-  border-bottom: 1px solid var(--color-bg-tertiary);
-  color: var(--color-text-primary);
+.data-table .table-select-col {
+  width: 44px;
+  text-align: center;
   vertical-align: middle;
 }
 
+.data-table .table-select-col input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--color-primary, #2563eb);
+}
+
+.data-table tr.row-selected td {
+  background: var(--color-primary-light, #eff6ff);
+}
+
+.list-selection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-secondary, #f8f9fa);
+  border: 1px solid var(--color-border, #e9ecef);
+  border-radius: var(--border-radius, 8px);
+  font-size: var(--font-size-sm);
+}
+
+.list-selection-bar__count {
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text-primary);
+}
+
+.list-selection-bar__clear {
+  background: none;
+  border: none;
+  color: var(--color-primary, #2563eb);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  padding: 0;
+  text-decoration: underline;
+}
+
+.list-selection-bar__clear:hover {
+  opacity: 0.85;
+}
+
+.data-table td {
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--table-border, var(--color-bg-tertiary));
+  color: var(--color-text-primary);
+  vertical-align: middle;
+  background: var(--table-row-bg, var(--color-bg-primary));
+}
+
+.custom-table td {
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--table-border, var(--color-bg-tertiary));
+  color: var(--color-text-primary);
+  vertical-align: middle;
+  background: var(--table-row-bg, var(--color-bg-primary));
+}
+
+.data-table tbody tr,
+.custom-table tbody tr {
+  background: var(--table-row-bg, var(--color-bg-primary));
+}
+
 .data-table tr:hover {
-  background: var(--color-bg-secondary);
-  transition: background-color 0.2s ease;
+  background: var(--table-row-hover-bg, var(--color-bg-secondary));
+}
+
+.data-table tr:hover td {
+  background: var(--table-row-hover-bg, var(--color-bg-secondary));
+}
+
+/* Table cell helpers used across DMS listings */
+.data-table .box-id,
+.data-table .shop-name,
+.data-table .location-main {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.data-table .box-key,
+.data-table .shop-route,
+.data-table .location-landmark,
+.data-table .table-cell-muted {
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+}
+
+.box-type-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.loading {
+  color: var(--color-text-secondary);
+  padding: var(--spacing-lg);
+  text-align: center;
+}
+
+.no-data {
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: var(--spacing-lg);
 }
 
 .data-table tr:last-child td {
@@ -366,11 +541,12 @@
 }
 
 .list-card {
-  background: white;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -379,14 +555,14 @@
 .list-card-info h3 {
   margin: 0 0 8px 0;
   font-size: 16px;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .list-card-status,
 .list-card-budget {
   margin: 4px 0;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 /* Responsive Design for List Wrapper - Updated */
@@ -475,13 +651,17 @@
   margin: 0 auto;
   padding: 80px 20px 20px;
   overflow-x: hidden;
+  color: var(--color-text-primary);
 }
 
 .view-content {
-  background: var(--color-background);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
   padding: var(--spacing-lg);
-  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+  box-shadow: var(--shadow-md);
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
 
 .view-section {
@@ -608,9 +788,9 @@
 }
 
 .status-cancelled {
-  background-color: #f8f9fa;
-  color: #6c757d;
-  border: 1px solid #dee2e6;
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 /* Progress tracking step statuses (underscore matches API: in_progress, skipped) */

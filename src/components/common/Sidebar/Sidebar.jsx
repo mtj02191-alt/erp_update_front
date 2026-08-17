@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import SidebarGroup from './SidebarGroup';
 import { getSidebarConfig } from './sidebarConfig';
@@ -12,16 +12,13 @@ const Sidebar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeItem, setActiveItem] = useState('');
   const location = useLocation();
-  const navigate = useNavigate();
   const { user, permissions } = useAuth();
 
   useEffect(() => {
     setActiveItem(location.pathname);
   }, [location.pathname]);
 
-  const handleItemClick = (path) => {
-    navigate(path);
-    // Close mobile sidebar after navigation
+  const handleNavigate = () => {
     setMobileOpen(false);
   };
 
@@ -85,7 +82,7 @@ const Sidebar = () => {
               group={group}
               collapsed={collapsed}
               activeItem={activeItem}
-              onItemClick={handleItemClick}
+              onNavigate={handleNavigate}
             />
           ))}
         </div>

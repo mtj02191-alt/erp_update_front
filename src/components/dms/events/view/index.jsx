@@ -486,31 +486,29 @@ const ViewEvent = () => {
                 </h2>
 
                 {stats && (
-                  <div style={{
+                  <div className="theme-panel" style={{
                     display: 'flex',
                     justifyContent: 'space-around',
                     marginBottom: '25px',
                     padding: '15px',
-                    backgroundColor: 'white',
-                    borderRadius: '8px'
                   }}>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: '24px', fontWeight: '700', color: '#10b981' }}>
                         {stats.attendees_count}
                       </div>
-                      <div style={{ fontSize: '12px', color: '#6b7280' }}>Checked In</div>
+                      <div className="theme-muted-text" style={{ fontSize: '12px' }}>Checked In</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: '24px', fontWeight: '700', color: '#3b82f6' }}>
                         {stats.remaining}
                       </div>
-                      <div style={{ fontSize: '12px', color: '#6b7280' }}>Remaining</div>
+                      <div className="theme-muted-text" style={{ fontSize: '12px' }}>Remaining</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: '24px', fontWeight: '700' }}>
                         {stats.allowed_attendees}
                       </div>
-                      <div style={{ fontSize: '12px', color: '#6b7280' }}>Capacity</div>
+                      <div className="theme-muted-text" style={{ fontSize: '12px' }}>Capacity</div>
                     </div>
                   </div>
                 )}

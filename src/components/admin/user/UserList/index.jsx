@@ -12,30 +12,60 @@ import DataFilters from '../../../common/DataFilters';
 import ConfirmationModal from '../../../common/ConfirmationModal';
 import ActionMenu from '../../../common/ActionMenu';
 import UserPermissions from '../UserPermissions';
+import DataImport from '../../../common/DataImport';
+import { useAuth } from '../../../../context/AuthContext';
+import { hasPermission } from '../../../../utils/permissions';
 import './UserList.css';
+
+const CSV_COLUMNS = [
+  { key: 'id', label: 'ID' },
+  { key: 'user_code', label: 'User Code' },
+  { key: 'first_name', label: 'First Name' },
+  { key: 'last_name', label: 'Last Name' },
+  { key: 'email', label: 'Email' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'department', label: 'Department' },
+  { key: 'role', label: 'Role' },
+  { key: 'gender', label: 'Gender' },
+  { key: 'dob', label: 'DOB' },
+  { key: 'cnic', label: 'CNIC' },
+  { key: 'address', label: 'Address' },
+  { key: 'joining_date', label: 'Joining Date' },
+  { key: 'emergency_contact', label: 'Emergency Contact' },
+  { key: 'blood_group', label: 'Blood Group' },
+  { key: 'isActive', label: 'Active' },
+  { key: 'manager_id', label: 'Manager ID' },
+  { key: 'created_at', label: 'Created At' },
+];
+
+const escapeCsv = (value) => {
+  const str = value == null ? '' : String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
 
 const UserList = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
-  // Filter state
+  const [exporting, setExporting] = useState(false);
+
   const [filters, setFilters] = useState({
     search: '',
     department: '',
-    role: ''
+    role: '',
   });
-  
-  // Separate state for search input (for immediate UI updates)
+
   const [searchInput, setSearchInput] = useState('');
   const [isSearchPending, setIsSearchPending] = useState(false);
-  
-  // Pagination state
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortField, setSortField] = useState('first_name');
   const [sortOrder, setSortOrder] = useState('ASC');
-  
+
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -44,6 +74,27 @@ const UserList = () => {
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
   const [userToManagePermissions, setUserToManagePermissions] = useState(null);
   const navigate = useNavigate();
+  const { permissions } = useAuth();
+
+  const canImportCsv = useMemo(() => {
+    if (!permissions) return false;
+    return (
+      permissions.super_admin === true ||
+      hasPermission(permissions, 'admin', 'users', 'create') ||
+      permissions.users?.create === true
+    );
+  }, [permissions]);
+
+  const canExportCsv = useMemo(() => {
+    if (!permissions) return false;
+    return (
+      permissions.super_admin === true ||
+      hasPermission(permissions, 'admin', 'users', 'csv_xport') ||
+      permissions.users?.csv_xport === true ||
+      hasPermission(permissions, 'admin', 'users', 'list_view') ||
+      permissions.users?.list_view === true
+    );
+  }, [permissions]);
 
   const departments = [
     'store',
@@ -53,26 +104,26 @@ const UserList = () => {
     'it',
     'marketing',
     'audio_video',
-    'fund_raising'
+    'fund_raising',
   ];
 
   const sortOptions = [
     { value: 'first_name', label: 'First Name' },
     { value: 'last_name', label: 'Last Name' },
+    { value: 'user_code', label: 'User Code' },
     { value: 'email', label: 'Email' },
     { value: 'department', label: 'Department' },
     { value: 'role', label: 'Role' },
-    { value: 'joining_date', label: 'Joining Date' }
+    { value: 'joining_date', label: 'Joining Date' },
   ];
 
-  // Filter configuration
   const filterConfig = [
     {
       key: 'search',
       type: 'text',
       placeholder: isSearchPending ? 'Searching... ' : 'Search users... ',
-      value: searchInput, // Use searchInput for immediate UI updates
-      width: '250px'
+      value: searchInput,
+      width: '250px',
     },
     {
       key: 'department',
@@ -80,10 +131,13 @@ const UserList = () => {
       placeholder: 'All Departments',
       value: filters.department,
       label: 'Department',
-      options: departments.map(dept => ({
+      options: departments.map((dept) => ({
         value: dept,
-        label: dept.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-      }))
+        label: dept
+          .split('_')
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' '),
+      })),
     },
     {
       key: 'role',
@@ -94,36 +148,36 @@ const UserList = () => {
       options: [
         { value: 'manager', label: 'Manager' },
         { value: 'assistant_manager', label: 'Assistant Manager' },
-        { value: 'user', label: 'User' }
-      ]
-    }
+        { value: 'user', label: 'User' },
+      ],
+    },
   ];
 
-  // Create debounced search function (3 second delay)
   const debouncedSearch = useMemo(
-    () => simpleDebounce((searchValue) => {
-      setFilters(prev => ({
-        ...prev,
-        search: searchValue
-      }));
-      setIsSearchPending(false);
-    }, 3000), // 3 seconds delay
-    []
+    () =>
+      simpleDebounce((searchValue) => {
+        setFilters((prev) => ({
+          ...prev,
+          search: searchValue,
+        }));
+        setIsSearchPending(false);
+      }, 3000),
+    [],
   );
 
-  // Handle search input changes with debouncing
-  const handleSearchInputChange = useCallback((value) => {
-    setSearchInput(value);
-    setIsSearchPending(true);
-    debouncedSearch(value);
-  }, [debouncedSearch]);
+  const handleSearchInputChange = useCallback(
+    (value) => {
+      setSearchInput(value);
+      setIsSearchPending(true);
+      debouncedSearch(value);
+    },
+    [debouncedSearch],
+  );
 
-  // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [filters.search, filters.department, filters.role]);
 
-  // Cleanup debounced function on unmount
   useEffect(() => {
     return () => {
       if (debouncedSearch.cancel) {
@@ -132,60 +186,93 @@ const UserList = () => {
     };
   }, [debouncedSearch]);
 
-  // Fetch users from backend
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const params = {
-          page: currentPage,
-          pageSize,
-          sortField,
-          sortOrder,
-          ...filters,
-        };
-        const response = await axiosInstance.get('/users', { params });
-        setUsers(response.data.data || []);
-        setTotalItems(response.data.pagination?.total || 0);
-        setTotalPages(response.data.pagination?.totalPages || 1);
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch users.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUsers();
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const params = {
+        page: currentPage,
+        pageSize,
+        sortField,
+        sortOrder,
+        ...filters,
+      };
+      const response = await axiosInstance.get('/users', { params });
+      setUsers(response.data.data || []);
+      setTotalItems(response.data.pagination?.total || 0);
+      setTotalPages(response.data.pagination?.totalPages || 1);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to fetch users.');
+    } finally {
+      setLoading(false);
+    }
   }, [currentPage, pageSize, sortField, sortOrder, filters]);
 
-  // Filter change handler
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const handleExportUsers = useCallback(async () => {
+    if (!canExportCsv) return;
+    setExporting(true);
+    setError('');
+    try {
+      const response = await axiosInstance.get('/users/export', {
+        params: { ...filters },
+      });
+      const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+      if (rows.length === 0) {
+        setError('No users to export for the current filters.');
+        return;
+      }
+      const lines = [
+        CSV_COLUMNS.map((c) => escapeCsv(c.label)).join(','),
+        ...rows.map((row) =>
+          CSV_COLUMNS.map((col) => escapeCsv(row[col.key])).join(','),
+        ),
+      ];
+      const blob = new Blob([`${lines.join('\n')}\n`], {
+        type: 'text/csv;charset=utf-8;',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `users-export-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to export users.');
+    } finally {
+      setExporting(false);
+    }
+  }, [canExportCsv, filters]);
+
   const handleFilterChange = (filterKey, value) => {
     if (filterKey === 'search') {
-      // Handle search input with debouncing
       handleSearchInputChange(value);
     } else {
-      // Handle other filters immediately
-      setFilters(prev => ({
+      setFilters((prev) => ({
         ...prev,
-        [filterKey]: value
+        [filterKey]: value,
       }));
     }
   };
 
-  // Pagination handlers
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
 
   const handlePageSizeChange = (newPageSize) => {
     setPageSize(newPageSize);
-    setCurrentPage(1); // Reset to first page when changing page size
+    setCurrentPage(1);
   };
 
   const handleSortChange = (field, order) => {
     setSortField(field);
     setSortOrder(order);
-    setCurrentPage(1); // Reset to first page when sorting
+    setCurrentPage(1);
   };
 
   const handleDeleteClick = (user) => {
@@ -195,9 +282,7 @@ const UserList = () => {
 
   const handleDeleteConfirm = async () => {
     if (userToDelete) {
-      // Comment out the API call since we're using dummy data
-      // await axiosInstance.delete(`/users/${userToDelete.id}`);
-      setUsers(users.filter(user => user.id !== userToDelete.id));
+      setUsers(users.filter((user) => user.id !== userToDelete.id));
     }
     setShowDeleteModal(false);
     setUserToDelete(null);
@@ -212,16 +297,12 @@ const UserList = () => {
     navigate(`/users/${user.id}`);
   };
 
-  // Use the users directly from API response (already filtered, sorted, and paginated by server)
   const displayUsers = users;
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
   const formatDepartment = (department) => {
-    return department.split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    return department
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
 
@@ -231,14 +312,14 @@ const UserList = () => {
       label: 'View',
       color: '#4CAF50',
       onClick: () => handleView(user),
-      visible: true
+      visible: true,
     },
     {
       icon: <FiEdit2 />,
       label: 'Edit',
       color: '#2196F3',
       onClick: () => navigate(`/admin/users/edit/${user.id}`),
-      visible: true
+      visible: true,
     },
     {
       icon: <FiShield />,
@@ -248,36 +329,27 @@ const UserList = () => {
         setUserToManagePermissions(user);
         setShowPermissionsModal(true);
       },
-      visible: true
+      visible: true,
     },
     {
       icon: <FiTrash2 />,
       label: 'Delete',
       color: '#f44336',
       onClick: () => handleDeleteClick(user),
-      visible: true
-    }
+      visible: true,
+    },
   ];
 
-  // Handle manage permissions
-  const handleManagePermissions = (user) => {
-    setUserToManagePermissions(user);
-    setShowPermissionsModal(true);
-  };
-
-  // Handle permissions save
   const handlePermissionsSave = (updatedUser) => {
-    // Update the user in the list with new permissions
-    setUsers(prevUsers => 
-      prevUsers.map(user => 
-        user.id === updatedUser.id ? updatedUser : user
-      )
+    setUsers((prevUsers) =>
+      prevUsers.map((user) =>
+        user.id === updatedUser.id ? updatedUser : user,
+      ),
     );
     setShowPermissionsModal(false);
     setUserToManagePermissions(null);
   };
 
-  // Handle permissions cancel
   const handlePermissionsCancel = () => {
     setShowPermissionsModal(false);
     setUserToManagePermissions(null);
@@ -298,39 +370,71 @@ const UserList = () => {
     <>
       <Navbar />
       <div className="user-list-container">
-        <PageHeader 
+        <PageHeader
           title="User Management"
           showBackButton={false}
           showAdd={true}
           addPath="/admin/users/create"
         />
 
-        <DataFilters 
-          filters={filterConfig}
-          onFilterChange={handleFilterChange}
-        />
-        
+        <DataFilters filters={filterConfig} onFilterChange={handleFilterChange} />
+
+        <div
+          style={{
+            display: 'flex',
+            gap: '10px',
+            flexWrap: 'wrap',
+            marginBottom: '1rem',
+            alignItems: 'center',
+          }}
+        >
+          {canExportCsv && (
+            <button
+              type="button"
+              className="primary_btn"
+              onClick={handleExportUsers}
+              disabled={exporting || loading}
+            >
+              {exporting ? 'Exporting…' : 'Export CSV'}
+            </button>
+          )}
+          {canImportCsv && (
+            <DataImport
+              entityName="users"
+              buttonText="Import CSV"
+              disabled={loading}
+              onImportComplete={() => fetchUsers()}
+            />
+          )}
+        </div>
+
         {isSearchPending && (
-          <div className="search-pending-indicator" style={{ 
-            marginBottom: '1rem', 
-            padding: '0.5rem', 
-            backgroundColor: '#e3f2fd', 
-            border: '1px solid #2196f3', 
-            borderRadius: '4px',
-            color: '#1976d2',
-            fontSize: '0.875rem'
-          }}>
-            🔍 Search will execute in 3 seconds after you stop typing...
+          <div
+            className="search-pending-indicator"
+            style={{
+              marginBottom: '1rem',
+              padding: '0.5rem',
+              backgroundColor: '#e3f2fd',
+              border: '1px solid #2196f3',
+              borderRadius: '4px',
+              color: '#1976d2',
+              fontSize: '0.875rem',
+            }}
+          >
+            Search will execute in 3 seconds after you stop typing...
           </div>
         )}
 
-        {error && <div className="status-message status-message--error">{error}</div>}
+        {error && (
+          <div className="status-message status-message--error">{error}</div>
+        )}
 
         <div className="user-list-table-container">
           <table className="user-list-table">
             <thead>
               <tr>
                 <th>Name</th>
+                <th className="hide-on-mobile">User Code</th>
                 <th className="hide-on-mobile">Email</th>
                 <th>Department</th>
                 <th className="hide-on-mobile">Role</th>
@@ -340,10 +444,15 @@ const UserList = () => {
             <tbody>
               {displayUsers.map((user) => (
                 <tr key={user.id}>
-                  <td>{user.first_name} {user.last_name}</td>
+                  <td>
+                    {user.first_name} {user.last_name}
+                  </td>
+                  <td className="hide-on-mobile">{user.user_code || '—'}</td>
                   <td className="hide-on-mobile">{user.email}</td>
                   <td>{formatDepartment(user.department)}</td>
-                  <td className="hide-on-mobile">{user.role.charAt(0).toUpperCase() + user.role.slice(1)}</td>
+                  <td className="hide-on-mobile">
+                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                  </td>
                   <td>
                     <ActionMenu actions={getActionMenuItems(user)} />
                   </td>
@@ -354,7 +463,10 @@ const UserList = () => {
         </div>
 
         {displayUsers.length === 0 && (
-          <div className="status-message" style={{ textAlign: 'center', marginTop: 'var(--spacing-lg)' }}>
+          <div
+            className="status-message"
+            style={{ textAlign: 'center', marginTop: 'var(--spacing-lg)' }}
+          >
             No users found
           </div>
         )}
@@ -383,7 +495,6 @@ const UserList = () => {
         onCancel={handleDeleteCancel}
       />
 
-      {/* Permissions Modal */}
       {showPermissionsModal && userToManagePermissions && (
         <UserPermissions
           user={userToManagePermissions}
@@ -396,4 +507,4 @@ const UserList = () => {
   );
 };
 
-export default UserList; 
+export default UserList;

@@ -4,7 +4,7 @@ import '../../../../styles/variables.css';
 import '../../../../styles/components.css';
 import './UserPermissions.css';
 import { toast } from 'react-toastify';
-import { FiCloudLightning } from 'react-icons/fi';
+import { FiChevronRight } from 'react-icons/fi';
 import { useAuth } from '../../../../context/AuthContext';
 
 /** Merge legacy fund_raising online_donors/offline_donors into donors and drop old keys for save/load. */
@@ -14,7 +14,13 @@ const mergeFundRaisingDonorPermissions = (rawPermissions) => {
   if (!next.fund_raising) return next;
   const fr = next.fund_raising;
   const actions = ['create', 'list_view', 'view', 'update', 'delete', 'csv_xport'];
-  const merged = {};
+  const merged = {
+    scope: fr.donors?.scope || fr.online_donors?.scope || fr.offline_donors?.scope || 'self',
+    view_all:
+      fr.donors?.view_all === true ||
+      fr.online_donors?.view_all === true ||
+      fr.offline_donors?.view_all === true,
+  };
   actions.forEach((a) => {
     merged[a] =
       fr.donors?.[a] === true ||
@@ -30,6 +36,7 @@ const mergeFundRaisingDonorPermissions = (rawPermissions) => {
 const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
   const { user: currentUser, checkAuth } = useAuth();
   const [permissions, setPermissions] = useState({});
+  const [expandedModules, setExpandedModules] = useState({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -43,48 +50,143 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
 
   // Module structure with sub-modules and actions
   const moduleStructure = {
-    accounts_and_finance: {
-      label: 'Accounts & Finance',
+    fund_raising: {
+      label: 'Fund Raising',
       submodules: {
-        reports: {
-          label: 'Reports',
+        online_donations: {
+          label: 'Online Donations',
+          actions: ['create','list_view', 'view', 'update', 'delete', 'csv_xport']
+        },
+        offline_donations: {
+          label: 'Offline Donations',
           actions: ['create','list_view', 'view', 'update', 'delete']
         },
+        donation_box: {
+          label: 'Donation Box',
+          actions: ['create','list_view', 'view', 'update', 'delete']
+        },
+        donation_box_donations: {
+          label: 'Donation Box Donations',
+          actions: ['create','list_view', 'view', 'update', 'delete', 'bypass_location']
+        },
+        dms_todos: {
+          label: 'My To-Dos',
+          actions: ['create', 'list_view', 'view', 'update', 'delete']
+        },
+        donors: {
+          label: 'Donors',
+          actions: ['create', 'list_view', 'view', 'update', 'delete', 'csv_xport']
+        },
+        organizations: {
+          label: 'Organizations',
+          actions: ['create', 'list_view', 'view', 'update', 'delete']
+        },
+        // Enable later — Beneficiary Aid Applications (Phase 1)
+        // aid_people: {
+        //   label: 'Aid People',
+        //   actions: ['create', 'list_view', 'view', 'update', 'delete']
+        // },
+        // aid_applications: {
+        //   label: 'Aid Applications',
+        //   actions: ['create', 'list_view', 'view', 'update', 'delete', 'ceo_approve', 'deliver']
+        // },
+        // donations_report: {
+        //   label: 'Donations Report',
+        //   actions: ['send', 'receive']
+        // },
         dashboard: {
           label: 'Dashboard',
           actions: ['view']
-        }
-      }
-    },
-    procurements: {
-      label: 'Procurements',
-      submodules: {
-        reports: {
-          label: 'Reports',
-          actions: ['create','list_view', 'view', 'update', 'delete']
         },
-        dashboard: {
-          label: 'Dashboard',
-          actions: ['view']
-        }
-      }
-    },
-    store: {
-      label: 'Store',
-      submodules: {
-        reports: {
-          label: 'Reports',
-          actions: ['create','list_view', 'view', 'update', 'delete']
+        appeals: {
+          label: 'Urgent Appeals',
+          actions: ['create', 'list_view', 'view', 'update', 'delete']
         },
-        dashboard: {
-          label: 'Dashboard',
-          actions: ['view']
+        recurring_donations: {
+          label: 'Recurring Donations',
+          actions: ['list_view', 'view']
+        },
+        social_posts: {
+          label: 'Social Posts',
+          actions: ['create', 'list_view', 'view', 'update', 'delete']
+        },
+        campaigns: {
+          label: 'Campaigns',
+          actions: ['create', 'list_view', 'view', 'update', 'delete']
+        },
+        surveys: {
+          label: 'Surveys',
+          actions: ['create', 'list_view', 'view', 'update', 'delete']
+        },
+        events: {
+          label: 'Events',
+          actions: ['create', 'list_view', 'view', 'update', 'delete']
+        },
+        volunteers: {
+          label: 'Volunteers',
+          actions: ['create', 'list_view', 'view', 'update', 'delete']
+        },
+        receipt_templates: {
+          label: 'Receipt Templates',
+          actions: ['create', 'list_view', 'view', 'update', 'delete']
+        },
+        reconciliation: {
+          label: 'Bank Reconciliation',
+          actions: ['create', 'list_view', 'view']
+        },
+        donation_allotments: {
+          label: 'Donation Allotments',
+          actions: ['create', 'list_view', 'view', 'approve']
+        },
+        donor_relationship: {
+          label: 'Donor Relationship',
+          actions: ['create', 'list_view', 'view', 'update', 'delete', 'manage_overview']
         }
-      }
+      } 
     },
+    // accounts_and_finance: {
+    //   label: 'Accounts & Finance',
+    //   submodules: {
+    //     reports: {
+    //       label: 'Reports',
+    //       actions: ['create','list_view', 'view', 'update', 'delete']
+    //     },
+    //     dashboard: {
+    //       label: 'Dashboard',
+    //       actions: ['view']
+    //     }
+    //   }
+    // },
+    // procurements: {
+    //   label: 'Procurements',
+    //   submodules: {
+    //     reports: {
+    //       label: 'Reports',
+    //       actions: ['create','list_view', 'view', 'update', 'delete']
+    //     },
+    //     dashboard: {
+    //       label: 'Dashboard',
+    //       actions: ['view']
+    //     }
+    //   }
+    // },
+    // store: {
+    //   label: 'Store',
+    //   submodules: {
+    //     reports: {
+    //       label: 'Reports',
+    //       actions: ['create','list_view', 'view', 'update', 'delete']
+    //     },
+    //     dashboard: {
+    //       label: 'Dashboard',
+    //       actions: ['view']
+    //     }
+    //   }
+    // },
     program: {
       label: 'Program',
       submodules: {
+        
         progress_tracking: {
           label: 'Progress Tracking',
           actions: ['create', 'list_view', 'view', 'update', 'delete']
@@ -97,66 +199,66 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
           label: 'Progress Tracking - Templates',
           actions: ['create', 'list_view', 'view', 'update', 'delete']
         },
-        application_reports: {
-          label: 'Application Reports',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        },
-        area_ration_reports: {
-          label: 'Area Ration Reports',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        },
-        education_reports: {
-          label: 'Education Reports',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        },
-        financial_assistance_reports: {
-          label: 'Financial Assistance Reports',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        },
-        kasb_reports: {
-          label: 'Kasb Reports',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        },
-        kasb_training_reports: {
-          label: 'Kasb Training Reports',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        },
-        marriage_gifts_reports: {
-          label: 'Marriage Gifts Reports',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        },
-        ration_reports: {
-          label: 'Ration Reports',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        },
-        sewing_machine_reports: {
-          label: 'Sewing Machine Reports',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        },
-        tree_plantation_reports: {
-          label: 'Tree Plantation Reports',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        },
-        water_reports: {
-          label: 'Water Reports',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        },
-        wheel_chair_or_crutches_reports: {
-          label: 'Wheel Chair or Crutches Reports',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        },
-        health_reports: {
-          label: 'Health Reports',
-          actions: ['create', 'list_view', 'view', 'update', 'delete']
-        },
-        aas_collection_centers_reports: {
-          label: 'AAS Collection Centers Reports',
-          actions: ['create', 'list_view', 'view', 'update', 'delete']
-        },
-        al_hasanain_clg: {
-          label: 'Al Hasanain CLG',
-          actions: ['create', 'list_view', 'view', 'update', 'delete']
-        },
+        // application_reports: {
+        //   label: 'Application Reports',
+        //   actions: ['create','list_view', 'view', 'update', 'delete']
+        // },
+        // area_ration_reports: {
+        //   label: 'Area Ration Reports',
+        //   actions: ['create','list_view', 'view', 'update', 'delete']
+        // },
+        // education_reports: {
+        //   label: 'Education Reports',
+        //   actions: ['create','list_view', 'view', 'update', 'delete']
+        // },
+        // financial_assistance_reports: {
+        //   label: 'Financial Assistance Reports',
+        //   actions: ['create','list_view', 'view', 'update', 'delete']
+        // },
+        // kasb_reports: {
+        //   label: 'Kasb Reports',
+        //   actions: ['create','list_view', 'view', 'update', 'delete']
+        // },
+        // kasb_training_reports: {
+        //   label: 'Kasb Training Reports',
+        //   actions: ['create','list_view', 'view', 'update', 'delete']
+        // },
+        // marriage_gifts_reports: {
+        //   label: 'Marriage Gifts Reports',
+        //   actions: ['create','list_view', 'view', 'update', 'delete']
+        // },
+        // ration_reports: {
+        //   label: 'Ration Reports',
+        //   actions: ['create','list_view', 'view', 'update', 'delete']
+        // },
+        // sewing_machine_reports: {
+        //   label: 'Sewing Machine Reports',
+        //   actions: ['create','list_view', 'view', 'update', 'delete']
+        // },
+        // tree_plantation_reports: {
+        //   label: 'Tree Plantation Reports',
+        //   actions: ['create','list_view', 'view', 'update', 'delete']
+        // },
+        // water_reports: {
+        //   label: 'Water Reports',
+        //   actions: ['create','list_view', 'view', 'update', 'delete']
+        // },
+        // wheel_chair_or_crutches_reports: {
+        //   label: 'Wheel Chair or Crutches Reports',
+        //   actions: ['create','list_view', 'view', 'update', 'delete']
+        // },
+        // health_reports: {
+        //   label: 'Health Reports',
+        //   actions: ['create', 'list_view', 'view', 'update', 'delete']
+        // },
+        // aas_collection_centers_reports: {
+        //   label: 'AAS Collection Centers Reports',
+        //   actions: ['create', 'list_view', 'view', 'update', 'delete']
+        // },
+        // al_hasanain_clg: {
+        //   label: 'Al Hasanain CLG',
+        //   actions: ['create', 'list_view', 'view', 'update', 'delete']
+        // },
         dashboard: {
           label: 'Dashboard',
           actions: ['view']
@@ -167,12 +269,13 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
         }
       }
     },
+
     admin: {
       label: 'Admin',
       submodules: {
         users: {
           label: 'Users',
-          actions: ['create','list_view', 'view', 'update', 'delete']
+          actions: ['create','list_view', 'view', 'update', 'delete', 'csv_xport']
         },
         dashboard: {
           label: 'Dashboard',
@@ -219,50 +322,26 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
           label: 'WhatsApp — Campaigns',
           actions: ['send']
         },
+        donation_receipts: {
+          label: 'Donation Receipts',
+          actions: ['view', 'send']
+        },
+        email_checklist: {
+          label: 'Email Checklist',
+          actions: ['list_view', 'update']
+        },
       }
     },
-    fund_raising: {
-      label: 'Fund Raising',
-      submodules: {
-        online_donations: {
-          label: 'Online Donations',
-          actions: ['create','list_view', 'view', 'update', 'delete', 'csv_xport']
-        },
-        offline_donations: {
-          label: 'Offline Donations',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        },
-        donation_box: {
-          label: 'Donation Box',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        },
-        donation_box_donations: {
-          label: 'Donation Box Donations',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        },
-        donors: {
-          label: 'Donors',
-          actions: ['create', 'list_view', 'view', 'update', 'delete', 'csv_xport']
-        },
-        // donations_report: {
-        //   label: 'Donations Report',
-        //   actions: ['send', 'receive']
-        // },
-        dashboard: {
-          label: 'Dashboard',
-          actions: ['view']
-        }
-      } 
-    },
-    it: {
-      label: 'IT',
-      submodules: {
-        reports: {
-          label: 'Reports',
-          actions: ['create','list_view', 'view', 'update', 'delete']
-        }
-      }
-    },
+ 
+    // it: {
+    //   label: 'IT',
+    //   submodules: {
+    //     reports: {
+    //       label: 'Reports',
+    //       actions: ['create','list_view', 'view', 'update', 'delete']
+    //     }
+    //   }
+    // },
     hr: {
       label: 'HR',
       submodules: {
@@ -272,6 +351,10 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
         },
         applications: {
           label: 'Applications',
+          actions: ['create', 'list_view', 'view', 'update', 'delete']
+        },
+        resume_collection: {
+          label: 'Resume Collection',
           actions: ['create', 'list_view', 'view', 'update', 'delete']
         }
       }
@@ -331,11 +414,42 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
       label: 'CEO Office',
       submodules: {
         dashboard: {
-          label: 'Dashboard',
+          label: 'CEO Dashboard',
           actions: ['view']
+        },
+        instruction_register: {
+          label: 'Instruction Register',
+          actions: ['list_view', 'view', 'create', 'update', 'delete']
         }
       }
-    }
+    },
+  };
+
+  const SCOPE_OPTIONS = [
+    { value: 'self', label: 'Own records only' },
+    { value: 'team', label: 'Team (self + direct reports)' },
+    { value: 'department', label: 'Whole department' },
+    { value: 'org', label: 'All records in module' },
+  ];
+
+  const getSubmoduleScope = (moduleKey, submoduleKey) => {
+    const modulePerms = permissions[moduleKey]?.[submoduleKey];
+    if (modulePerms?.view_all === true) return 'org';
+    return modulePerms?.scope || 'self';
+  };
+
+  const handleScopeChange = (moduleKey, submoduleKey, scopeValue) => {
+    setPermissions((prev) => {
+      const next = { ...prev };
+      if (!next[moduleKey]) next[moduleKey] = {};
+      if (!next[moduleKey][submoduleKey]) next[moduleKey][submoduleKey] = {};
+      next[moduleKey][submoduleKey] = {
+        ...next[moduleKey][submoduleKey],
+        scope: scopeValue,
+        view_all: scopeValue === 'org',
+      };
+      return next;
+    });
   };
 
   // Action labels
@@ -348,6 +462,8 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
     send:'Send',
     receive:'Receive',
     csv_xport:'CSV Export',
+    approve: 'Approve / Reject',
+    manage_overview: 'Manage Overview',
   };
 
   const initializePermissions = () => {
@@ -357,6 +473,10 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
       initialPermissions[moduleKey] = {};
       Object.keys(moduleStructure[moduleKey].submodules).forEach(submoduleKey => {
         initialPermissions[moduleKey][submoduleKey] = {};
+        initialPermissions[moduleKey][submoduleKey] = {
+          scope: 'self',
+          view_all: false,
+        };
         moduleStructure[moduleKey].submodules[submoduleKey].actions.forEach(action => {
           initialPermissions[moduleKey][submoduleKey][action] = false;
         });
@@ -576,6 +696,57 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
     return hasChecked && !allChecked;
   };
 
+  const getModuleGrantStats = (moduleKey) => {
+    const module = moduleStructure[moduleKey];
+    let granted = 0;
+    let total = 0;
+
+    Object.keys(module.submodules).forEach((submoduleKey) => {
+      const submodule = module.submodules[submoduleKey];
+      submodule.actions.forEach((action) => {
+        total += 1;
+        if (permissions[moduleKey]?.[submoduleKey]?.[action] === true) {
+          granted += 1;
+        }
+      });
+    });
+
+    return { granted, total };
+  };
+
+  const moduleHasAnyGrant = (moduleKey, perms = permissions) => {
+    const module = moduleStructure[moduleKey];
+    return Object.keys(module.submodules).some((submoduleKey) => {
+      const submodule = module.submodules[submoduleKey];
+      return submodule.actions.some(
+        (action) => perms[moduleKey]?.[submoduleKey]?.[action] === true,
+      );
+    });
+  };
+
+  const toggleModuleExpand = (moduleKey) => {
+    setExpandedModules((prev) => ({
+      ...prev,
+      [moduleKey]: !prev[moduleKey],
+    }));
+  };
+
+  useEffect(() => {
+    if (!user?.permissions?.permissions) {
+      setExpandedModules({});
+      return;
+    }
+
+    const perms = mergeFundRaisingDonorPermissions(user.permissions.permissions);
+    const nextExpanded = {};
+    Object.keys(moduleStructure).forEach((moduleKey) => {
+      if (moduleHasAnyGrant(moduleKey, perms)) {
+        nextExpanded[moduleKey] = true;
+      }
+    });
+    setExpandedModules(nextExpanded);
+  }, [user?.id, isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -610,7 +781,7 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
                   <label className="super-admin-checkbox">
                       <input
                         type="checkbox"
-                        checked= {user?.permissions?.permissions?.super_admin || false}
+                        checked={permissions?.super_admin === true}
                         onChange={(e) => handleSuperAdminToggle(e.target.checked)}
                       />
                     <span className="checkmark"></span>
@@ -626,10 +797,27 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
                 const module = moduleStructure[moduleKey];
                 const moduleChecked = isModuleChecked(moduleKey);
                 const moduleIndeterminate = isModuleIndeterminate(moduleKey);
+                const isExpanded = !!expandedModules[moduleKey];
+                const { granted, total } = getModuleGrantStats(moduleKey);
                 
                 return (
-                  <div key={moduleKey} className="module-section">
+                  <div
+                    key={moduleKey}
+                    className={`module-section${isExpanded ? ' module-section--expanded' : ''}`}
+                  >
                     <div className="module-header">
+                      <button
+                        type="button"
+                        className="module-expand-btn"
+                        onClick={() => toggleModuleExpand(moduleKey)}
+                        aria-expanded={isExpanded}
+                        aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${module.label}`}
+                        title={isExpanded ? 'Hide submodules' : 'Show submodules'}
+                      >
+                        <span className={`module-expand-icon${isExpanded ? ' module-expand-icon--expanded' : ''}`}>
+                          <FiChevronRight />
+                        </span>
+                      </button>
                       <label className="module-checkbox">
                         <input
                           type="checkbox"
@@ -642,8 +830,15 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
                         <span className="checkmark"></span>
                         <span className="module-label">{module.label}</span>
                       </label>
+                      <span className="module-grant-count" title="Permissions granted in this module">
+                        {granted}/{total}
+                      </span>
                     </div>
                     
+                    <div
+                      className={`submodules-collapse${isExpanded ? ' submodules-collapse--expanded' : ''}`}
+                      aria-hidden={!isExpanded}
+                    >
                     <div className="submodules-container">
                       {Object.keys(module.submodules).map(submoduleKey => {
                         const submodule = module.submodules[submoduleKey];
@@ -676,13 +871,33 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
                                     onChange={(e) => handlePermissionChange(moduleKey, submoduleKey, action, e.target.checked)}
                                   />
                                   <span className="checkmark"></span>
-                                  <span className="action-label">{actionLabels[action]}</span>
+                                  <span className="action-label">{actionLabels[action] || action}</span>
                                 </label>
                               ))}
+                            </div>
+                            <div className="submodule-scope-row">
+                              <label className="scope-label" htmlFor={`scope-${moduleKey}-${submoduleKey}`}>
+                                Data access:
+                              </label>
+                              <select
+                                id={`scope-${moduleKey}-${submoduleKey}`}
+                                className="scope-select"
+                                value={getSubmoduleScope(moduleKey, submoduleKey)}
+                                onChange={(e) =>
+                                  handleScopeChange(moduleKey, submoduleKey, e.target.value)
+                                }
+                              >
+                                {SCOPE_OPTIONS.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
                             </div>
                           </div>
                         );
                       })}
+                    </div>
                     </div>
                   </div>
                 );

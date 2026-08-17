@@ -1,0 +1,137 @@
+.privacy-policy-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #fff 40%, #e0f2fe 100%);
+  color: #1e293b;
+  font-family: inherit;
+}
+
+.privacy-policy-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 1rem;
+}
+
+.privacy-policy-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: contain;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+}
+
+.privacy-policy-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+.privacy-policy-meta {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.privacy-policy-back {
+  margin-left: auto;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.privacy-policy-back:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.privacy-policy-content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem 3rem;
+  background: #fff;
+  border-radius: 1rem 1rem 0 0;
+  box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.06);
+}
+
+.privacy-policy-content section {
+  margin-bottom: 2rem;
+}
+
+.privacy-policy-content h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.privacy-policy-content h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.privacy-policy-content p,
+.privacy-policy-content li {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: #475569;
+}
+
+.privacy-policy-content ul {
+  margin: 0.5rem 0 1rem;
+  padding-left: 1.35rem;
+}
+
+.privacy-policy-content li {
+  margin-bottom: 0.35rem;
+}
+
+.privacy-policy-content a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.privacy-policy-footer {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.privacy-policy-footer a {
+  display: inline-block;
+  margin-top: 0.5rem;
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.privacy-policy-footer a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .privacy-policy-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .privacy-policy-back {
+    margin-left: 0;
+  }
+}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
@@ -6,8 +6,12 @@ import PageHeader from '../../../common/PageHeader';
 import ActionMenu from '../../../common/ActionMenu';
 import ConfirmationModal from '../../../common/ConfirmationModal';
 import Pagination from '../../../common/Pagination';
-import { SearchFilter, DropdownFilter } from '../../../common/filters';
+import DataImport from '../../../common/DataImport';
+import { SearchFilter, DropdownFilter, CollapsibleFilters } from '../../../common/filters';
 import { SearchButton, ClearButton } from '../../../common/filters';
+import useFiltersPanel from '../../../../hooks/useFiltersPanel';
+import { useAuth } from '../../../../context/AuthContext';
+import { hasPermission } from '../../../../utils/permissions';
 import { FiEye, FiEdit, FiTrash2 } from 'react-icons/fi';
 
 const StatusBadge = ({ status }) => {
@@ -22,11 +26,13 @@ const StatusBadge = ({ status }) => {
 
 const VolunteersList = () => {
   const navigate = useNavigate();
+  const { permissions } = useAuth();
   const [volunteers, setVolunteers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [volunteerToDelete, setVolunteerToDelete] = useState(null);
+  const { filtersOpen, toggleFilters } = useFiltersPanel();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -129,6 +135,14 @@ const VolunteersList = () => {
 
   const formatLabel = (str) => (str || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
+  const canImportCsv = useMemo(() => {
+    if (!permissions) return false;
+    return (
+      permissions.super_admin === true ||
+      hasPermission(permissions, 'fund_raising', 'volunteers', 'create')
+    );
+  }, [permissions]);
+
   if (loading) {
     return (
       <>
@@ -142,11 +156,14 @@ const VolunteersList = () => {
     <>
       <Navbar />
       <div className="list-wrapper">
-        <PageHeader title="Registered Volunteers" showBackButton={false} showAdd={true} addPath="/dms/volunteers/add" />
+        <PageHeader
+          onRefresh={fetchVolunteers}
+          refreshing={loading} title="Registered Volunteers" showBackButton={false} showFilterToggle filtersOpen={filtersOpen} onFilterToggle={toggleFilters} showAdd={true} addPath="/dms/volunteers/add" />
         <div className="list-content">
           {error && <div className="status-message status-message--error">{error}</div>}
 
-          <div className="filters-section" style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '20px', padding: '20px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+          <CollapsibleFilters open={filtersOpen}>
+          <div className="filters-section">
             <SearchFilter filterKey="search" label="Search" filters={tempFilters} onFilterChange={handleFilterChange} placeholder="Search by name, email, phone, CNIC..." />
             <DropdownFilter filterKey="status" label="Status" data={statusOptions} filters={tempFilters} onFilterChange={handleFilterChange} placeholder="All Statuses" />
             <DropdownFilter filterKey="gender" label="Gender" data={genderOptions} filters={tempFilters} onFilterChange={handleFilterChange} placeholder="All" />
@@ -155,8 +172,17 @@ const VolunteersList = () => {
             <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', marginTop: '20px', width: '100%' }}>
               <SearchButton onClick={handleApplyFilters} text="Search" loading={loading} />
               <ClearButton onClick={handleClearFilters} text="Clear" />
+              {canImportCsv && (
+                <DataImport
+                  entityName="volunteers"
+                  buttonText="Import CSV"
+                  disabled={loading}
+                  onImportComplete={() => fetchVolunteers()}
+                />
+              )}
             </div>
           </div>
+          </CollapsibleFilters>
 
           <div className="table-container">
             <table className="data-table">

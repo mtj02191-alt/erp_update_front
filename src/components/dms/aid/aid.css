@@ -1,0 +1,358 @@
+.aid-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.aid-status-pill--success { background: #e8f8ef; color: #166534; }
+.aid-status-pill--danger { background: #fef2f2; color: #b91c1c; }
+.aid-status-pill--warn { background: #fff7ed; color: #c2410c; }
+.aid-status-pill--info { background: #eff6ff; color: #1d4ed8; }
+.aid-status-pill--muted { background: #f1f5f9; color: #475569; }
+
+.aid-view-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .aid-view-grid { grid-template-columns: 1fr; }
+}
+
+.aid-card {
+  background: #fff;
+  border: 1px solid #e8eef5;
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  margin-bottom: 1rem;
+}
+
+.aid-card h3 {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.aid-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.875rem;
+}
+
+.aid-meta-row span { color: #64748b; }
+.aid-meta-row strong { color: #0f172a; text-align: right; }
+
+.aid-actions-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.aid-person-chip {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.aid-person-chip:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.aid-person-chip strong { display: block; font-size: 0.875rem; }
+.aid-person-chip span { font-size: 0.75rem; color: #64748b; }
+
+.aid-attach-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.aid-attach-tab {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.aid-attach-tab.is-active {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.aid-attach-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.aid-attach-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.85rem;
+}
+
+.aid-attach-list a { color: #2563eb; word-break: break-all; }
+
+.aid-inline-form {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eef2f7;
+}
+
+.aid-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+  background: #fff;
+  border: 1px solid #e8eef5;
+  border-radius: 12px;
+}
+
+.aid-cta-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.aid-sections {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 960px) {
+  .aid-sections { grid-template-columns: 1fr; }
+}
+
+.aid-section {
+  background: #fff;
+  border: 1px solid #e8eef5;
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+}
+
+.aid-section h3 {
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.aid-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.aid-tab {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  text-transform: capitalize;
+}
+
+.aid-tab--active {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.aid-family-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.aid-family-stats span {
+  background: #f1f5f9;
+  color: #334155;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.aid-family-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 960px) {
+  .aid-family-grid { grid-template-columns: 1fr; }
+}
+
+.aid-family-section__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.aid-family-section__head h3 {
+  margin: 0;
+}
+
+.aid-family-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.5rem;
+  background: #f8fafc;
+}
+
+.aid-family-card__main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+}
+
+.aid-family-card__rel {
+  text-transform: capitalize;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  background: #eff6ff;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+}
+
+.aid-family-card__meta {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.aid-dup-banner {
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+  color: #9a3412;
+}
+
+.aid-dup-group {
+  margin-top: 0.65rem;
+}
+
+.aid-dup-group em {
+  display: block;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+}
+
+.aid-dup-group ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+}
+
+.aid-checklist {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.aid-checklist__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.875rem;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.aid-checklist__item input {
+  margin-top: 0.2rem;
+}
+
+.aid-leak-banner {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+  color: #991b1b;
+}
+
+.aid-leak-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+}
+
+.aid-history-banner {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+  color: #334155;
+}
+
+.aid-family-intake {
+  margin: 1.25rem 0;
+}
+
+.aid-family-intake__hint {
+  margin: 0 0 0.85rem;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.aid-relative-block {
+  margin-bottom: 0.75rem;
+}

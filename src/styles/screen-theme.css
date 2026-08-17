@@ -1,0 +1,141 @@
+/* Final theme overrides for add/edit/view screens (loads after module CSS) */
+
+.form-content {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+.form-wrapper {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.form-wrapper .form-content {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: inherit;
+}
+
+.view-wrapper {
+  color: var(--color-text-primary);
+}
+
+.view-content {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+.view-section-title {
+  color: var(--color-text-primary);
+}
+
+.view-item {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
+}
+
+.view-item-label {
+  color: var(--color-text-secondary);
+}
+
+.view-item-value {
+  color: var(--color-text-primary);
+}
+
+.form-section-heading,
+.form-section-title,
+.section-heading {
+  color: var(--color-text-primary);
+  border-bottom-color: var(--color-border);
+}
+
+.form-section-heading--accent,
+.form-section-title--accent {
+  color: var(--color-primary);
+}
+
+.form-content h2,
+.form-content h3,
+.form-wrapper h2,
+.form-wrapper h3,
+.view-content h2,
+.view-content h3,
+.custom-modal-content h2 {
+  color: var(--color-text-primary);
+}
+
+.form-content h2.form-section-heading--accent,
+.form-content h3.form-section-heading--accent,
+.form-content h2.form-section-title--accent,
+.form-content h3.form-section-title--accent {
+  color: var(--color-primary);
+}
+
+.form-label {
+  color: var(--color-text-primary);
+}
+
+.form-input,
+.form-textarea,
+select.form-input {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  border-color: var(--color-border);
+}
+
+.form-input:disabled,
+.form-textarea:disabled {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+}
+
+.detail-section {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
+}
+
+.detail-label {
+  color: var(--color-text-secondary);
+}
+
+.detail-value {
+  color: var(--color-text-primary);
+}
+
+.theme-panel {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.theme-muted-text {
+  color: var(--color-text-secondary);
+}
+
+.theme-code-pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 13px;
+  max-height: 400px;
+  overflow: auto;
+}
+
+.theme-preview-frame {
+  width: 100%;
+  min-height: 480px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-primary);
+}

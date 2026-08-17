@@ -5,7 +5,7 @@
   justify-content: center;
   text-align: center;
   gap: 8px;
-  /* padding: 28px 18px; */
+  padding: 12px 20px;
   border: 1px dashed #d7dce7;
   border-radius: 12px;
   background: linear-gradient(180deg, #fcfcfe 0%, #f8f9fd 100%);

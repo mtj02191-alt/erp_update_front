@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import axiosInstance from '../../../../../utils/axios';
 import Navbar from '../../../../Navbar';
 import PageHeader from '../../../../common/PageHeader';
 import ActionMenu from '../../../../common/ActionMenu';
+import { RefreshButton } from '../../../../common/filters';
 import { FiEye, FiList } from 'react-icons/fi';
 
 const StepsList = () => {
@@ -15,22 +16,24 @@ const StepsList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const run = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const res = await axiosInstance.get(`/progress/trackers/${trackerId}/steps`);
-        if (res.data?.success) setRows(res.data.data || []);
-        else setError(res.data?.message || 'Failed to load steps');
-      } catch (e) {
-        setError(e.response?.data?.message || 'Failed to load steps');
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (trackerId) run();
+  const fetchSteps = useCallback(async () => {
+    if (!trackerId) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await axiosInstance.get(`/progress/trackers/${trackerId}/steps`);
+      if (res.data?.success) setRows(res.data.data || []);
+      else setError(res.data?.message || 'Failed to load steps');
+    } catch (e) {
+      setError(e.response?.data?.message || 'Failed to load steps');
+    } finally {
+      setLoading(false);
+    }
   }, [trackerId]);
+
+  useEffect(() => {
+    fetchSteps();
+  }, [fetchSteps]);
 
   const batchFilterOptions = useMemo(() => {
     const map = new Map();
@@ -138,10 +141,11 @@ const StepsList = () => {
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center', justifyContent: 'space-between' }}>
             <div className="status-message" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               <FiList /> Showing {filteredRows.length} of {rows.length} steps • Evidence: {evidenceCount}
             </div>
+            <RefreshButton onClick={fetchSteps} loading={loading} />
           </div>
 
           <div className="table-container">

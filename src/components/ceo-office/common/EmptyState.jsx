@@ -5,7 +5,7 @@ import './EmptyState.css';
 
 const EmptyState = ({
   title = 'No items yet',
-  message = 'There is nothing to show here right now.',
+  // message = 'There is nothing to show here right now.',
   actionLabel,
   actionHref,
   onAction,
@@ -18,7 +18,7 @@ const EmptyState = ({
         <Icon />
       </div>
       <h4>{title}</h4>
-      <p>{message}</p>
+      {/* <p>{message}</p> */}
       {(actionLabel && (actionHref || onAction)) && (
         <div className="ceo-empty-state-actions">
           {actionHref ? (

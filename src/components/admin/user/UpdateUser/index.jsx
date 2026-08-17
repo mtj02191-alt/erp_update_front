@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiShield } from 'react-icons/fi';
 import axiosInstance from '../../../../utils/axios';
@@ -9,9 +9,15 @@ import PageHeader from '../../../common/PageHeader';
 import FormInput from '../../../common/FormInput';
 import FormSelect from '../../../common/FormSelect';
 import FormTextarea from '../../../common/FormTextarea';
-import MultiSelect from '../../../common/MultiSelect';
 import UserPermissions from '../UserPermissions';
+import GeographicAssignmentPicker from '../GeographicAssignmentPicker';
+import {
+  EMPTY_GEOGRAPHIC_ASSIGNMENTS,
+  normalizeGeographicAssignments,
+  toUserGeographicPayload,
+} from '../../../../utils/geographicAssignment';
 import { toast } from 'react-toastify';
+import { departmentRoles, defaultRoles } from '../../../../utils/user';
 import './UpdateUser.css';
 
 const UpdateUser = () => {
@@ -21,6 +27,7 @@ const UpdateUser = () => {
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
+    user_code: '',
     email: '',
     phone: '',
     dob: '',
@@ -32,7 +39,10 @@ const UpdateUser = () => {
     joining_date: '',
     emergency_contact: '',
     blood_group: '',
+    manager_id: '',
   });
+
+  const [managerOptions, setManagerOptions] = useState([]);
 
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -46,22 +56,11 @@ const UpdateUser = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
 
-  // Geographic assignment states
-  const [assignedCountries, setAssignedCountries] = useState([]);
-  const [assignedRegions, setAssignedRegions] = useState([]);
-  const [assignedDistricts, setAssignedDistricts] = useState([]);
-  const [assignedTehsils, setAssignedTehsils] = useState([]);
-  const [assignedCities, setAssignedCities] = useState([]);
-
-  // Geographic options lists
-  const [countriesList, setCountriesList] = useState([]);
-  const [regionsList, setRegionsList] = useState([]);
-  const [districtsList, setDistrictsList] = useState([]);
-  const [tehsilsList, setTehsilsList] = useState([]);
-  const [citiesList, setCitiesList] = useState([]);
-
-  // Flag to track initial load so cascading effects don't reset saved selections
-  const initialLoadDone = useRef(false);
+  const [geographicAssignments, setGeographicAssignments] = useState(
+    EMPTY_GEOGRAPHIC_ASSIGNMENTS,
+  );
+  const [geographicOff, setGeographicOff] = useState(false);
+  const [availableRoles, setAvailableRoles] = useState(defaultRoles);
 
   const departments = [
     { value: 'store', label: 'Store' },
@@ -94,24 +93,8 @@ const UpdateUser = () => {
     { value: 'O-', label: 'O-' }
   ];
 
-  const roles = [
-    { value: 'user', label: 'User' },
-    { value: 'assistant_manager', label: 'Assistant Manager' },
-    { value: 'manager', label: 'Manager' },
-    { value: 'admin', label: 'Admin'},
-    { value: 'super_admin', label: 'Super Admin' },
-    { value: 'officer', label: 'Officer' },
-    { value: 'coordinator', label: 'Coordinator' },
-    { value: 'support', label: 'Support' },
-    { value: 'analyst', label: 'Analyst' },
-    { value: 'developer', label: 'Developer' },
-    { value: 'team_lead', label: 'Team Lead' },
-    { value: 'staff', label: 'Staff' }, 
-    { value: 'field_officer', label: 'Field Officer' },
-    { value: 'volunteer', label: 'Volunteer' },
-    { value: 'dept_head', label: 'Dept Head' }
-
-  ];
+  const rolesForDepartment = (department) =>
+    departmentRoles[department] || defaultRoles;
 
   const genders = [
     { value: 'male', label: 'Male' },
@@ -121,123 +104,24 @@ const UpdateUser = () => {
 
   const isFundRaising = form.department === 'fund_raising';
 
-  // Fetch countries on mount
   useEffect(() => {
-    const fetchCountries = async () => {
+    const fetchManagers = async () => {
       try {
-        const res = await axiosInstance.get('/countries');
-        const data = res.data?.data || res.data || [];
-        setCountriesList(data.map(c => ({ value: c.id, label: c.name })));
+        const res = await axiosInstance.get('/users/options');
+        const list = Array.isArray(res.data) ? res.data : res.data?.data || [];
+        setManagerOptions([
+          { value: '', label: 'No manager' },
+          ...list.map((u) => ({
+            value: String(u.id),
+            label: u.full_name || u.email,
+          })),
+        ]);
       } catch (err) {
-        console.error('Error fetching countries:', err);
+        console.error('Error fetching manager options:', err);
       }
     };
-    fetchCountries();
+    fetchManagers();
   }, []);
-
-  // Fetch regions when selected countries change
-  useEffect(() => {
-    if (!assignedCountries.length) {
-      setRegionsList([]);
-      if (initialLoadDone.current) setAssignedRegions([]);
-      return;
-    }
-    const fetchRegions = async () => {
-      try {
-        const promises = assignedCountries.map(cId =>
-          axiosInstance.get(`/regions?country_id=${cId}`)
-        );
-        const responses = await Promise.all(promises);
-        const allRegions = responses.flatMap(r => r.data?.data || r.data || []);
-        const unique = [...new Map(allRegions.map(item => [item.id, item])).values()];
-        setRegionsList(unique.map(r => ({ value: r.id, label: r.name })));
-        if (initialLoadDone.current) {
-          setAssignedRegions(prev => prev.filter(rId => unique.some(r => r.id === rId)));
-        }
-      } catch (err) {
-        console.error('Error fetching regions:', err);
-      }
-    };
-    fetchRegions();
-  }, [assignedCountries]);
-
-  // Fetch districts when selected regions change
-  useEffect(() => {
-    if (!assignedRegions.length) {
-      setDistrictsList([]);
-      if (initialLoadDone.current) setAssignedDistricts([]);
-      return;
-    }
-    const fetchDistricts = async () => {
-      try {
-        const promises = assignedRegions.map(rId =>
-          axiosInstance.get(`/districts?region_id=${rId}`)
-        );
-        const responses = await Promise.all(promises);
-        const allDistricts = responses.flatMap(r => r.data?.data || r.data || []);
-        const unique = [...new Map(allDistricts.map(item => [item.id, item])).values()];
-        setDistrictsList(unique.map(d => ({ value: d.id, label: d.name })));
-        if (initialLoadDone.current) {
-          setAssignedDistricts(prev => prev.filter(dId => unique.some(d => d.id === dId)));
-        }
-      } catch (err) {
-        console.error('Error fetching districts:', err);
-      }
-    };
-    fetchDistricts();
-  }, [assignedRegions]);
-
-  // Fetch tehsils when selected districts change
-  useEffect(() => {
-    if (!assignedDistricts.length) {
-      setTehsilsList([]);
-      if (initialLoadDone.current) setAssignedTehsils([]);
-      return;
-    }
-    const fetchTehsils = async () => {
-      try {
-        const promises = assignedDistricts.map(dId =>
-          axiosInstance.get(`/tehsils?district_id=${dId}`)
-        );
-        const responses = await Promise.all(promises);
-        const allTehsils = responses.flatMap(r => r.data?.data || r.data || []);
-        const unique = [...new Map(allTehsils.map(item => [item.id, item])).values()];
-        setTehsilsList(unique.map(t => ({ value: t.id, label: t.name })));
-        if (initialLoadDone.current) {
-          setAssignedTehsils(prev => prev.filter(tId => unique.some(t => t.id === tId)));
-        }
-      } catch (err) {
-        console.error('Error fetching tehsils:', err);
-      }
-    };
-    fetchTehsils();
-  }, [assignedDistricts]);
-
-  // Fetch cities when selected tehsils change
-  useEffect(() => {
-    if (!assignedTehsils.length) {
-      setCitiesList([]);
-      if (initialLoadDone.current) setAssignedCities([]);
-      return;
-    }
-    const fetchCities = async () => {
-      try {
-        const promises = assignedTehsils.map(tId =>
-          axiosInstance.get(`/cities?tehsil_id=${tId}`)
-        );
-        const responses = await Promise.all(promises);
-        const allCities = responses.flatMap(r => r.data?.data || r.data || []);
-        const unique = [...new Map(allCities.map(item => [item.id, item])).values()];
-        setCitiesList(unique.map(c => ({ value: c.id, label: c.name })));
-        if (initialLoadDone.current) {
-          setAssignedCities(prev => prev.filter(cId => unique.some(c => c.id === cId)));
-        }
-      } catch (err) {
-        console.error('Error fetching cities:', err);
-      }
-    };
-    fetchCities();
-  }, [assignedTehsils]);
 
   useEffect(() => {
     fetchUser();
@@ -246,7 +130,6 @@ const UpdateUser = () => {
   const fetchUser = async () => {
     try {
       setLoading(true);
-      initialLoadDone.current = false;
       console.log('Fetching user with ID:', id);
       const response = await axiosInstance.get(`/users/${id}`);
       const userData = response.data;
@@ -255,6 +138,7 @@ const UpdateUser = () => {
       setForm({
         first_name: userData.first_name || '',
         last_name: userData.last_name || '',
+        user_code: userData.user_code || '',
         email: userData.email || '',
         phone: userData.phone || '',
         dob: userData.dob || '',
@@ -266,19 +150,14 @@ const UpdateUser = () => {
         joining_date: userData.joining_date || '',
         emergency_contact: userData.emergency_contact || '',
         blood_group: userData.blood_group || '',
+        manager_id: userData.manager_id ? String(userData.manager_id) : '',
       });
 
-      // Load geographic assignments from saved user data
-      if (userData.assigned_countries) setAssignedCountries(userData.assigned_countries);
-      if (userData.assigned_regions) setAssignedRegions(userData.assigned_regions);
-      if (userData.assigned_districts) setAssignedDistricts(userData.assigned_districts);
-      if (userData.assigned_tehsils) setAssignedTehsils(userData.assigned_tehsils);
-      if (userData.assigned_cities) setAssignedCities(userData.assigned_cities);
+      setGeographicAssignments(normalizeGeographicAssignments(userData));
+      setGeographicOff(userData.geographic_off === true);
 
-      // Mark initial load as done after a short delay so cascading effects stabilize
-      setTimeout(() => {
-        initialLoadDone.current = true;
-      }, 2000);
+      const roles = rolesForDepartment(userData.department || '');
+      setAvailableRoles(roles);
 
       console.log('Form data set:', form);
     } catch (err) {
@@ -297,17 +176,25 @@ const UpdateUser = () => {
 
   const handleChange = e => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
-    
-    // Reset geographic assignments when department changes away from fund_raising
-    if (name === 'department' && value !== 'fund_raising') {
-      setAssignedCountries([]);
-      setAssignedRegions([]);
-      setAssignedDistricts([]);
-      setAssignedTehsils([]);
-      setAssignedCities([]);
+
+    if (name === 'department') {
+      const roles = rolesForDepartment(value);
+      setAvailableRoles(roles);
+      const roleStillValid = roles.some((r) => r.value === form.role);
+      setForm({
+        ...form,
+        department: value,
+        role: roleStillValid ? form.role : roles[0]?.value || 'user',
+      });
+
+      if (value !== 'fund_raising') {
+        setGeographicAssignments(EMPTY_GEOGRAPHIC_ASSIGNMENTS);
+        setGeographicOff(false);
+      }
+    } else {
+      setForm({ ...form, [name]: value });
     }
-    
+
     if (error) setError('');
   };
 
@@ -423,22 +310,17 @@ const UpdateUser = () => {
       const payload = {
         ...form,
         email: form.email.trim().toLowerCase(),
+        user_code: form.user_code?.trim() || null,
+        manager_id: form.manager_id ? Number(form.manager_id) : null,
       };
 
       // Include geographic assignments for fund_raising department
       if (form.department === 'fund_raising') {
-        payload.assigned_countries = assignedCountries.length ? assignedCountries : null;
-        payload.assigned_regions = assignedRegions.length ? assignedRegions : null;
-        payload.assigned_districts = assignedDistricts.length ? assignedDistricts : null;
-        payload.assigned_tehsils = assignedTehsils.length ? assignedTehsils : null;
-        payload.assigned_cities = assignedCities.length ? assignedCities : null;
+        Object.assign(payload, toUserGeographicPayload(geographicAssignments));
+        payload.geographic_off = geographicOff;
       } else {
-        // Clear geographic assignments if department is not fund_raising
-        payload.assigned_countries = null;
-        payload.assigned_regions = null;
-        payload.assigned_districts = null;
-        payload.assigned_tehsils = null;
-        payload.assigned_cities = null;
+        Object.assign(payload, toUserGeographicPayload(EMPTY_GEOGRAPHIC_ASSIGNMENTS));
+        payload.geographic_off = false;
       }
 
       console.log('Submitting form data:', payload);
@@ -525,6 +407,14 @@ const UpdateUser = () => {
               />
 
               <FormInput
+                name="user_code"
+                label="User Code"
+                value={form.user_code}
+                onChange={handleChange}
+                placeholder="Permanent record id (unchanged on transfer)"
+              />
+
+              <FormInput
                 name="email"
                 label="Email"
                 type="email"
@@ -591,9 +481,17 @@ const UpdateUser = () => {
                 name="role"
                 label="Role"
                 value={form.role}
-                options={roles}
+                options={availableRoles}
                 onChange={handleChange}
                 required
+              />
+
+              <FormSelect
+                name="manager_id"
+                label="Reports to (Manager)"
+                value={form.manager_id}
+                options={managerOptions}
+                onChange={handleChange}
               />
 
               <FormInput
@@ -628,54 +526,14 @@ const UpdateUser = () => {
               <div className="geographic-assignment-section" style={{ marginTop: '20px', padding: '16px', border: '1px solid var(--border-color, #e0e0e0)', borderRadius: '8px', background: 'var(--card-bg, #fafbfc)' }}>
                 <h3 style={{ marginBottom: '12px', fontSize: '16px', fontWeight: '600' }}>Geographic Assignment</h3>
                 <p style={{ marginBottom: '16px', fontSize: '13px', color: 'var(--text-secondary, #666)' }}>
-                  Assign geographic areas to this fund raising user. Selections cascade — choosing a country loads its regions, and so on.
+                  Search and assign any country, region, district, tehsil, city, or route — no hierarchy required.
                 </p>
-                <div className="form-grid">
-                  <MultiSelect
-                    name="assigned_countries"
-                    label="Countries"
-                    options={countriesList}
-                    value={assignedCountries}
-                    onChange={setAssignedCountries}
-                    placeholder="Select countries..."
-                  />
-                  <MultiSelect
-                    name="assigned_regions"
-                    label="Regions"
-                    options={regionsList}
-                    value={assignedRegions}
-                    onChange={setAssignedRegions}
-                    placeholder={assignedCountries.length ? 'Select regions...' : 'Select a country first'}
-                    disabled={!assignedCountries.length}
-                  />
-                  <MultiSelect
-                    name="assigned_districts"
-                    label="Districts"
-                    options={districtsList}
-                    value={assignedDistricts}
-                    onChange={setAssignedDistricts}
-                    placeholder={assignedRegions.length ? 'Select districts...' : 'Select a region first'}
-                    disabled={!assignedRegions.length}
-                  />
-                  <MultiSelect
-                    name="assigned_tehsils"
-                    label="Tehsils"
-                    options={tehsilsList}
-                    value={assignedTehsils}
-                    onChange={setAssignedTehsils}
-                    placeholder={assignedDistricts.length ? 'Select tehsils...' : 'Select a district first'}
-                    disabled={!assignedDistricts.length}
-                  />
-                  <MultiSelect
-                    name="assigned_cities"
-                    label="Cities"
-                    options={citiesList}
-                    value={assignedCities}
-                    onChange={setAssignedCities}
-                    placeholder={assignedTehsils.length ? 'Select cities...' : 'Select a tehsil first'}
-                    disabled={!assignedTehsils.length}
-                  />
-                </div>
+                <GeographicAssignmentPicker
+                  value={geographicAssignments}
+                  onChange={setGeographicAssignments}
+                  geographicOff={geographicOff}
+                  onGeographicOffChange={setGeographicOff}
+                />
               </div>
             )}
 

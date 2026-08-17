@@ -1,0 +1,344 @@
+.org-crm-page .org-people-search {
+  margin-bottom: 12px;
+}
+
+.org-people-empty {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #777;
+}
+
+.org-people-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.org-people-item {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  border: 1px solid transparent;
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.org-people-item:hover {
+  border-color: #ddd;
+  background: #f3f6fb;
+}
+
+.org-people-item--active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.org-people-item__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1f2937;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.org-people-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.org-people-item__body strong {
+  font-size: 13px;
+}
+
+.org-people-item__body span {
+  font-size: 12px;
+  color: #666;
+  text-transform: capitalize;
+}
+
+.org-people-item__stage {
+  color: #2563eb !important;
+}
+
+.org-branch-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.org-view-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #777;
+}
+
+.org-branch-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.org-branch-tree__branch {
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+
+.org-branch-tree__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.org-branch-tree__meta {
+  display: block;
+  font-size: 12px;
+  color: #777;
+  margin-top: 2px;
+}
+
+.org-branch-tree__subs {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0 0 0 12px;
+  border-left: 2px solid #ddd;
+}
+
+.org-branch-form {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.org-selected-person-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.org-selected-person-banner__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.org-selected-person-banner__left h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.org-selected-person-banner__left p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #666;
+  text-transform: capitalize;
+}
+
+.org-selected-person-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.org-person-summary__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.org-person-summary__header-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #e8f1ff;
+  color: #3b82f6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.org-person-summary__header-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.org-person-summary__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.org-person-summary__header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.org-person-summary__icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #3b82f6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.org-person-summary__icon-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.org-person-summary__icon-btn--whatsapp {
+  color: #16a34a;
+}
+
+.org-person-summary__icon-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #d1d5db;
+}
+
+.org-person-summary__icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.org-person-summary__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.org-person-summary__tile {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.org-person-summary__tile--notes {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.org-person-summary__tile--notes .org-person-summary__tile-label {
+  flex-shrink: 0;
+}
+
+.org-person-summary__tile--notes .org-person-summary__tile-value {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: unset;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.org-person-summary__tile-label {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.2;
+}
+
+.org-person-summary__tile-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.35;
+  word-break: break-word;
+  max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.org-person-summary__status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.org-person-summary__status-pill--active {
+  background: #e8f8ef;
+  color: #166534;
+}
+
+.org-person-summary__status-pill--inactive {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.org-person-summary__status-pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+@media (max-width: 1100px) {
+  .org-person-summary__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .org-person-summary__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .org-person-summary__tile--notes {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 900px) {
+  .org-selected-person-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

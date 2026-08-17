@@ -1,0 +1,26 @@
+.task-assignee-filter {
+  min-width: 240px;
+  max-width: 300px;
+  flex-shrink: 0;
+}
+
+.task-assignee-filter .searchable-dropdown {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.task-assignee-filter .searchable-dropdown__input {
+  padding: 0.5rem 2.25rem 0.5rem 0.65rem;
+  font-size: 0.88rem;
+  border-radius: 8px;
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+
+.trello-board-toolbar .task-assignee-filter {
+  margin-bottom: 0;
+}
+
+.tl-tasks-filter-main .task-assignee-filter {
+  flex: 0 1 280px;
+}

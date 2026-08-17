@@ -4,3 +4,5 @@ export { default as SearchFilter } from './SearchFilter';
 export { default as DateRangeFilter } from './DateRangeFilter';
 export { default as SearchButton } from './SearchButton/index';
 export { default as ClearButton } from './ClearButton/index';
+export { default as RefreshButton } from './RefreshButton';
+export { default as CollapsibleFilters } from './CollapsibleFilters';

@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FiEye, FiEdit2, FiTrash2, FiThumbsUp, FiUserCheck, FiSearch, FiPlus, FiChevronDown, FiClock, FiList, FiUsers, FiMoreHorizontal, FiClipboard, FiColumns } from 'react-icons/fi';
+import { FiEye, FiEdit2, FiTrash2, FiThumbsUp, FiUserCheck, FiPlus, FiClock, FiList, FiUsers, FiMoreHorizontal, FiCheckCircle, FiArrowUp, FiArrowDown, FiMinus, FiPlay, FiRotateCcw } from 'react-icons/fi';
+import { HiOutlineSwitchHorizontal } from 'react-icons/hi';
 import { toast } from 'react-toastify';
 import axiosInstance from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
-import PageHeader from '../../../common/PageHeader';
+import { RefreshButton, SearchFilter, DropdownFilter, CollapsibleFilters, SearchButton, ClearButton } from '../../../common/filters';
 import Loader from '../../../common/loader/Loader';
 import Pagination from '../../../common/Pagination';
 import ActionMenu from '../../../common/ActionMenu';
@@ -12,46 +13,56 @@ import SearchableMultiSelect from '../../../common/SearchableMultiSelect';
 import { useAuth } from '../../../../context/AuthContext';
 import { getTaskPermissions } from '../../../../utils/permissions';
 import { tasksBasePath } from '../../../../utils/admin';
+import useFiltersPanel from '../../../../hooks/useFiltersPanel';
 import '../../../../styles/components.css';
 import './index.css';
-import TaskKanbanBoard from '../kanban/TaskKanbanBoard';
+import TaskViewModeSwitch from '../shared/TaskViewModeSwitch';
+import TaskAssigneeFilter from '../shared/TaskAssigneeFilter';
+import useTasksServerQuery from '../shared/useTasksServerQuery';
+import {
+  TASK_DEPARTMENT_OPTIONS,
+  TASK_PROJECT_PROGRAM_OPTIONS,
+} from '../shared/taskFilterOptions';
 
-const TasksList = () => {
+const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, permissions } = useAuth();
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [sortField, setSortField] = useState('created_at');
-  const [sortOrder, setSortOrder] = useState('DESC');
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [categoryCounts, setCategoryCounts] = useState({
-    assigned_to_me: 0,
-    assigned_to_team: 0,
-    other_tasks: 0
-  });
-  const [filters, setFilters] = useState({
-    search: '',
-    department: '', // Default to empty string for "All Departments"
-    status: '',
-    priority: '',
-    user_name: '' // User name search filter (like User Management)
-  });
-  const [viewType, setViewType] = useState(() => {
-    const saved = localStorage.getItem('tasks_view_type');
-    return saved || 'list';
-  });
-  const [searchInput, setSearchInput] = useState('');
-  const [isSearchPending, setIsSearchPending] = useState(false);
+  const { filtersOpen, toggleFilters } = useFiltersPanel();
+
+  const [assignedUser, setAssignedUser] = useState(null);
   const [myApprovals, setMyApprovals] = useState([]);
   const [activeTab, setActiveTab] = useState('assigned_to_me');
   const [approvalsLoaded, setApprovalsLoaded] = useState(false);
-  const [hasInteractedWithApprovals, setHasInteractedWithApprovals] = useState(false);
-  const [showApprovalBanner, setShowApprovalBanner] = useState(false);
+
+  const {
+    tasks,
+    setTasks,
+    loading,
+    error,
+    totalItems,
+    totalPages,
+    categoryCounts,
+    currentPage,
+    pageSize,
+    sortField,
+    sortOrder,
+    tempFilters,
+    handleFilterChange,
+    handleApplyFilters,
+    handleClearFilters,
+    setCurrentPage,
+    setPageSize,
+    handleSortChange,
+    refresh,
+  } = useTasksServerQuery({
+    storagePrefix: 'tasks-list',
+    defaultPageSize: 30,
+    defaultSortField: 'created_at',
+    activeTab,
+    assignedUser,
+    refreshNonce,
+  });
 
   const currentUserId = user?.id ? Number(user.id) : null;
 
@@ -72,82 +83,30 @@ const TasksList = () => {
     return ['dept_head', 'manager'].includes(role);
   }, [user?.role]);
 
-  const debouncedSearch = useMemo(() => {
-    let timeout;
-    const fn = (value) => {
-      if (timeout) clearTimeout(timeout);
-      setIsSearchPending(true);
-      timeout = setTimeout(() => {
-        setFilters((prev) => ({ ...prev, search: value }));
-        setIsSearchPending(false);
-      }, 600);
-    };
-    fn.cancel = () => timeout && clearTimeout(timeout);
-    return fn;
-  }, []);
+  const statusFilterOptions = useMemo(
+    () => [
+      'open',
+      'in_progress',
+      'pending_approval',
+      'approved',
+      'rejected',
+      'completed',
+      'closed',
+      'cancelled',
+    ].map((s) => ({
+      value: s,
+      label: s.split('_').map((w) => w[0].toUpperCase() + w.slice(1)).join(' '),
+    })),
+    [],
+  );
 
-  const handleSearchInputChange = useCallback((value) => {
-    setSearchInput(value);
-    debouncedSearch(value);
-  }, [debouncedSearch]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filters.search, filters.department, filters.status, filters.priority, filters.user_name]);
-
-  useEffect(() => {
-    return () => {
-      if (debouncedSearch.cancel) debouncedSearch.cancel();
-    };
-  }, [debouncedSearch]);
-
-  const filterConfig = [
-    { key: 'search', type: 'text', placeholder: isSearchPending ? 'Searching...' : 'Search tasks...', value: searchInput, width: '250px' },
-    {
-      key: 'department',
-      type: 'select',
-      placeholder: 'All Departments',
-      value: filters.department,
-      label: 'Department',
-      options: [
-        'store',
-        'procurements',
-        'accounts_and_finance',
-        'program',
-        'it',
-        'hr',
-        'marketing',
-        'audio_video',
-        'fund_raising',
-        'admin'
-      ].map((dept) => ({ value: dept, label: dept.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ') }))
-    },
-    {
-      key: 'status',
-      type: 'select',
-      placeholder: 'All Statuses',
-      value: filters.status,
-      label: 'Status',
-      options: [
-        'open',
-        'in_progress',
-        'pending_approval',
-        'approved',
-        'rejected',
-        'completed',
-        'closed',
-        'cancelled'
-      ].map((s) => ({ value: s, label: s.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ') }))
-    },
-    {
-      key: 'priority',
-      type: 'select',
-      placeholder: 'All Priorities',
-      value: filters.priority,
-      label: 'Priority',
-      options: ['low', 'medium', 'high', 'critical'].map((p) => ({ value: p, label: p[0].toUpperCase() + p.slice(1) }))
-    }
-  ];
+  const priorityFilterOptions = useMemo(
+    () => ['low', 'medium', 'high', 'critical'].map((p) => ({
+      value: p,
+      label: p[0].toUpperCase() + p.slice(1),
+    })),
+    [],
+  );
 
   const tasksRouteBase = useMemo(() => tasksBasePath(), []);
 
@@ -187,31 +146,7 @@ const TasksList = () => {
     [currentUserId]
   );
 
-  const isTaskAssignedToTeam = useCallback(
-    (task) => {
-      if (!user?.department || !task) return false;
-
-      // Check if any assignee is from current user's department
-      const meta = Array.isArray(task.assigned_users_meta) ? task.assigned_users_meta : [];
-      return meta.some((m) => m?.department === user.department && Number(m?.user_id) !== currentUserId);
-    },
-    [user?.department, currentUserId]
-  );
-
-  const myTasks = useMemo(
-    () => Array.isArray(tasks) ? tasks.filter((t) => isTaskAssignedToCurrentUser(t)) : [],
-    [tasks, isTaskAssignedToCurrentUser]
-  );
-
-  const teamTasks = useMemo(() => {
-    if (!isManager || !user?.department) return [];
-    // Tasks assigned to team members (and NOT assigned to current user)
-    return Array.isArray(tasks) ? tasks.filter((t) => !isTaskAssignedToCurrentUser(t) && isTaskAssignedToTeam(t)) : [];
-  }, [tasks, isTaskAssignedToCurrentUser, isTaskAssignedToTeam, user?.department, isManager]);
-
-  // Load approvals immediately for all logged-in users
   const fetchApprovals = useCallback(async () => {
-    // Only fetch approvals if we have a current user
     if (!currentUserId) {
       return;
     }
@@ -227,7 +162,7 @@ const TasksList = () => {
     } catch {
       if (!cancelled) {
         setMyApprovals([]);
-        setApprovalsLoaded(true); // Mark as loaded even on error to prevent retries
+        setApprovalsLoaded(true);
       }
     }
     return () => {
@@ -314,129 +249,29 @@ const TasksList = () => {
     return Array.isArray(approvalRequestsForUser) ? approvalRequestsForUser : [];
   }, [approvalRequestsForUser]);
 
-  const otherTasks = useMemo(() => {
-    if (!currentUserId) return Array.isArray(tasks) ? tasks : [];
-
-    // Get regular other tasks (not assigned to current user or team AND not an approval task for this user)
-    const regularOtherTasks = Array.isArray(tasks) ? tasks.filter((t) => {
-      const assignedToMe = isTaskAssignedToCurrentUser(t);
-      if (assignedToMe) return false;
-
-      const assignedToTeam = isManager && isTaskAssignedToTeam(t);
-      if (assignedToTeam) return false;
-
-      // Also exclude tasks that are in approvalTasks
-      const isApprovalTask = approvalTasks.some(at => Number(at.id) === Number(t.id));
-      if (isApprovalTask) return false;
-
-      return true;
-    }) : [];
-
-    return regularOtherTasks;
-  }, [tasks, isTaskAssignedToCurrentUser, isTaskAssignedToTeam, currentUserId, isManager, approvalTasks]);
-
   useEffect(() => {
-    if (activeTab === 'approval_tasks' && approvalTasks.length === 0) {
+    if (approvalsLoaded && activeTab === 'approval_tasks' && approvalTasks.length === 0) {
       setActiveTab('assigned_to_me');
     }
-  }, [approvalTasks.length, activeTab]);
+  }, [approvalTasks.length, activeTab, approvalsLoaded]);
 
-  // Optimized: Use /tasks/list for initial load, /tasks/search only when search filters are applied
   useEffect(() => {
-    const fetchTasks = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const scopedFilters = {
-          ...filters,
-          department: filters.department,
-          status: viewType === 'kanban' ? '' : filters.status // Ignore status filter for kanban
-        };
+    fetchApprovals();
+  }, [fetchApprovals, refreshNonce]);
 
-        // Always use strict backend filtering if a department is selected in the dropdown.
-        // This ensures that clicking "Program Tasks" in sidebar OR selecting "Program" from dropdown
-        // shows ONLY tasks belonging to that department.
-        const isStrictFilter = !!scopedFilters.department;
-
-        // Check if user-applied search filters are active
-        // Only use /tasks/search when user actively searches or filters by status/priority/user_name
-        // For kanban, ignore status filter
-        const hasUserAppliedFilters =
-          filters.search ||
-          (viewType !== 'kanban' && filters.status) ||
-          filters.priority ||
-          filters.user_name;
-
-        // Use very large page size for Kanban view to show all tasks
-        const effectivePageSize = viewType === 'kanban' ? 1000 : pageSize;
-        const effectivePage = viewType === 'kanban' ? 1 : currentPage;
-
-        let res;
-
-        if (hasUserAppliedFilters) {
-          // Use POST /tasks/search when user applies search/status/priority/user_name filters
-          const payload = {
-            pagination: { page: effectivePage, pageSize: effectivePageSize, sortField, sortOrder },
-            filters: scopedFilters,
-            strictDepartment: isStrictFilter
-          };
-          res = await axiosInstance.post('/tasks/search', payload);
-        } else {
-          // Use GET /tasks/list for default loading
-          const params = {
-            page: effectivePage,
-            pageSize: effectivePageSize,
-            sortField,
-            sortOrder,
-            department: scopedFilters.department || undefined,
-            user_name: scopedFilters.user_name || undefined,
-            strictDepartment: isStrictFilter
-          };
-          res = await axiosInstance.get('/tasks/list', { params });
-        }
-
-        const list = res.data.data || [];
-        setTasks(list);
-        setTotalItems(res.data.pagination?.total || 0);
-        setTotalPages(res.data.pagination?.totalPages || 1);
-        if (res.data.categoryCounts) {
-          setCategoryCounts(res.data.categoryCounts);
-        }
-      } catch (e) {
-        setError(e.response?.data?.message || 'Failed to fetch tasks.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTasks();
-  }, [currentPage, pageSize, sortField, sortOrder, filters.search, filters.department, filters.status, filters.priority, filters.user_name, taskPerms.reportScope, user?.department, viewType]);
-
-  // Reset approvalsLoaded when we navigate to this page to refresh data
   useEffect(() => {
     setApprovalsLoaded(false);
   }, [location.pathname]);
 
-  // Load approvals immediately for all logged-in users
-  useEffect(() => {
-    fetchApprovals();
-  }, [fetchApprovals]);
-
-  // Persist view type to localStorage
-  useEffect(() => {
-    localStorage.setItem('tasks_view_type', viewType);
-  }, [viewType]);
-
-  const handleFilterChange = (key, value) => {
-    if (key === 'search') {
-      handleSearchInputChange(value);
-    } else {
-      setFilters((prev) => ({ ...prev, [key]: value }));
-    }
-  };
-  const clearAllFilters = () => {
-    setSearchInput('');
-    setFilters({ search: '', department: '', status: '', priority: '', user_name: '' });
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
     setCurrentPage(1);
+  };
+
+  const handleClearAll = () => {
+    setAssignedUser(null);
+    handleClearFilters();
+    setActiveTab('assigned_to_me');
   };
 
   const formatDate = (d) => {
@@ -506,31 +341,112 @@ const TasksList = () => {
     }
   };
 
-  const getStatusBadge = (statusRaw) => {
-    const status = String(statusRaw || '').toLowerCase();
-    const statusClassMap = {
-      pending: 'status-pending',
-      pending_approval: 'status-pink',
-      draft: 'status-pending',
-      failed: 'status-failed',
-      rejected: 'status-failed',
-      completed: 'status-completed',
-      approved: 'status-approved',
-      registered: 'status-registered',
-      open: 'status-registered',
-      in_progress: 'status-pending',
-      cancelled: 'status-failed',
-      closed: 'status-closed'
-    };
-    const cls = statusClassMap[status] || 'status-registered';
-    const label = capitalize(status) || 'Pending';
-    return <span className={`task-status-badge ${cls}`}>{label}</span>;
+  const formatTaskId = (t) => {
+    const id = t?.id;
+    if (id == null) return '#—';
+    return `#${String(id).padStart(5, '0')}`;
   };
+
+  const getTaskDeptLabel = (t) => {
+    if (Array.isArray(t.assigned_users_meta) && t.assigned_users_meta.length > 0) {
+      const depts = [...new Set(t.assigned_users_meta.map((m) => m.department).filter(Boolean))];
+      if (depts.length > 0) return depts.map((d) => capitalize(d)).join(', ');
+    }
+    return capitalize(t.department) || '—';
+  };
+
+  const getPrimaryAssigneeName = (t) => {
+    const meta = Array.isArray(t.assigned_users_meta) ? t.assigned_users_meta : [];
+    if (meta.length === 0) return '—';
+    const details = assigneeDetailsCache[t.id];
+    if (Array.isArray(details) && details[0]?.name) return details[0].name;
+    if (meta[0]?.name) return meta[0].name;
+    return 'User';
+  };
+
+
+  const getAgeDisplay = (task) => {
+    const dueInfo = getDueInfo(task.due_date, task.status);
+    if (!dueInfo) return '—';
+    if (dueInfo.label === 'Overdue today') return ' Overdue today';
+    if (dueInfo.variant === 'danger' && dueInfo.label.startsWith('-')) {
+      const days = dueInfo.label.replace('-', '').trim();
+      return `${days}`;
+    }
+    return '—';
+  };
+
+  const getStatusSubtext = (t) => {
+    const status = String(t.status || '').toLowerCase();
+    if (['completed', 'closed', 'approved'].includes(status)) {
+      const when = t.completed_date || t.updated_at;
+      return when ? `Completed on ${formatDate(when)}` : capitalize(status);
+    }
+    if (status === 'in_progress') return 'In Progress';
+    return capitalize(status);
+  };
+
+  const renderStatusIcon = (statusRaw) => {
+    const status = String(statusRaw || '').toLowerCase();
+    if (['completed', 'closed', 'approved'].includes(status)) {
+      return <FiCheckCircle className="tl-tasks-list-status-icon tl-tasks-list-status-icon--done" aria-hidden />;
+    }
+    return <FiClock className="tl-tasks-list-status-icon tl-tasks-list-status-icon--active" aria-hidden />;
+  };
+
+  const renderPriorityCell = (priority) => {
+    const p = String(priority || 'medium').toLowerCase();
+    const Icon = p === 'high' || p === 'critical' ? FiArrowUp : p === 'low' ? FiArrowDown : FiMinus;
+    return (
+      <span className={`tl-tasks-list-priority-pill tl-tasks-list-priority-pill--${p === 'critical' ? 'high' : p}`}>
+        <Icon aria-hidden />
+        {capitalize(p)}
+      </span>
+    );
+  };
+
+  const renderStatusCell = (t) => {
+    const status = String(t.status || '').toLowerCase();
+    const label = (capitalize(status) || 'Pending').toUpperCase();
+    return (
+      <div className="tl-tasks-list-status-cell">
+        <span className={`tl-tasks-list-status-pill tl-tasks-list-status-pill--${status}`}>
+          <span className="tl-tasks-list-status-pill-dot" aria-hidden />
+          {label}
+        </span>
+        {/* <span className="tl-tasks-list-status-sub">{getStatusSubtext(t)}</span> */}
+      </div>
+    );
+  };
+
+  const renderTableHeader = () => (
+    <thead>
+      <tr>
+        <th>Task</th>
+        <th className="hide-on-mobile">Assignment</th>
+        <th className="tl-tasks-col-center tl-tasks-col-priority">Priority / Status</th>
+        <th className="hide-on-mobile tl-tasks-col-center">Dates</th>
+        {/* <th className="hide-until-large">Age</th> */}
+        <th className="table-actions tl-tasks-col-center">Actions</th>
+      </tr>
+    </thead>
+  );
+
+  const renderTasksTable = (rows) => (
+    <div className="table-container">
+      <table className="data-table tl-tasks-data-table">
+        {renderTableHeader()}
+        <tbody>
+          {rows.map((t) => renderTaskCard(t))}
+        </tbody>
+      </table>
+    </div>
+  );
 
   const renderAssignees = (t) => {
     const meta = Array.isArray(t.assigned_users_meta) ? t.assigned_users_meta : [];
     if (meta.length === 0) {
-      return <span className="person-badge">-</span>;
+      return <span className="tl-person-badge">—</span>;
     }
 
     const getInitials = (displayName) => {
@@ -581,60 +497,65 @@ const TasksList = () => {
     };
 
     return (
-      <div className="task-card-assignees-group">
-        <div className="avatar-stack">
-          {meta.slice(0, maxAvatars).map((user, idx) => {
-            const info =
-              Array.isArray(details) && details.length > 0
-                ? details.find((d) => d.id === user.user_id)
-                : null;
-            const displayName = getDisplayName(user, info);
-            const initials = getInitials(displayName);
-            const colorBase = displayName;
-            const isOpen = openAssigneeTaskId === t.id && openAssigneeUserId === user.user_id;
-            return (
-              <div
-                key={user.user_id || idx}
-                className="tasks-assignee-trigger"
-                onClick={(e) => handleAssigneeClick(e, t, user.user_id)}
-              >
+      <div className="tl-tasks-list-assignment-cell">
+        <div className="tl-task-card-assignees-group">
+          <div className="tl-avatar-stack">
+            {meta.slice(0, maxAvatars).map((user, idx) => {
+              const info =
+                Array.isArray(details) && details.length > 0
+                  ? details.find((d) => d.id === user.user_id)
+                  : null;
+              const displayName = getDisplayName(user, info);
+              const initials = getInitials(displayName);
+              const colorBase = displayName;
+              const isOpen = openAssigneeTaskId === t.id && openAssigneeUserId === user.user_id;
+              return (
                 <div
-                  className="avatar-circle"
-                  title={displayName || 'User'}
-                  style={{ zIndex: meta.length - idx, backgroundColor: getAvatarColor(colorBase) }}
+                  key={user.user_id || idx}
+                  className="tl-tasks-assignee-trigger"
+                  onClick={(e) => handleAssigneeClick(e, t, user.user_id)}
                 >
-                  {initials}
-                </div>
-                {isOpen && (
-                  <div className="tasks-assignee-popover">
-                    {info ? (
-                      <ul className="tasks-assignee-list">
-                        <li className="tasks-assignee-list-item">
-                          <div className="tasks-assignee-name">{info.name}</div>
-                          {info.department && (
-                            <div className="tasks-assignee-department">
-                              {capitalize(info.department)}
-                            </div>
-                          )}
-                        </li>
-                      </ul>
-                    ) : (
-                      <div className="tasks-assignee-empty">No assignee details</div>
-                    )}
+                  <div
+                    className="tl-avatar-circle"
+                    title={displayName || 'User'}
+                    style={{ zIndex: meta.length - idx, backgroundColor: getAvatarColor(colorBase) }}
+                  >
+                    {initials}
                   </div>
-                )}
+                  {isOpen && (
+                    <div className="tl-tasks-assignee-popover">
+                      {info ? (
+                        <ul className="tl-tasks-assignee-list">
+                          <li className="tl-tasks-assignee-list-item">
+                            <div className="tl-tasks-assignee-name">{info.name}</div>
+                           {info.department && (
+                              <div className="tl-tasks-assignee-department">
+                                department: {capitalize(info.department)}
+                              </div>
+                            )}
+                          </li>
+                        </ul>
+                      ) : (
+                        <div className="tl-tasks-assignee-empty">No assignee details</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {extraCount > 0 && (
+              <div className="tl-avatar-circle tl-avatar-extra" style={{ zIndex: 0 }}>
+                +{extraCount}
               </div>
-            );
-          })}
-          {extraCount > 0 && (
-            <div className="avatar-circle avatar-extra" style={{ zIndex: 0 }}>
-              +{extraCount}
-            </div>
-          )}
+            )}
+          </div>
         </div>
-        <span className="assignee-text-label">
-          {meta.length === 1 ? 'Single User' : 'Multiple Users'}
-        </span>
+        <div className="tl-tasks-list-assignment-info">
+          <span className="tl-assignee-text-label">
+            {meta.length === 1 ? 'Single User' : 'Multiple Users'}
+          </span>
+          {/* <span className="tl-tasks-list-assignment-name">{getPrimaryAssigneeName(t)}</span> */}
+        </div>
       </div>
     );
   };
@@ -760,7 +681,7 @@ const TasksList = () => {
     try {
       await axiosInstance.delete(`/tasks/${task.id}`);
       setTasks((prev) => prev.filter((t) => t.id !== task.id));
-      setTotalItems((prev) => Math.max(prev - 1, 0));
+      refresh();
       toast.success('Task deleted.');
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to delete task.');
@@ -773,10 +694,10 @@ const TasksList = () => {
     const canUpdate = taskPerms.canUpdate === true;
     const canDelete = taskPerms.canDelete === true;
     const canEditCompleted = taskPerms.canEditCompleted === true;
-
-    // Hide reassign action in list for Department Head and Manager roles
-    // (it's already available in Quick Actions for these roles)
-    const showReassignInList = taskPerms.canAssign === true && !isDeptHeadOrManager;
+    const isAssignee = isTaskAssignedToCurrentUser(task);
+    const canChangeAsAssignee =
+      isAssignee && (taskPerms.canUpdate === true || taskPerms.canComplete === true);
+    const canChangeStatus = canUpdate || canChangeAsAssignee;
 
     return [
       {
@@ -798,6 +719,33 @@ const TasksList = () => {
         title: !canUpdate ? hoverText('update') : (status === 'completed' && !canEditCompleted ? hoverText('edit_completed') : 'Edit')
       },
       {
+        icon: <FiPlay />,
+        label: 'Start',
+        color: '#2563eb',
+        onClick: canChangeStatus ? () => handleQuickStatusChange(task, 'in_progress') : undefined,
+        visible: canChangeStatus,
+        disabled: !canChangeStatus || statusUpdatingId === task.id,
+        title: 'Start'
+      },
+      {
+        icon: <FiCheckCircle />,
+        label: 'Complete',
+        color: '#16a34a',
+        onClick: canChangeStatus ? () => handleQuickStatusChange(task, 'completed') : undefined,
+        visible: canChangeStatus,
+        disabled: !canChangeStatus || statusUpdatingId === task.id,
+        title: 'Complete'
+      },
+      {
+        icon: <FiRotateCcw />,
+        label: 'Reopen',
+        color: '#ca8a04',
+        onClick: canChangeStatus ? () => handleQuickStatusChange(task, 'open') : undefined,
+        visible: canChangeStatus,
+        disabled: !canChangeStatus || statusUpdatingId === task.id,
+        title: 'Reopen'
+      },
+      {
         icon: <FiTrash2 />,
         label: 'Delete',
         color: '#f4291bff',
@@ -815,128 +763,170 @@ const TasksList = () => {
     const isAssignee = isTaskAssignedToCurrentUser(t);
     const canChangeAsAssignee =
       isAssignee && (taskPerms.canUpdate === true || taskPerms.canComplete === true);
+    const overdue = isTaskOverdue(t);
+    const title = String(t.title || '');
+    const titleDesktop = title.length > 30 ? `${title.slice(0, 30)}...` : title;
+    const titleLarge = title.length > 60 ? `${title.slice(0, 60)}...` : title;
 
     return (
-      <div key={t.id} className={`task-card task-card--${status} ${isTaskOverdue(t) ? 'tasks-row--overdue' : ''}`}>
-        <div className={`task-card-status-bar status-bg-${status}`}>
-          <span>{capitalize(status)}</span>
-        </div>
-        <div className="task-card-content">
-          <div className="task-card-main">
-            <div className="task-card-header-row">
-              <h3 className="task-card-title">{t.title}</h3>
-              <span className={`priority-badge priority-${t.priority} mobile-priority`}>{capitalize(t.priority)}</span>
-            </div>
-
-            <div className="task-card-meta">
-              <div className="task-card-meta-left">
-                <span className="task-card-dept">
-                  {Array.isArray(t.assigned_users_meta) && t.assigned_users_meta.length > 0
-                    ? [...new Set(t.assigned_users_meta.map(m => m.department).filter(Boolean))]
-                      .map(d => capitalize(d))
-                      .join(', ')
-                    : capitalize(t.department)}
-                </span>
-                <div className="task-card-assignee-mobile">
-                  {/* <span className="assignee-label">Assignee: </span> */}
-                  {renderAssignees(t)}
-                </div>
-              </div>
-
-              <div className="task-card-actions-mobile">
-                <ActionMenu actions={getActionMenuItems(t)} trigger={<FiMoreHorizontal className="more-icon" />} />
-              </div>
+      <tr
+        key={t.id}
+        className={`tl-tasks-data-row tl-task-card--${status} ${overdue ? 'tl-tasks-row--overdue' : ''}`}
+      >
+        <td>
+          <div className="tl-tasks-list-col tl-tasks-list-col--task">
+            {/* {renderStatusIcon(t.status)} */}
+            <div className="tl-tasks-list-col-task-body">
+              <div className="tl-tasks-list-row-title tl-tasks-list-row-title--desktop">{titleDesktop}</div>
+              <div className="tl-tasks-list-row-title tl-tasks-list-row-title--large">{titleLarge}</div>
+              <span className="tl-tasks-list-dept-tag">{getTaskDeptLabel(t)}</span>
             </div>
           </div>
+          <div className="tl-tasks-list-row-mobile-meta show-on-mobile">
+            <div className="tl-tasks-list-row-mobile-assignee">{renderAssignees(t)}</div>
+            <div className="tl-tasks-list-row-mobile-dates">
+              <span>Started: {formatDate(t.start_date)}</span>
+              <span className={overdue ? 'tl-tasks-list-due-overdue' : ''}>Due: {formatDate(t.due_date)}</span>
+              {getAgeDisplay(t) !== '—' && (
+                <span className="tl-tasks-list-age-overdue">{getAgeDisplay(t)}</span>
+              )}
+            </div>
+          </div>
+        </td>
 
-          <div className="task-card-badges desktop-only">
-            <span className={`priority-badge priority-${t.priority}`}>{capitalize(t.priority)}</span>
-            {getStatusBadge(t.status)}
+        <td className="hide-on-mobile">
+          {renderAssignees(t)}
+        </td>
+
+        <td className="tl-tasks-col-center tl-tasks-col-priority">
+          <div className="tl-tasks-list-priority-status">
+            {renderPriorityCell(t.priority)}
+            {renderStatusCell(t)}
+          </div>
+        </td>
+
+        <td className="hide-on-mobile tl-tasks-col-center">
+          <div className="tl-tasks-list-dates">
+            <div className="tl-tasks-list-dates__row">
+              <span className="tl-tasks-list-dates__label">
+                <FiPlay aria-hidden />
+                Start
+              </span>
+              <span className="tl-tasks-list-dates__value">{formatDate(t.start_date)}</span>
+            </div>
+            <div className={`tl-tasks-list-dates__row ${overdue ? 'tl-tasks-list-dates__row--overdue' : ''}`}>
+              <span className="tl-tasks-list-dates__label">
+                <FiClock aria-hidden />
+                Due
+              </span>
+              <span className="tl-tasks-list-dates__value">{formatDate(t.due_date)}</span>
+            </div>
+          </div>
+        </td>
+
+        {/* <td className={`hide-until-large ${overdue ? 'tl-tasks-list-age-overdue' : ''}`}>
+          {getAgeDisplay(t)}
+        </td> */}
+
+        <td className="table-actions tl-tasks-col-center">
+          <div className="tl-task-card-actions tl-tasks-list-desktop-only">
+            <button
+              className="tl-task-action-icon tl-view"
+              title={hoverText('view')}
+              onClick={taskPerms.canViewDetail ? () => navigate(`${tasksRouteBase}/view/${t.id}`) : undefined}
+              disabled={!taskPerms.canViewDetail}
+            >
+              <FiEye />
+            </button>
+            <button
+              className="tl-task-action-icon tl-edit"
+              title={hoverText('update')}
+              onClick={((status !== 'completed' || taskPerms.canEditCompleted) && taskPerms.canUpdate) ? () => navigate(`${tasksRouteBase}/update/${t.id}`) : undefined}
+              disabled={(status === 'completed' && !taskPerms.canEditCompleted) || !taskPerms.canUpdate}
+            >
+              <FiEdit2 />
+            </button>
             {(canUpdate || canChangeAsAssignee) && (
-              <div className="tasks-quick-status">
-                <select
-                  value=""
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (!value) return;
-                    handleQuickStatusChange(t, value);
-                  }}
+              <div className="tl-tasks-status-menu">
+                <button
+                  type="button"
+                  className="tl-task-action-icon tl-status"
+                  title="Update status"
                   disabled={statusUpdatingId === t.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenStatusMenuId((id) => (id === t.id ? null : t.id));
+                  }}
                 >
-                  <option value="">Quick status...</option>
-                  <option value="in_progress">Start</option>
-                  <option value="completed">Complete</option>
-                  <option value="open">Reopen</option>
-                </select>
-              </div>
-            )}
-          </div>
-
-          <div className="task-card-right desktop-only">
-            <div className="task-card-dates">
-              <div className="date-row">
-                <span>Started on:</span>
-                <span>{formatDate(t.start_date)}</span>
-              </div>
-              <div className="date-row due-date">
-                <span>{formatDate(t.due_date)}</span>
-                {getDueInfo(t.due_date, t.status) && (
-                  <span className={`overdue-text overdue-${getDueInfo(t.due_date, t.status).variant}`}>
-                    {getDueInfo(t.due_date, t.status).label.startsWith('-') ? '→ ' : ''}
-                    {getDueInfo(t.due_date, t.status).label.replace('-', '').replace('In ', '')}
-                  </span>
+                  <HiOutlineSwitchHorizontal className={statusUpdatingId === t.id ? 'tl-tasks-status-spin' : ''} />
+                </button>
+                {openStatusMenuId === t.id && (
+                  <div className="tl-tasks-status-menu__dropdown" role="menu">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setOpenStatusMenuId(null);
+                        handleQuickStatusChange(t, 'in_progress');
+                      }}
+                    >
+                      Start
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setOpenStatusMenuId(null);
+                        handleQuickStatusChange(t, 'completed');
+                      }}
+                    >
+                      Complete
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setOpenStatusMenuId(null);
+                        handleQuickStatusChange(t, 'open');
+                      }}
+                    >
+                      Reopen
+                    </button>
+                  </div>
                 )}
               </div>
-              <div className="task-date-tooltip">
-                <div className="tooltip-item">
-                  <span className="tooltip-label">Created:</span>
-                  <span className="tooltip-value">{formatDate(t.created_at)}</span>
-                </div>
-                <div className="tooltip-item">
-                  <span className="tooltip-label">Started:</span>
-                  <span className="tooltip-value">{formatDate(t.start_date)}</span>
-                </div>
-                <div className="tooltip-item">
-                  <span className="tooltip-label">Due:</span>
-                  <span className="tooltip-value">{formatDate(t.due_date)}</span>
-                </div>
-              </div>
-            </div>
-            <div className="task-card-actions">
-              <button
-                className="task-action-icon view"
-                title={hoverText('view')}
-                onClick={taskPerms.canViewDetail ? () => navigate(`${tasksRouteBase}/view/${t.id}`) : undefined}
-                disabled={!taskPerms.canViewDetail}
-              >
-                <FiEye />
-              </button>
-              <button
-                className="task-action-icon edit"
-                title={hoverText('update')}
-                onClick={((status !== 'completed' || taskPerms.canEditCompleted) && taskPerms.canUpdate) ? () => navigate(`${tasksRouteBase}/update/${t.id}`) : undefined}
-                disabled={(status === 'completed' && !taskPerms.canEditCompleted) || !taskPerms.canUpdate}
-              >
-                <FiEdit2 />
-              </button>
-              <button
-                className="task-action-icon delete"
-                title={hoverText('delete')}
-                onClick={taskPerms.canDelete ? () => deleteTask(t) : undefined}
-                disabled={!taskPerms.canDelete}
-              >
-                <FiTrash2 />
-              </button>
-            </div>
+            )}
+            <button
+              className="tl-task-action-icon tl-delete"
+              title={hoverText('delete')}
+              onClick={taskPerms.canDelete ? () => deleteTask(t) : undefined}
+              disabled={!taskPerms.canDelete}
+            >
+              <FiTrash2 />
+            </button>
           </div>
-        </div>
-      </div>
+          <div className="tl-task-card-actions-mobile tl-tasks-list-mobile-only">
+            <ActionMenu actions={getActionMenuItems(t)} trigger={<FiMoreHorizontal className="tl-more-icon" />} />
+          </div>
+        </td>
+      </tr>
     );
   };
 
   const [selectedTaskIds, setSelectedTaskIds] = useState([]);
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+  const [openStatusMenuId, setOpenStatusMenuId] = useState(null);
+
+  useEffect(() => {
+    if (openStatusMenuId == null) return undefined;
+    const onDocClick = (e) => {
+      if (e.target.closest?.('.tl-tasks-status-menu')) return;
+      setOpenStatusMenuId(null);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [openStatusMenuId]);
 
   const isSelected = (id) => selectedTaskIds.includes(id);
   const toggleSelected = (id) => {
@@ -1047,311 +1037,219 @@ const TasksList = () => {
     <>
       <Navbar />
       <Loader loading={loading} />
-      <div className="tasks-list-wrapper">
-        {viewType === 'kanban' ? (
-          <TaskKanbanBoard
-            tasks={tasks}
-            filters={filters}
-            onFilterChange={(key, value) => handleFilterChange(key, value)}
-            onClearFilters={clearAllFilters}
-            loading={loading}
-            user={user}
-            permissions={permissions}
-            searchInput={searchInput}
-            isSearchPending={isSearchPending}
-            handleSearchInputChange={handleSearchInputChange}
-            approvalTasks={approvalTasks}
-            viewType={viewType}
-            setViewType={setViewType}
-          />
-        ) : (
-          <div className="list-content">
-            <div className="tasks-filter-container">
-              <div className="tasks-filter-main">
-                <div className="filter-item search-item">
-                  <FiSearch className="filter-icon" />
-                  <input
-                    type="text"
-                    placeholder={isSearchPending ? 'Searching...' : 'Search tasks...'}
-                    value={searchInput}
-                    onChange={(e) => handleSearchInputChange(e.target.value)}
-                  />
-                </div>
-
-                <div className="filter-item search-item">
-                  <FiSearch className="filter-icon" />
-                  <input
-                    type="text"
-                    placeholder="Search users..."
-                    value={filters.user_name}
-                    onChange={(e) => setFilters(prev => ({ ...prev, user_name: e.target.value }))}
-                  />
-                </div>
-
-                <div className="filter-item select-item">
-                  <FiUsers className="filter-icon" />
-                  <select
-                    value={filters.department === null ? '' : filters.department}
-                    onChange={(e) => setFilters(prev => ({ ...prev, department: e.target.value }))}
+      <div className="tl-list-wrapper">
+        {/* <PageHeader
+          title="Tasks List"
+          showBackButton={false}
+          showAdd={false}
+        /> */}
+        <div className="tl-list-content">
+          <div className="tl-tasks-filter-container">
+            <div className="tl-tasks-toolbar-top">
+              <div className="tl-scope-switch" role="tablist" aria-label="Task scope">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'assigned_to_me'}
+                  className={`tl-scope-switch__btn ${activeTab === 'assigned_to_me' ? 'is-active is-mine' : ''}`}
+                  onClick={() => handleTabChange('assigned_to_me')}
+                  title="Assigned to me"
+                >
+                  <FiUserCheck />
+                  <span className="tl-scope-switch__label">Me</span>
+                  <span className="tl-scope-switch__count">{categoryCounts.assigned_to_me}</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'other_tasks'}
+                  className={`tl-scope-switch__btn ${activeTab === 'other_tasks' ? 'is-active is-other' : ''}`}
+                  onClick={() => handleTabChange('other_tasks')}
+                  title="Assigned by me"
+                >
+                  <FiList />
+                  <span className="tl-scope-switch__label">Others</span>
+                  <span className="tl-scope-switch__count">{categoryCounts.other_tasks}</span>
+                </button>
+                {isManager && (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'assigned_to_team'}
+                    className={`tl-scope-switch__btn ${activeTab === 'assigned_to_team' ? 'is-active is-team' : ''}`}
+                    onClick={() => handleTabChange('assigned_to_team')}
+                    title="Assigned to team"
                   >
-                    <option value="">Department</option>
-                    {filterConfig[1].options.map(opt => (
-                      <option key={opt.value} value={opt.value} style={{ textTransform: 'uppercase' }}>{opt.label}</option>
-                    ))}
-                  </select>
-                  <FiChevronDown className="chevron-icon" />
-                </div>
-
-                <div className="filter-item select-item">
-                  <FiClock className="filter-icon" />
-                  <select
-                    value={filters.status}
-                    onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                    <FiUsers />
+                    <span className="tl-scope-switch__label">Team</span>
+                    <span className="tl-scope-switch__count">{categoryCounts.assigned_to_team}</span>
+                  </button>
+                )}
+                {approvalTasks.length > 0 && (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'approval_tasks'}
+                    className={`tl-scope-switch__btn ${activeTab === 'approval_tasks' ? 'is-active is-approval' : ''}`}
+                    onClick={() => handleTabChange('approval_tasks')}
+                    title="Approval tasks"
                   >
-                    <option value="">Status</option>
-                    {filterConfig[2].options.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                  <FiChevronDown className="chevron-icon" />
-                </div>
+                    <FiThumbsUp />
+                    <span className="tl-scope-switch__label">Approvals</span>
+                    <span className="tl-scope-switch__count">{approvalTasks.length}</span>
+                    {(() => {
+                      try {
+                        if (!approvalsLoaded || !Array.isArray(approvalRequestsForUser)) return null;
+                        const pendingCount = approvalRequestsForUser.filter((t) => t && t._isPendingAction === true).length;
+                        if (pendingCount === 0) return null;
+                        return (
+                          <span className="tl-approval-pending-badge" title={`${pendingCount} pending approval`}>
+                            {pendingCount}
+                          </span>
+                        );
+                      } catch {
+                        return null;
+                      }
+                    })()}
+                  </button>
+                )}
+              </div>
 
-                <div className="filter-item select-item">
-                  <FiList className="filter-icon" />
-                  <select
-                    value={filters.priority}
-                    onChange={(e) => setFilters(prev => ({ ...prev, priority: e.target.value }))}
-                  >
-                    <option value="">Priority</option>
-                    {filterConfig[3].options.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                  <FiChevronDown className="chevron-icon" />
-                </div>
+              <div className="tl-tasks-toolbar-assignee">
+                <TaskAssigneeFilter
+                  value={assignedUser}
+                  onSelect={setAssignedUser}
+                  onClear={() => setAssignedUser(null)}
+                  placeholder="Filter by assignee..."
+                />
+              </div>
 
-                <button className="filter-clear-btn" onClick={clearAllFilters} disabled={loading}>
-                  Clear
+              <div className="tl-tasks-toolbar-right">
+                <button
+                  type="button"
+                  className="tl-filter-clear-btn"
+                  onClick={toggleFilters}
+                >
+                  {filtersOpen ? 'Hide filters' : 'Show filters'}
+                </button>
+                <TaskViewModeSwitch value={viewMode} onChange={onViewModeChange} />
+                <button
+                  className="tl-tasks-add-btn"
+                  onClick={taskPerms.canCreate ? () => navigate(`${tasksRouteBase}/add`, { state: { defaultDepartment: user?.department } }) : undefined}
+                  disabled={!taskPerms.canCreate}
+                  title={hoverText('create')}
+                >
+                  <FiPlus />
                 </button>
               </div>
-
-              <button
-                className="tasks-add-btn"
-                onClick={taskPerms.canCreate ? () => navigate(`${tasksRouteBase}/add`, { state: { defaultDepartment: user?.department } }) : undefined}
-                disabled={!taskPerms.canCreate}
-                title={hoverText('create')}
-              >
-                <FiPlus />
-              </button>
-           <div className="view-toggle-container">
-              <button
-                className={`view-toggle-btn ${viewType === 'list' ? 'active' : ''}`}
-                onClick={() => setViewType('list')}
-                title="List View"
-              >
-                <FiList /> List
-              </button>
-              <button
-                className={`view-toggle-btn ${viewType === 'kanban' ? 'active' : ''}`}
-                onClick={() => setViewType('kanban')}
-                title="Kanban Board"
-              >
-                <FiColumns /> Kanban
-              </button>
             </div>
-            </div>
-              {/* Approval Banner - Only shown if there are actual pending approvals */}
-              {(() => {
-                try {
-                  if (!approvalsLoaded) return null; // Wait until approvals are loaded
-                  if (!Array.isArray(approvalRequestsForUser)) return null;
-                  
-                  const pendingApprovals = approvalRequestsForUser.filter(t => t && t._isPendingAction === true);
-                  if (!pendingApprovals || pendingApprovals.length === 0) return null;
-                  
-                  return (
-                    <div className="approval-wrapper">
-                      {/* Show either compact pill OR expanded banner */}
-                      {!showApprovalBanner ? (
-                        <div className="approval-pill-container">
-                          <button 
-                            className="approval-pill"
-                            onClick={() => setShowApprovalBanner(true)}
-                          >
-                            <div className="approval-pill-content">
-                              <span className="approval-pill-text">Pending Your Approval</span>
-                              <div className="approval-pill-icon-wrapper">
-                                <div className="approval-pill-icon">
-                                  <FiClipboard />
-                                </div>
-                                <span className="approval-pill-count">{pendingApprovals.length}</span>
-                              </div>
-                            </div>
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="tasks-approval-banner">
-                          <div className="tasks-approval-pill">
-                            <div className="tasks-approval-header">
-                              <span className="tasks-approval-label">Approval requests</span>
-                              <button 
-                                className="approval-close-btn"
-                                onClick={() => setShowApprovalBanner(false)}
-                              >
-                                ✕
-                              </button>
-                            </div>
-                            <ul className="tasks-approval-list">
-                              {pendingApprovals.map((t) => (
-                                <li
-                                  key={t.id}
-                                  className="tasks-approval-item"
-                                  onClick={taskPerms.canView ? () => navigate(`${tasksRouteBase}/view/${t.id}`) : undefined}
-                                >
-                                  <div className="tasks-approval-item-main">
-                                    <span className="tasks-approval-title">
-                                      {t.title || `Task #${t.id}`}
-                                    </span>
-                                    <span className="tasks-approval-sub">
-                                      Pending your review
-                                      {(t.priority || t.due_date) && (
-                                        <>
-                                          {' • '}
-                                          {t.priority ? capitalize(t.priority) : null}
-                                          {t.priority && t.due_date ? ' • ' : ''}
-                                          {t.due_date ? `Due ${formatDate(t.due_date)}` : null}
-                                        </>
-                                      )}
-                                    </span>
-                                  </div>
-                                  <span className="tasks-approval-meta">View</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                } catch (error) {
-                  // Silently fail if there's an error with approval banner
-                  return null;
-                }
-              })()}
-              {error && <div className="status-message status-message--error">{error}</div>}
 
-              <div className="task-card-list">
-                <div className="task-tabs-container">
-                  <div className="task-tabs">
-                    <button
-                      className={`task-tab-btn ${activeTab === 'assigned_to_me' ? 'active active--mine' : ''}`}
-                      onClick={() => setActiveTab('assigned_to_me')}
-                    >
-                      <FiUserCheck className="tab-icon" />
-                      <span className="tab-text"> Assign to me</span>
-                      <span className="tab-count">{myTasks.length}</span>
-                    </button>
-                    <button
-                      className={`task-tab-btn ${activeTab === 'other_tasks' ? 'active active--other' : ''}`}
-                      onClick={() => setActiveTab('other_tasks')}
-                    >
-                      <FiList className="tab-icon" />
-                      <span className="tab-text">Assign to other</span>
-                      <span className="tab-count">{otherTasks.length}</span>
-                    </button>
-                    {isManager && (
-                      <button
-                        className={`task-tab-btn ${activeTab === 'assigned_to_team' ? 'active active--team' : ''}`}
-                        onClick={() => setActiveTab('assigned_to_team')}
-                      >
-                        <FiUsers className="tab-icon" />
-                        <span className="tab-text">Assign to team</span>
-                        <span className="tab-count">{teamTasks.length}</span>
-                      </button>
-                    )}
-                    {approvalTasks.length > 0 && (
-                      <button
-                        className={`task-tab-btn ${activeTab === 'approval_tasks' ? 'active active--approval' : ''}`}
-                        onClick={() => setActiveTab('approval_tasks')}
-                      >
-                        <FiThumbsUp className="tab-icon" />
-                        <span className="tab-text">Approval Tasks</span>
-                        <span className="tab-count">{approvalTasks.length}</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
+            <CollapsibleFilters open={filtersOpen}>
+            <div className="filters-section tl-tasks-filter-main">
+              <SearchFilter
+                filterKey="search"
+                label="Search"
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
+                placeholder="Search tasks..."
+              />
 
-                <div className="tab-content-wrapper">
-                  {activeTab === 'assigned_to_me' && (
-                    <div className="tasks-group fade-in">
-                      {myTasks.length > 0 ? (
-                        myTasks.map((t) => renderTaskCard(t))
-                      ) : (
-                        <div className="empty-tab-state">
-                          <FiUserCheck className="empty-icon" />
-                          <p>No tasks assigned to you at the moment.</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+              <DropdownFilter
+                filterKey="department"
+                label="Department"
+                data={TASK_DEPARTMENT_OPTIONS}
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
+                placeholder="All Departments"
+              />
 
-                  {activeTab === 'assigned_to_team' && isManager && (
-                    <div className="tasks-group fade-in">
-                      {teamTasks.length > 0 ? (
-                        teamTasks.map((t) => renderTaskCard(t))
-                      ) : (
-                        <div className="empty-tab-state">
-                          <FiUsers className="empty-icon" />
-                          <p>No tasks assigned to your team members.</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+              <DropdownFilter
+                filterKey="project_name"
+                label="Project / Program"
+                data={TASK_PROJECT_PROGRAM_OPTIONS}
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
+                placeholder="All Projects/Programs"
+              />
 
-                  {activeTab === 'approval_tasks' && (
-                    <div className="tasks-group fade-in">
-                      {approvalTasks.length > 0 ? (
-                        approvalTasks.map((t) => renderTaskCard(t))
-                      ) : (
-                        <div className="empty-tab-state">
-                          <FiThumbsUp className="empty-icon" />
-                          <p>No approval tasks found.</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+              <DropdownFilter
+                filterKey="status"
+                label="Status"
+                data={statusFilterOptions}
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
+                placeholder="All Statuses"
+              />
 
-                  {activeTab === 'other_tasks' && (
-                    <div className="tasks-group fade-in">
-                      {otherTasks.length > 0 ? (
-                        otherTasks.map((t) => renderTaskCard(t))
-                      ) : (
-                        <div className="empty-tab-state">
-                          <FiList className="empty-icon" />
-                          <p>No other tasks found.</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+              <DropdownFilter
+                filterKey="priority"
+                label="Priority"
+                data={priorityFilterOptions}
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
+                placeholder="All Priorities"
+              />
+
+              <div className="filters-actions">
+                <SearchButton onClick={handleApplyFilters} loading={loading} />
+                <ClearButton onClick={handleClearAll} disabled={loading} />
+                <RefreshButton onClick={refresh} loading={loading} />
               </div>
-              {totalItems > 0 && (
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  totalItems={totalItems}
-                  pageSize={pageSize}
-                  onPageChange={setCurrentPage}
-                  onPageSizeChange={(n) => { setPageSize(n); setCurrentPage(1); }}
-                  onSortChange={(f, o) => { setSortField(f); setSortOrder(o); setCurrentPage(1); }}
-                  sortField={sortField}
-                  sortOrder={sortOrder}
-                  sortOptions={sortOptions}
-                />
+            </div>
+            </CollapsibleFilters>
+          </div>
+
+          {error && <div className="tl-status-message tl-status-message--error">{error}</div>}
+
+          <div className="tl-task-card-list">
+            <div className="tl-tab-content-wrapper">
+              {tasks.length > 0 ? (
+                renderTasksTable(tasks)
+              ) : (
+                <div className="tl-empty-tab-state">
+                  {activeTab === 'assigned_to_me' && (
+                    <>
+                      <FiUserCheck className="tl-empty-icon" />
+                      <p>No tasks assigned to you at the moment.</p>
+                    </>
+                  )}
+                  {activeTab === 'assigned_to_team' && (
+                    <>
+                      <FiUsers className="tl-empty-icon" />
+                      <p>No tasks assigned to your team members.</p>
+                    </>
+                  )}
+                  {activeTab === 'approval_tasks' && (
+                    <>
+                      <FiThumbsUp className="tl-empty-icon" />
+                      <p>No approval tasks found.</p>
+                    </>
+                  )}
+                  {activeTab === 'other_tasks' && (
+                    <>
+                      <FiList className="tl-empty-icon" />
+                      <p>No tasks assigned by you found.</p>
+                    </>
+                  )}
+                </div>
               )}
             </div>
-        )}
+          </div>
+          {totalItems > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+              onSortChange={handleSortChange}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              sortOptions={sortOptions}
+            />
+          )}
+        </div>
       </div>
     </>
   );

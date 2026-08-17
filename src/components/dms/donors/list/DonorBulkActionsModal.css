@@ -1,0 +1,135 @@
+.donor-bulk-actions-modal {
+  width: min(720px, 94vw);
+  max-width: 94vw;
+  max-height: 88vh;
+  padding: 1.5rem 1.5rem 1.25rem;
+}
+
+.donor-bulk-actions-modal__header {
+  margin-bottom: 1rem;
+  padding-right: 1.5rem;
+}
+
+.donor-bulk-actions-modal__header h2 {
+  margin: 0 0 0.35rem;
+  padding-right: 0;
+}
+
+.donor-bulk-actions-modal__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #2563eb;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.donor-bulk-actions-modal__audience {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.donor-bulk-actions-modal__picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.donor-bulk-actions-modal__action {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.donor-bulk-actions-modal__action:hover:not(:disabled) {
+  border-color: #93c5fd;
+  background: #f8fbff;
+}
+
+.donor-bulk-actions-modal__action--disabled,
+.donor-bulk-actions-modal__action:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+
+.donor-bulk-actions-modal__action-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #e8f1ff;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.donor-bulk-actions-modal__action-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.donor-bulk-actions-modal__action-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.donor-bulk-actions-modal__action-text strong {
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+
+.donor-bulk-actions-modal__action-text span {
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.donor-bulk-actions-modal__badge {
+  flex-shrink: 0;
+  align-self: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  background: #e2e8f0;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+}
+
+.donor-bulk-actions-modal__send {
+  margin-top: 0.25rem;
+}
+
+.communication-send-form__audience-summary {
+  margin: 12px 0 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.communication-send-form--compact .form-grid {
+  gap: 0.75rem;
+}

@@ -23,9 +23,10 @@
   min-width: 0;
   box-sizing: border-box;
   padding: 0.6rem 1rem;
-  border: 1px solid var(--color-text-light);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-md);
   font-size: 1rem;
+  color: var(--color-text-primary);
   background: var(--color-bg-primary);
   transition: all 0.2s ease;
   resize: vertical;

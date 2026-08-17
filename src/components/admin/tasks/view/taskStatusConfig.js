@@ -1,14 +1,35 @@
 export const STATUS_BUTTON_CONFIG = {
+  DRAFT: [],
+  OPEN: [
+    { label: 'Start Working', action: 'START', color: 'primary' },
+  ],
   ASSIGNED: [
     { label: 'Start Working', action: 'START', color: 'primary' },
   ],
-  IN_PROGRESS: [],
-  COMPLETED: [
-    { label: 'Submit for Approval', action: 'SUBMIT_APPROVAL', color: 'primary' },
+  IN_PROGRESS: [
+    { label: 'Complete Task', action: 'COMPLETE', color: 'success' },
   ],
+  PENDING: [],
   PENDING_APPROVAL: [
     { label: 'Approve', action: 'APPROVE', color: 'success' },
     { label: 'Reject', action: 'REJECT', color: 'danger' },
+  ],
+  REJECTED: [
+    { label: 'Start Working', action: 'START', color: 'primary' },
+  ],
+  APPROVED: [
+    { label: 'Close Task', action: 'CLOSE', color: 'danger' },
+  ],
+  COMPLETED: [
+    { label: 'Submit for Approval', action: 'SUBMIT_APPROVAL', color: 'primary' },
+    { label: 'Close Task', action: 'CLOSE', color: 'danger' },
+  ],
+  CLOSED: [],
+  CANCELLED: [],
+  FAILED: [],
+  REGISTERED: [],
+  BLOCKED: [
+    { label: 'Reopen In Progress', action: 'REOPEN_IN_PROGRESS', color: 'primary' },
   ],
 };
 

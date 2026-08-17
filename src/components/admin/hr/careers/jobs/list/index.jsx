@@ -6,7 +6,7 @@ import PageHeader from '../../../../../common/PageHeader';
 import ActionMenu from '../../../../../common/ActionMenu';
 import ConfirmationModal from '../../../../../common/ConfirmationModal';
 import Pagination from '../../../../../common/Pagination';
-import { SearchFilter, DropdownFilter, DateFilter, DateRangeFilter } from '../../../../../common/filters';
+import { SearchFilter, DropdownFilter, DateFilter, DateRangeFilter, RefreshButton } from '../../../../../common/filters';
 import { ClearButton } from '../../../../../common/filters/index';
 import { SearchButton } from '../../../../../common/filters/index';
 
@@ -342,6 +342,7 @@ const JobsList = () => {
                 onClick={handleClearFilters}
                 text="Clear"
               />
+              <RefreshButton onClick={fetchJobs} loading={loading} />
             </div>
           </div>
           

@@ -17,6 +17,7 @@ import { toast } from 'react-toastify';
 import axios from '../../../utils/axios';
 import Navbar from '../../Navbar';
 import ConvertToTaskModal from '../ConvertToTaskModal';
+import { getStatusLabel, normalizeStatusValue } from '../note/statusConfig';
 import EmptyState from '../common/EmptyState';
 import './index.css';
 
@@ -234,13 +235,13 @@ const InstructionRegister = () => {
 
       const completedStatuses = ['completed', 'closed', 'approved', 'rejected'];
       const inProgressStatuses = ['in_progress', 'submitted', 'waiting_response'];
-      const pendingStatuses = ['pending', 'unprocessed'];
+      const pendingStatuses = ['pending', 'unprocessed', 'on_hold', 'waiting', 'pending_reply', 'follow_up_required', 'reminder_sent', 'received', 'replied'];
 
       const derivedStats = {
         total: serverTotal ?? notesOut.length,
-        completed: notesOut.filter(note => completedStatuses.includes(note.status)).length,
-        inProgress: notesOut.filter(note => inProgressStatuses.includes(note.status)).length,
-        pending: notesOut.filter(note => pendingStatuses.includes(note.status)).length,
+        completed: notesOut.filter(note => completedStatuses.includes(normalizeStatusValue(note.status))).length,
+        inProgress: notesOut.filter(note => inProgressStatuses.includes(normalizeStatusValue(note.status))).length,
+        pending: notesOut.filter(note => pendingStatuses.includes(normalizeStatusValue(note.status))).length,
         critical: notesOut.filter(note => note.priority === 'critical').length,
       };
 
@@ -824,8 +825,8 @@ const InstructionRegister = () => {
                         </span>
                       </td>
                       <td>
-                        <span className={`instruction-list-status-badge instruction-list-status-badge-${note.status}`}>
-                          {note.status?.replace('_', ' ').toUpperCase()}
+                        <span className={`instruction-list-status-badge instruction-list-status-badge-${normalizeStatusValue(note.status)}`}>
+                          {getStatusLabel(note.status).toUpperCase()}
                         </span>
                       </td>
                       <td>
@@ -924,10 +925,7 @@ const InstructionRegister = () => {
                   <tr>
                     <td colSpan="11">
                       <EmptyState
-                        title="No instructions match these filters"
-                        message="Try clearing a filter or adding a fresh note from the quick note form."
-                        actionLabel="Create quick note"
-                        actionHref="/ceo-office/quick-note"
+                        title="No instructions"
                         compact
                       />
                     </td>

@@ -4,6 +4,11 @@ import axiosInstance from '../../../../../utils/axios';
 import Navbar from '../../../../Navbar';
 import PageHeader from '../../../../common/PageHeader';
 import { FiBox, FiMapPin, FiCalendar, FiDollarSign, FiUser } from 'react-icons/fi';
+import LocationDetailsSummary from '../../../../common/LocationMapPicker/LocationDetailsSummary';
+import { getGoogleMapsUrl } from '../../../../../utils/geolocation';
+import DonationBoxDonationAuditHistory from '../shared/DonationBoxDonationAuditHistory';
+import { formatAuditActor } from '../../../../common/audit/auditHistoryLabels';
+import { isLocalId } from '../../../../../offline/handlers';
 
 const ViewDonationBoxDonation = () => {
   const { id } = useParams();
@@ -14,16 +19,13 @@ const ViewDonationBoxDonation = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Get donation data from location state first (from list navigation)
     const donationData = location.state?.donation;
-    
-    if (donationData) {
-      // Use data passed from list (faster, no API call)
+
+    if (donationData && !isLocalId(id)) {
       setDonation(donationData);
       setError('');
       setLoading(false);
     } else {
-      // If no data passed, fetch from API (direct URL access)
       fetchDonation();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -135,6 +137,19 @@ const ViewDonationBoxDonation = () => {
           backPath={getBackPath()}
         />
         <div className="view-content">
+          {isLocalId(id) && (
+            <div
+              className="status-message"
+              style={{
+                marginBottom: 16,
+                background: '#fef3c7',
+                border: '1px solid #fcd34d',
+                color: '#92400e',
+              }}
+            >
+              This collection is saved locally and pending sync.
+            </div>
+          )}
           {/* Collection Information Section */}
           <div className="view-section">
             <h3 className="view-section-title">
@@ -171,8 +186,53 @@ const ViewDonationBoxDonation = () => {
                   {donation.collected_by?.first_name} {donation.collected_by?.last_name || 'N/A'}
                 </span>
               </div>
+              {donation.notes && (
+                <div className="view-item view-item--full">
+                  <span className="view-item-label">Notes</span>
+                  <span className="view-item-value">{donation.notes}</span>
+                </div>
+              )}
             </div>
           </div>
+
+          {(donation.collector_latitude != null || donation.collector_location_details) && (
+            <div className="view-section">
+              <h3 className="view-section-title">
+                <FiMapPin style={{ display: 'inline', marginRight: '8px' }} />
+                Collector GPS location
+              </h3>
+              <div className="view-grid">
+                <div className="view-item view-item--full">
+                  <span className="view-item-label">Location at collection</span>
+                  <span className="view-item-value">
+                    <LocationDetailsSummary
+                      details={donation.collector_location_details}
+                      latitude={donation.collector_latitude}
+                      longitude={donation.collector_longitude}
+                      title="Collector coordinates"
+                    />
+                  </span>
+                </div>
+                {donation.collector_latitude != null && donation.collector_longitude != null && (
+                  <div className="view-item">
+                    <span className="view-item-label">Map</span>
+                    <span className="view-item-value">
+                      <a
+                        href={getGoogleMapsUrl(
+                          donation.collector_latitude,
+                          donation.collector_longitude,
+                        )}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open in Google Maps
+                      </a>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Donation Box Information Section */}
           {donationBox && (
@@ -270,24 +330,38 @@ const ViewDonationBoxDonation = () => {
             </div>
           )}
 
-          {/* System Information Section */}
-          {/* <div className="view-section">
-            <h3 className="view-section-title">System Information</h3>
+          <div className="view-section">
+            <h3 className="view-section-title">System information</h3>
             <div className="view-grid">
               <div className="view-item">
-                <span className="view-item-label">Created At</span>
+                <span className="view-item-label">Created at</span>
                 <span className="view-item-value">{formatDate(donation.created_at)}</span>
               </div>
               <div className="view-item">
-                <span className="view-item-label">Updated At</span>
+                <span className="view-item-label">Created by</span>
+                <span className="view-item-value">
+                  {donation.created_by ? formatAuditActor(donation.created_by) : '—'}
+                </span>
+              </div>
+              <div className="view-item">
+                <span className="view-item-label">Last updated at</span>
                 <span className="view-item-value">{formatDate(donation.updated_at)}</span>
               </div>
               <div className="view-item">
-                <span className="view-item-label">Record ID</span>
-                <span className="view-item-value">{donation.id}</span>
+                <span className="view-item-label">Last updated by</span>
+                <span className="view-item-value">
+                  {donation.updated_by ? formatAuditActor(donation.updated_by) : '—'}
+                </span>
               </div>
             </div>
-          </div> */}
+          </div>
+
+          {!isLocalId(id) && (
+            <div className="view-section">
+              <h3 className="view-section-title">Change history</h3>
+              <DonationBoxDonationAuditHistory collectionId={id} />
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div style={{ 

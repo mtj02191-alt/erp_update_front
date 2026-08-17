@@ -75,8 +75,8 @@ const TaskActionBar = ({
   );
 
   const availableButtons = useMemo(() => {
-    // Don't show any buttons while approval data is loading (prevents blinking)
-    if (approvalLoading) {
+    // Don't show any buttons while approval data is loading ONLY if it's an approval workflow
+    if (approvalLoading && normalizedWorkflow === 'APPROVAL_REQUIRED') {
       return [];
     }
     const rawRole = String(userRole || '').toLowerCase();
@@ -137,10 +137,13 @@ const TaskActionBar = ({
   }, [normalizedStatus, normalizedWorkflow, canApprove, availabilityContext, approvalLoading]);
 
   const visibleQuickActions = useMemo(
-    () =>
-      QUICK_ACTIONS.filter((item) =>
-        isQuickActionAvailable(item.key, availabilityContext),
-      ),
+    () => {
+      const result = QUICK_ACTIONS.filter((item) => {
+        const allowed = isQuickActionAvailable(item.key, availabilityContext);
+        return allowed;
+      });
+      return result;
+    },
     [availabilityContext],
   );
 
@@ -184,6 +187,9 @@ const TaskActionBar = ({
   }, [availabilityContext, currentStatus, visibleQuickActions]);
 
   const handleStatusClick = (action) => {
+    console.log('TaskActionBar handleStatusClick called with action:', action);
+    console.log('disabled:', disabled);
+    console.log('onStatusAction:', onStatusAction);
     if (disabled || !onStatusAction) return;
     onStatusAction(action);
     setIsQuickOpen(false);
@@ -191,6 +197,9 @@ const TaskActionBar = ({
   };
 
   const handleQuickClick = (key) => {
+    console.log('TaskActionBar handleQuickClick called with key:', key);
+    console.log('disabled:', disabled);
+    console.log('onQuickAction:', onQuickAction);
     if (disabled) return;
     if (onQuickAction) {
       onQuickAction(key);
@@ -199,11 +208,17 @@ const TaskActionBar = ({
     setIsFabMenuOpen(false);
   };
 
-  const hasAnyActions =
-    availableButtons.length > 0 || visibleQuickActions.length > 0;
-  if (!hasAnyActions) {
-    return null;
-  }
+  // console.log('TaskActionBar debug info:', {
+  //   availableButtons,
+  //   visibleQuickActions,
+  //   approvalLoading,
+  //   normalizedStatus,
+  //   normalizedWorkflow,
+  //   availabilityContext,
+  //   permissions,
+  //   userRole,
+  //   isAssignee
+  // });
 
   const containerClass =
     align === 'bottom'

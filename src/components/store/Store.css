@@ -10,9 +10,11 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
-  background: #fff;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
   border-radius: 1rem;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .module-grid {
@@ -72,33 +74,32 @@
 /* Form Wrapper Styles */
 .form-wrapper {
   min-height: calc(100vh - 64px);
-  background: var(--bg-color);
+  background: var(--color-bg-secondary);
   padding: 1rem;
   margin-top: 64px;
 }
 
 .form-content {
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: var(--max-width, 1200px);
+  width: 100%;
+  margin: 30px auto 3rem;
   padding: 2rem;
-  background: #fff;
-  border-radius: 1rem;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
 
 /* List Wrapper Styles */
 .list-wrapper {
-  min-height: calc(100vh - 64px);
-  background: var(--bg-color);
-  /* padding: 1rem; */
+  background: var(--color-bg-secondary);
   margin-top: 64px;
 }
 
 .list-content {
-  /* max-width: 1200px; */
   margin: 0 auto;
-  /* padding: 2rem; */
-  background: #fff;
   border-radius: 1rem;
   box-shadow: 0 2px 12px rgba(0,0,0,0.08);
 }
@@ -121,18 +122,21 @@
 /* View Wrapper Styles */
 .view-wrapper {
   min-height: calc(100vh - 64px);
-  background: var(--bg-color);
+  background: var(--color-bg-secondary);
   padding: 1rem;
   margin-top: 64px;
 }
 
 .view-content {
-  max-width: 800px;
+  max-width: var(--max-width, 1200px);
   margin: 0 auto;
-  padding: 2rem;
-  background: #fff;
-  border-radius: 1rem;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  padding: var(--spacing-lg);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
 
 /* Report Details Styles */
@@ -143,9 +147,9 @@
 .detail-section {
   margin-bottom: 2rem;
   padding: 1.5rem;
-  background: var(--bg-light);
+  background: var(--color-bg-secondary);
   border-radius: 0.5rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
 }
 
 .detail-grid {
@@ -163,7 +167,7 @@
 
 .detail-label {
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -171,7 +175,7 @@
 
 .detail-value {
   font-size: 1rem;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
@@ -223,7 +227,8 @@
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
+  background: var(--table-row-bg, var(--color-bg-primary));
+  color: var(--color-text-primary);
 }
 
 .data-table th,
@@ -234,20 +239,22 @@
 }
 
 .data-table th {
-  background: var(--bg-light);
+  background: var(--table-header-bg, var(--color-bg-secondary));
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--color-text-primary);
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .data-table td {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
+  background: var(--table-row-bg, var(--color-bg-primary));
 }
 
-.data-table tr:hover {
-  background: var(--bg-light);
+.data-table tr:hover,
+.data-table tr:hover td {
+  background: var(--table-row-hover-bg, var(--color-bg-secondary));
 }
 
 .table-actions {
@@ -353,9 +360,11 @@
   max-width: 700px;
   margin: 84px auto 3rem;
   padding: 2.5rem 2.5rem;
-  background: #fff;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
   border-radius: 1rem;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-md);
   max-height: calc(100vh - 84px);
   overflow-y: auto;
 }
@@ -439,7 +448,7 @@
   .list-wrapper,
   .view-wrapper {
     margin-top: 56px;
-    min-height: calc(100vh - 56px);
+    /* min-height: calc(100vh - 56px); */
   }
   
   .demands-summary,
@@ -495,7 +504,6 @@
 
   .module-content,
   .form-content,
-  .list-content,
   .view-content {
     padding: 1rem;
   }
