@@ -525,7 +525,7 @@ const QuickNote = () => {
                   </select>
                 </div>
 
-                <div className="form-group">
+                {/* <div className="form-group">
                   <label>Attachment URL</label>
                   <input
                     type="text"
@@ -547,7 +547,7 @@ const QuickNote = () => {
                     className="form-control"
                     placeholder="Enter voice note URL"
                   />
-                </div>
+                </div> */}
 
                 <div className="form-group full-width">
                   <label>PA Remarks</label>

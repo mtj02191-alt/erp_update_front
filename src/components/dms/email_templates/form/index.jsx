@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
@@ -6,6 +6,7 @@ import PageHeader from '../../../common/PageHeader';
 import FormInput from '../../../common/FormInput';
 import FormTextarea from '../../../common/FormTextarea';
 import MultiSelect from '../../../common/MultiSelect';
+import EmailBodyEditor from './EmailBodyEditor';
 import {
   TEMPLATE_CHANNELS,
   TEMPLATE_PURPOSES,
@@ -14,7 +15,6 @@ import {
   CTA_BUTTON_TEXT_OPTIONS,
   toArray,
   firstOrNull,
-  insertVariable,
 } from '../templateConstants';
 
 const EMPTY_FORM = {
@@ -47,6 +47,7 @@ const EmailTemplateForm = () => {
   const [testChannel, setTestChannel] = useState('email');
   const [testRecipient, setTestRecipient] = useState('');
   const [testMessage, setTestMessage] = useState('');
+  const bodyEditorRef = useRef(null);
 
   const loadRelatedOptions = useCallback(async () => {
     try {
@@ -167,6 +168,15 @@ const EmailTemplateForm = () => {
     setError('');
     try {
       const payload = buildPayload();
+      const bodyText = String(payload.body || '')
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .trim();
+      if (!bodyText) {
+        setError('Message content is required');
+        setLoading(false);
+        return;
+      }
       if (payload.channels?.includes('email') && !payload.subject?.trim()) {
         setError('Subject is required when Email channel is selected');
         setLoading(false);
@@ -243,7 +253,12 @@ const EmailTemplateForm = () => {
   };
 
   const handleInsertVariable = (variableKey) => {
-    updateField('body', insertVariable(form.body, variableKey));
+    const token = `{{${variableKey}}}`;
+    if (bodyEditorRef.current?.insertToken) {
+      bodyEditorRef.current.insertToken(token);
+    } else {
+      updateField('body', form.body ? `${form.body} ${token}` : token);
+    }
     if (!form.variables.includes(variableKey)) {
       updateField('variables', [...form.variables, variableKey]);
     }
@@ -371,6 +386,11 @@ const EmailTemplateForm = () => {
               placeholder="Select variables used in this template (optional)"
             />
 
+
+
+            <p style={{ margin: '0 0 8px', fontSize: 13, color: '#6b7280' }}>
+              Click a name below to insert it into the message (e.g. donor name). Place the cursor where you want it first.
+            </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
               {TEMPLATE_VARIABLES.map((v) => (
                 <button
@@ -385,24 +405,20 @@ const EmailTemplateForm = () => {
               ))}
             </div>
 
+            <EmailBodyEditor
+              ref={bodyEditorRef}
+              label="Message Content"
+              value={form.body}
+              onChange={(html) => updateField('body', html)}
+              required
+            />
             <FormTextarea
-              label="Description"
+              label="Internal Notes (not sent in email)"
               name="description"
               value={form.description}
               onChange={(e) => updateField('description', e.target.value)}
-              placeholder="Internal notes about this template"
+              placeholder="Staff-only notes. Recipients will not see this."
             />
-
-            <FormTextarea
-              label="Message Content"
-              name="body"
-              value={form.body}
-              onChange={(e) => updateField('body', e.target.value)}
-              placeholder="Use variables like {{donor_name}}, {{campaign_url}}, {{cta_url}}, {{unsubscribe_url}}"
-              required
-              rows={15}
-            />
-
             <div className="form-actions" style={{ flexWrap: 'wrap', gap: 10 }}>
               <button type="button" className="secondary-btn" onClick={handleBack}>
                 Cancel

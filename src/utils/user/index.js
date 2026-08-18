@@ -121,6 +121,8 @@ export const departmentRoles = {
     { value: 'asst_crd_officer', label: 'Asst. CRD Officer' },
     { value: 'crd_officer', label: 'CRD Officer' },
     { value: 'internee', label: 'Internee' },
+    {value: 'pa', label: 'PA'}, // Personal Assistant
+    {value: 'ceo', label: 'CEO'}, // Chief Executive Officer
   ];
   
   export const genders = [

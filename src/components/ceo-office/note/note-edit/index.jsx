@@ -1310,7 +1310,7 @@ const NoteEdit = ({ note: noteProp, onSave, onCancel }) => {
         </div>
       </div>
 
-      <div className="note-edit-two-column-grid">
+      {/* <div className="note-edit-two-column-grid">
         <div className="note-edit-form-group">
           <label>Attachment</label>
           <input
@@ -1331,7 +1331,7 @@ const NoteEdit = ({ note: noteProp, onSave, onCancel }) => {
             className="note-edit-form-control"
           />
         </div>
-      </div>
+      </div> */}
 
       <div className="note-edit-action-buttons-container">
         <button onClick={onCancel} className="note-edit-btn note-edit-btn-secondary">

@@ -84,8 +84,6 @@ export const canViewModule = (permissions, department, module) => {
     return true;
   }
 
-
-
   // Unified donors (fund_raising): allow sidebar if new `donors` or legacy online/offline donor flags exist
   if (department === 'fund_raising' && module === 'donors') {
     const fr = permissions[department];
@@ -167,34 +165,31 @@ export const getAccessibleModules = (permissions, department) => {
 };
 
 /**
- * Get user's permissions for a specific module.
- * Only returns action keys that actually exist on the stored module permissions;
- * does NOT fabricate keys for actions that are absent from the database JSON.
- *
+ * Get user's permissions for a specific module
  * @param {Object} permissions - User permissions object
  * @param {string} department - Department name
  * @param {string} module - Module name
- * @returns {Object} - Object with permission flags actually present in storage
  */
 export const getModulePermissions = (permissions, department, module) => {
   if (!permissions || !department || !module) {
-    return {};
+    return {
+      view: false,
+      create: false,
+      update: false,
+      delete: false,
+      list_view: false
+    };
   }
 
-  const modulePermissions = permissions[department]?.[module];
-  if (!modulePermissions || typeof modulePermissions !== 'object') {
-    return {};
-  }
-
-  const result = {};
-  for (const [key, value] of Object.entries(modulePermissions)) {
-    if (typeof value === 'boolean') {
-      result[key] = value === true;
-    } else if (typeof value !== 'object') {
-      result[key] = value;
-    }
-  }
-  return result;
+ const modulePermissions = permissions[department]?.[module] || {};
+  
+  return {
+    view: modulePermissions.view === true,
+    create: modulePermissions.create === true,
+    update: modulePermissions.update === true,
+    delete: modulePermissions.delete === true,
+    list_view: modulePermissions.list_view === true
+  };
 };
 
 /**

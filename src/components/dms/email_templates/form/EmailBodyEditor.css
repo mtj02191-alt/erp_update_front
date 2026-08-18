@@ -1,0 +1,83 @@
+.email-body-editor {
+  margin-bottom: 16px;
+}
+
+.email-body-editor__label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #111827;
+}
+
+.email-body-editor__hint {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.email-body-editor__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid #d1d5db;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: #f8fafc;
+}
+
+.email-body-editor__toolbar button,
+.email-body-editor__select {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #111827;
+}
+
+.email-body-editor__toolbar button:hover,
+.email-body-editor__select:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+.email-body-editor__surface {
+  min-height: 260px;
+  padding: 14px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 0 0 8px 8px;
+  background: #fff;
+  line-height: 1.55;
+  outline: none;
+}
+
+.email-body-editor__surface:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.email-body-editor__surface:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+}
+
+.email-body-editor__surface h1,
+.email-body-editor__surface h2,
+.email-body-editor__surface h3 {
+  margin: 0 0 10px;
+}
+
+.email-body-editor__surface p {
+  margin: 0 0 10px;
+}
+
+.email-body-editor__surface ul,
+.email-body-editor__surface ol {
+  margin: 0 0 10px 22px;
+}
+
+.email-body-editor__surface a {
+  color: #2563eb;
+}

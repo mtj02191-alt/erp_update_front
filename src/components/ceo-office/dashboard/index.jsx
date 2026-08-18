@@ -243,8 +243,9 @@ const CeoDashboard = () => {
         setPendingApprovalsOpen(false);
       }
     } catch (error) {
+      const backendMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message;
       console.error('Approval action failed:', error);
-      toast.error('Failed to process approval action');
+      toast.error(backendMessage || 'Failed to process approval action');
     } finally {
       setActionLoadingId(null);
     }

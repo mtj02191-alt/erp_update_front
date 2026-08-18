@@ -3,6 +3,7 @@ export const emailApprovalStatuses = [
   { value: 'approved', label: 'Approved' },
   { value: 'rejected', label: 'Rejected' },
   { value: 'request_clarification', label: 'Request Clarification' },
+  { value: 'closed', label: 'Closed' },
 ];
 
 export const waitingResponseStatuses = [

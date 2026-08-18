@@ -345,71 +345,71 @@ const CeoNoteView = () => {
   const renderCategorySpecificButtons = () => {
     const buttons = [];
 
-    switch (note.category) {
-      case 'emails_and_approvals':
-        buttons.push(
-          <button key="approval" onClick={() => setApprovalModalOpen(true)} className="note-view-btn note-view-btn-success">
-            Approval
-          </button>
-        );
-        break;
+    // switch (note.category) {
+    //   case 'emails_and_approvals':
+    //     buttons.push(
+    //       <button key="approval" onClick={() => setApprovalModalOpen(true)} className="note-view-btn note-view-btn-success">
+    //         Approval
+    //       </button>
+    //     );
+    //     break;
 
-      case 'follow_up':
-      case 'waiting_response':
-        buttons.push(
-          <button key="remind" onClick={handleRemind} className="note-view-btn note-view-btn-warning">
-            Remind
-          </button>
-        );
-        break;
+    //   case 'follow_up':
+    //   case 'waiting_response':
+    //     buttons.push(
+    //       <button key="remind" onClick={handleRemind} className="note-view-btn note-view-btn-warning">
+    //         Remind
+    //       </button>
+    //     );
+    //     break;
 
-      case 'calls':
-      case 'whatsapp':
-      case 'visitors':
-        buttons.push(
-          <button key="edit" onClick={() => setIsEditing(true)} className="note-view-btn note-view-btn-primary">
-            Edit
-          </button>
-        );
-        buttons.push(
-          <button key="delete" onClick={handleDelete} className="note-view-btn note-view-btn-danger">
-            Delete
-          </button>
-        );
-        break;
+    //   case 'calls':
+    //   case 'whatsapp':
+    //   case 'visitors':
+    //     buttons.push(
+    //       <button key="edit" onClick={() => setIsEditing(true)} className="note-view-btn note-view-btn-primary">
+    //         Edit
+    //       </button>
+    //     );
+    //     buttons.push(
+    //       <button key="delete" onClick={handleDelete} className="note-view-btn note-view-btn-danger">
+    //         Delete
+    //       </button>
+    //     );
+    //     break;
 
-      case 'meetings':
-        buttons.push(
-          <button key="add-action-item" onClick={() => setIsEditing(true)} className="note-view-btn note-view-btn-primary">
-            Add Action Item
-          </button>
-        );
-        break;
+    //   case 'meetings':
+    //     buttons.push(
+    //       <button key="add-action-item" onClick={() => setIsEditing(true)} className="note-view-btn note-view-btn-primary">
+    //         Add Action Item
+    //       </button>
+    //     );
+    //     break;
 
-      case 'project_notes':
-        buttons.push(
-          <button key="edit" onClick={() => setIsEditing(true)} className="note-view-btn note-view-btn-primary">
-            Edit
-          </button>
-        );
-        break;
+    //   case 'project_notes':
+    //     buttons.push(
+    //       <button key="edit" onClick={() => setIsEditing(true)} className="note-view-btn note-view-btn-primary">
+    //         Edit
+    //       </button>
+    //     );
+    //     break;
 
-      case 'important_decisions':
-        buttons.push(
-          <button key="view-decision" onClick={() => {
-            const decisionsSection = document.querySelector('.note-view-section');
-            if (decisionsSection) {
-              decisionsSection.scrollIntoView({ behavior: 'smooth' });
-            }
-          }} className="note-view-btn note-view-btn-info">
-            View Decision
-          </button>
-        );
-        break;
+    //   case 'important_decisions':
+    //     buttons.push(
+    //       <button key="view-decision" onClick={() => {
+    //         const decisionsSection = document.querySelector('.note-view-section');
+    //         if (decisionsSection) {
+    //           decisionsSection.scrollIntoView({ behavior: 'smooth' });
+    //         }
+    //       }} className="note-view-btn note-view-btn-info">
+    //         View Decision
+    //       </button>
+    //     );
+    //     break;
 
-      default:
-        break;
-    }
+    //   default:
+    //     break;
+    // }
 
     // Show Convert to Task for any note that hasn't been converted yet
     if (!note.related_task_id && note.category !== 'emails_and_approvals' && note.category !== 'project_command_sheets') {
@@ -421,18 +421,18 @@ const CeoNoteView = () => {
     }
 
     // Always keep Audit History
-    buttons.push(
-      <button key="audit-history" onClick={fetchAuditHistory} className="note-view-btn note-view-btn-warning" disabled={loadingAudit}>
-        {loadingAudit ? 'Loading...' : 'Audit History'}
-      </button>
-    );
+    // buttons.push(
+    //   <button key="audit-history" onClick={fetchAuditHistory} className="note-view-btn note-view-btn-warning" disabled={loadingAudit}>
+    //     {loadingAudit ? 'Loading...' : 'Audit History'}
+    //   </button>
+    // );
 
     // If status is completed, add Reopen button
     if (note.status === 'completed') {
       buttons.push(
-        <button key="reopen" onClick={handleReopen} className="note-view-btn note-view-btn-primary">
-          Reopen
-        </button>
+        // <button key="reopen" onClick={handleReopen} className="note-view-btn note-view-btn-primary">
+        //   Reopen
+        // </button>
       );
     }
 
@@ -586,7 +586,7 @@ const CeoNoteView = () => {
                     )}
                   </div>
 
-                  <div className="note-view-form-group">
+                  {/* <div className="note-view-form-group">
                     {hasValue(note.attachment) && (
                       <div className="note-view-form-group">
                         <label>Attachment</label>
@@ -604,7 +604,7 @@ const CeoNoteView = () => {
                         </a>
                       </div>
                     )}
-                  </div>
+                  </div> */}
 
 
                   {(() => {
