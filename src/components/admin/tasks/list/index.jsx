@@ -348,9 +348,17 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
   };
 
   const getTaskDeptLabel = (t) => {
-    if (Array.isArray(t.assigned_users_meta) && t.assigned_users_meta.length > 0) {
-      const depts = [...new Set(t.assigned_users_meta.map((m) => m.department).filter(Boolean))];
-      if (depts.length > 0) return depts.map((d) => capitalize(d)).join(', ');
+    const assignedMeta = Array.isArray(t.assigned_users_meta)
+      ? t.assigned_users_meta
+      : [];
+    const isTaskCreator =
+      currentUserId != null && Number(t.created_by_id) === currentUserId;
+    const visibleMeta = isTaskCreator
+      ? assignedMeta
+      : assignedMeta.filter((m) => Number(m?.user_id) === currentUserId);
+    const depts = [...new Set(visibleMeta.map((m) => m?.department).filter(Boolean))];
+    if (depts.length > 0) {
+      return depts.map((d) => capitalize(d)).join(', ');
     }
     return capitalize(t.department) || '—';
   };

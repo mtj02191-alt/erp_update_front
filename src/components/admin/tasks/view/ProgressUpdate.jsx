@@ -7,6 +7,8 @@ const ProgressUpdate = ({
   currentProgress,
   lastProgressNotes,
   movLines,
+  assignedUsers = [],
+  isTaskCreator = false,
   onUpdate,
   canEdit = true,
   currentUser,
@@ -20,7 +22,7 @@ const ProgressUpdate = ({
       movLines.length > 0 &&
       typeof movLines[0] === 'object' &&
       movLines[0] !== null &&
-      'text' in movLines[0]
+      ('checked' in movLines[0] || 'checked_by_id' in movLines[0])
     );
   }, [movLines]);
 
@@ -94,8 +96,8 @@ const ProgressUpdate = ({
     // Legacy mode: Parse MOV lines from text
     const lines = Array.isArray(movLines)
       ? movLines
-          .map((line) => String(line || '').trim())
-          .filter((line) => line.length > 0)
+          .map((line) => typeof line === 'object' ? line : { text: String(line || '').trim() })
+          .filter((line) => String(line.text || '').trim().length > 0)
       : [];
     const total = lines.length;
     if (total === 0) {
@@ -115,10 +117,14 @@ const ProgressUpdate = ({
       Math.min(total, Math.round((numericProgress / 100) * total)),
     );
 
-    const nextItems = lines.map((text, index) => {
+    const nextItems = lines.map((line, index) => {
+      const text = String(line.text || '').trim();
       let completed = false;
+      const movIndex = Number.isInteger(Number(line.mov_index))
+        ? Number(line.mov_index)
+        : index;
       if (checkedIndices) {
-        completed = checkedIndices.includes(index);
+        completed = checkedIndices.includes(movIndex);
       } else {
         completed = index < completedCount;
       }
@@ -154,8 +160,10 @@ const ProgressUpdate = ({
       
       return {
         text,
+        mov_index: movIndex,
         completed,
         completed_by_id,
+        assigned_user_id: line.assigned_user_id ?? null,
       };
     });
     
@@ -167,7 +175,8 @@ const ProgressUpdate = ({
         if (!refItem) return true;
         return item.completed !== refItem.completed || 
                item.completed_by_id !== refItem.completed_by_id ||
-               item.text !== refItem.text;
+               item.text !== refItem.text ||
+               item.assigned_user_id !== refItem.assigned_user_id;
       });
     
     if (shouldUpdate) {
@@ -186,6 +195,14 @@ const ProgressUpdate = ({
   const totalCount = items.length;
   const calculatedProgress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
   const clampedProgress = Math.max(0, Math.min(100, calculatedProgress));
+
+  const getAssignedUserName = (userId) => {
+    if (userId == null) return 'Unassigned';
+    const assignedUser = assignedUsers.find((user) => Number(user.id) === Number(userId));
+    return assignedUser
+      ? `${assignedUser.first_name || ''} ${assignedUser.last_name || ''}`.trim() || assignedUser.email
+      : `User #${userId}`;
+  };
 
   const handleToggle = async (index) => {
     if (!taskId || !items.length || loading || !canEdit) return;
@@ -276,14 +293,14 @@ const ProgressUpdate = ({
 
         // Build indices array for checked items
         const indices = nextItems
-          .map((item, i) => (item.completed ? i : null))
+          .map((item) => (item.completed ? item.mov_index : null))
           .filter((i) => i !== null);
         
         // Build ownership map to persist who checked each item
         const ownershipPairs = nextItems
-          .map((item, i) => {
+          .map((item) => {
             if (item.completed && item.completed_by_id) {
-              return `${i}=${item.completed_by_id}`;
+              return `${item.mov_index}=${item.completed_by_id}`;
             }
             return null;
           })
@@ -363,7 +380,12 @@ const ProgressUpdate = ({
           const checkedById = isStructured ? item.checked_by_id : item.completed_by_id;
           const isCheckedByOther = isChecked && checkedById && Number(checkedById) !== Number(currentUser?.id);
           const isCheckedByCurrentUser = isChecked && checkedById && Number(checkedById) === Number(currentUser?.id);
-          const isDisabled = loading || !canEdit || isCheckedByOther;
+          const isAssignedToCurrentUser =
+            item.assigned_user_id != null &&
+            Number(item.assigned_user_id) === Number(currentUser?.id);
+          const isCreatorOnAnotherUsersMov =
+            isTaskCreator && item.assigned_user_id != null && !isAssignedToCurrentUser;
+          const isDisabled = loading || !canEdit || isCheckedByOther || isCreatorOnAnotherUsersMov;
 
           // Determine the reason for disabled state to show appropriate tooltip
           let disabledTooltip = '';
@@ -371,6 +393,8 @@ const ProgressUpdate = ({
             disabledTooltip = 'Only assignees can interact with MOV items';
           } else if (isCheckedByOther) {
             disabledTooltip = 'Locked: Checked by another assignee';
+          } else if (isCreatorOnAnotherUsersMov) {
+            disabledTooltip = 'Only the MOV assignee can update this item';
           } else if (loading) {
             disabledTooltip = 'Updating...';
           }
@@ -392,6 +416,11 @@ const ProgressUpdate = ({
                   {isChecked ? '✓' : ''}
                 </span>
                 <span className="mov-checklist-label">{item.text}</span>
+                {'assigned_user_id' in item && (
+                  <span className="mov-checklist-assignee">
+                    {getAssignedUserName(item.assigned_user_id)}
+                  </span>
+                )}
                 {isChecked && checkedById && (
                   <span
                     className="mov-checklist-info"

@@ -14,6 +14,7 @@ import { tasksBasePath } from '../../../../utils/admin';
 import TaskPendingAttachments, {
   uploadPendingTaskAttachments,
 } from '../shared/TaskPendingAttachments';
+import MovAssignmentPicker from '../shared/MovAssignmentPicker';
 import '../../../../styles/variables.css';
 import './index.css';
 
@@ -336,7 +337,7 @@ const AddTask = ({
   const [assignedUserDepartments, setAssignedUserDepartments] = useState({});
   const [reportedByUsers, setReportedByUsers] = useState([]);
   const [approverUsers, setApproverUsers] = useState([]);
-  const [movItems, setMovItems] = useState(['']);
+  const [movItems, setMovItems] = useState([{ text: '', user_id: null }]);
   const [pendingAttachments, setPendingAttachments] = useState([]);
   const attachmentsRef = useRef(null);
 
@@ -383,15 +384,20 @@ const AddTask = ({
   const handleMovChange = (index, value) => {
     setMovItems((prev) => {
       const next = [...prev];
-      next[index] = value;
+      next[index] = { ...next[index], text: value };
       return next;
     });
   };
   const handleMovAdd = () => {
-    setMovItems((prev) => [...prev, '']);
+    setMovItems((prev) => [...prev, { text: '', user_id: prev.length === 0 && assignedUsers.length === 1 ? assignedUsers[0].id : null }]);
   };
   const handleMovRemove = (index) => {
     setMovItems((prev) => prev.filter((_, i) => i !== index));
+  };
+  const handleMovUserChange = (index, userId) => {
+    setMovItems((prev) => prev.map((item, itemIndex) => (
+      itemIndex === index ? { ...item, user_id: userId } : item
+    )));
   };
 
   // Auto-calculate due date based on recurrence frequency
@@ -538,8 +544,8 @@ const AddTask = ({
     }
     const movItemsCleanForValidation = Array.isArray(movItems)
       ? movItems
-        .map((text) => String(text || '').trim())
-        .filter((text) => text.length > 0)
+        .map((item) => ({ ...item, text: String(item.text || '').trim() }))
+        .filter((item) => item.text.length > 0)
       : [];
     if (movItemsCleanForValidation.length === 0) {
       validationErrors.push(
@@ -610,11 +616,15 @@ const AddTask = ({
             ? approverUsers.map((u) => u.id)
             : undefined,
         mov_checklist: movItemsClean.map(text => ({
-          text,
+          text: text.text,
           checked: false,
           checked_by_id: null,
-          checked_at: null
-        }))
+          checked_at: null,
+        })),
+        mov_assignments: movItemsClean.map((item, mov_index) => ({
+          mov_index,
+          user_id: assignedUsers.length === 1 ? assignedUsers[0].id : item.user_id,
+        })),
       };
       const res = await axiosInstance.post('/tasks', payload);
       createdTaskData = res?.data?.data || null;
@@ -980,14 +990,20 @@ const AddTask = ({
 
               <div className="add-task-section add-task-section--compact add-task-section--mov">
                 <div className="add-task-section-title">4. Means of Verification (MOV)</div>
-                {movItems.map((value, index) => (
+                {movItems.map((item, index) => (
                   <div key={index} className="mov-item-row">
                     <FormInput
                       name={`mov_item_${index}`}
                       label={index === 0 ? 'MOV Item' : ''}
-                      value={value}
+                      value={item.text}
                       onChange={(e) => handleMovChange(index, e.target.value)}
                       placeholder="Define a clear, specific, and measurable verification point"
+                    />
+                    <MovAssignmentPicker
+                      assignedUsers={assignedUsers}
+                      userId={assignedUsers.length === 1 ? assignedUsers[0].id : item.user_id}
+                      onChange={(userId) => handleMovUserChange(index, userId)}
+                      disabled={submitting || !taskPerms.canCreate}
                     />
                     {movItems.length > 1 && (
                       <button

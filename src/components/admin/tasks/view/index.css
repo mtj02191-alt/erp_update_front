@@ -1939,6 +1939,12 @@
   gap: 0.5rem;
   flex: 1;
 }
+.mov-checklist-assignee {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: #64748b;
+  font-size: 0.78rem;
+}
 
 .team-assignment-pill-row {
   display: inline-flex;

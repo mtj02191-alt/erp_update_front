@@ -1,0 +1,142 @@
+.mov-assignment-button {
+  min-width: 145px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid #d7dee8;
+  border-radius: 6px;
+  background: #fff;
+  color: #334155;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.mov-assignment-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.mov-assignment-avatar {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.mov-assignment-avatar--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.mov-assignment-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.mov-assignment-modal {
+  width: min(420px, 100%);
+  max-height: min(560px, 90vh);
+  overflow: auto;
+  padding: 1.1rem;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+}
+
+.mov-assignment-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.mov-assignment-modal-header h3 {
+  margin: 0;
+  color: #172033;
+  font-size: 1.05rem;
+}
+
+.mov-assignment-close {
+  display: inline-flex;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.mov-assignment-modal-hint {
+  margin: 0.35rem 0 0.9rem;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.mov-assignment-user-list {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.mov-assignment-user {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  color: #1e293b;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mov-assignment-user:hover,
+.mov-assignment-user.is-selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.mov-assignment-user-details {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.mov-assignment-user-details strong,
+.mov-assignment-user-details small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mov-assignment-user-details small {
+  color: #64748b;
+}
+
+.mov-assignment-selected-icon {
+  margin-left: auto;
+  color: #2563eb;
+}
+
+.mov-assignment-unassign {
+  margin-top: 0.75rem;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.82rem;
+  cursor: pointer;
+}

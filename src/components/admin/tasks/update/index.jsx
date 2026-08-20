@@ -15,6 +15,7 @@ import SearchableMultiSelect from '../../../common/SearchableMultiSelect';
 import TaskPendingAttachments, {
   uploadPendingTaskAttachments,
 } from '../shared/TaskPendingAttachments';
+import MovAssignmentPicker from '../shared/MovAssignmentPicker';
 import '../../../../styles/variables.css';
 import './index.css';
 
@@ -317,7 +318,18 @@ const UpdateTask = ({
   const [assignedUserDepartments, setAssignedUserDepartments] = useState({});
   const [reportedByUsers, setReportedByUsers] = useState([]);
   const [approverUsers, setApproverUsers] = useState([]);
-  const [movItems, setMovItems] = useState(['']);
+  const [movItems, setMovItems] = useState([{ text: '', user_id: null }]);
+          const persistedMovAssignments = Array.isArray(t.mov_assignments)
+            ? t.mov_assignments
+            : [];
+          setMovItems(
+            combinedMovItems.length > 0
+              ? combinedMovItems.map((text, index) => ({
+                text,
+                user_id: persistedMovAssignments.find((item) => Number(item.mov_index) === index)?.user_id ?? null,
+              }))
+              : [{ text: '', user_id: null }],
+          );
   const [pendingAttachments, setPendingAttachments] = useState([]);
   const [existingAttachments, setExistingAttachments] = useState([]);
   const [removingAttachmentId, setRemovingAttachmentId] = useState(null);
@@ -373,6 +385,7 @@ const UpdateTask = ({
       : 'Save Changes';
 
   const handleMovChange = (index, value) => {
+      next[index] = { ...next[index], text: value };
     setMovItems((prev) => {
       const next = [...prev];
       next[index] = value;
@@ -381,10 +394,15 @@ const UpdateTask = ({
   };
 
   const handleMovAdd = () => {
-    setMovItems((prev) => [...prev, '']);
+    setMovItems((prev) => [...prev, { text: '', user_id: null }]);
   };
 
   const handleMovRemove = (index) => {
+      const handleMovUserChange = (index, userId) => {
+        setMovItems((prev) => prev.map((item, itemIndex) => (
+          itemIndex === index ? { ...item, user_id: userId } : item
+        )));
+      };
     setMovItems((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -431,7 +449,7 @@ const UpdateTask = ({
       setLoading(true);
       setError('');
       try {
-        const res = await axiosInstance.get(`/tasks/${id}`);
+        const res = await axiosInstance.get(`/tasks/${id}?include_all_mov=true`);
         const t = res.data.data;
         const { baseDescription, movItems: movFromDescription } = splitDescriptionAndMov(
           t.description || '',
@@ -483,7 +501,19 @@ const UpdateTask = ({
             : movFromDescription && movFromDescription.length > 0
               ? movFromDescription
               : [];
-        setMovItems(combinedMovItems.length > 0 ? combinedMovItems : ['']);
+        const persistedMovAssignments = Array.isArray(t.mov_assignments)
+          ? t.mov_assignments
+          : [];
+        setMovItems(
+          combinedMovItems.length > 0
+            ? combinedMovItems.map((text, index) => ({
+              text,
+              user_id: persistedMovAssignments.find(
+                (item) => Number(item.mov_index) === index,
+              )?.user_id ?? null,
+            }))
+            : [{ text: '', user_id: null }],
+        );
         setExistingAttachments(Array.isArray(t.attachments) ? t.attachments : []);
 
         const idsFromAssigned = Array.isArray(t.assigned_user_ids)
@@ -688,8 +718,8 @@ const UpdateTask = ({
     try {
       const movItemsClean = Array.isArray(movItems)
         ? movItems
-          .map((text) => String(text || '').trim())
-          .filter((text) => text.length > 0)
+          .map((item) => ({ ...item, text: String(item.text || '').trim() }))
+          .filter((item) => item.text.length > 0)
         : [];
       if (movItemsClean.length === 0) {
         const msg =
@@ -739,7 +769,11 @@ const UpdateTask = ({
         recurrence_end_type: form.recurrence_end_type || undefined,
         recurrence_end_date: form.recurrence_end_date || undefined,
         recurrence_end_occurrences: form.recurrence_end_occurrences ? parseInt(form.recurrence_end_occurrences) : undefined,
-        mov_items: movItemsClean
+        mov_items: movItemsClean.map((item) => item.text),
+        mov_assignments: movItemsClean.map((item, mov_index) => ({
+          mov_index,
+          user_id: assignedUsers.length === 1 ? assignedUsers[0].id : item.user_id,
+        })),
       };
       const res = await axiosInstance.patch(`/tasks/${id}`, payload);
       const updatedTask = res?.data?.data || null;
@@ -1123,14 +1157,20 @@ const UpdateTask = ({
 
               <div className="add-task-section add-task-section--compact add-task-section--mov">
                 <div className="add-task-section-title">4. Means of Verification (MOV)</div>
-                {movItems.map((value, index) => (
+                {movItems.map((item, index) => (
                   <div key={index} className="mov-item-row">
                     <FormInput
                       name={`mov_item_${index}`}
                       label={index === 0 ? 'MOV Item' : ''}
-                      value={value}
+                      value={item.text}
                       onChange={(e) => handleMovChange(index, e.target.value)}
                       placeholder="Define a clear, specific, and measurable verification point"
+                    />
+                    <MovAssignmentPicker
+                      assignedUsers={assignedUsers}
+                      userId={assignedUsers.length === 1 ? assignedUsers[0].id : item.user_id}
+                      onChange={(userId) => handleMovUserChange(index, userId)}
+                      disabled={saving || !taskPerms.canUpdate}
                     />
                     {movItems.length > 1 && (
                       <button

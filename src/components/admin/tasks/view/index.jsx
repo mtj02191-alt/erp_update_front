@@ -681,6 +681,13 @@ const ViewTask = ({
     return Number(task.created_by_id) === Number(user.id);
   }, [user, task]);
 
+  const assignmentUsersForDisplay = useMemo(() => {
+    if (isCurrentUserCreator) return assignedUsers;
+    return assignedUsers.filter(
+      (assignedUser) => Number(assignedUser?.id) === Number(user?.id),
+    );
+  }, [assignedUsers, isCurrentUserCreator, user?.id]);
+
   const canEditMovChecklist = useMemo(() => {
     if (!task || !user) return false;
 
@@ -691,46 +698,20 @@ const ViewTask = ({
     const sVal = String(task.status || '').toLowerCase();
     if (['completed', 'closed', 'cancelled', 'rejected', 'pending_approval', 'approved'].includes(sVal)) return false;
 
-    // ROLE-BASED RESTRICTION: Task creators CANNOT interact with MOV checkboxes
-    // Only assignees can check/uncheck MOV items
-    // const isTaskCreator = Number(task.created_by_id) === Number(user?.id);
-    // if (isTaskCreator) {
-    //   return false; // Block task creators from MOV interaction
-    // }
-
-
-
-    // // Check if user is assignee
-    // const isAssignee = Array.isArray(task.assigned_user_ids) && task.assigned_user_ids.includes(user?.id);
-
-    // // ONLY assignees can check/uncheck MOV items (with view permission)
-    // // Task creators, admins, dept leaders, and others CANNOT modify MOV checkboxes
-    // if (isAssignee) {
-    //   return taskPerms?.canView === true;
-    // }
-
-
     const isTaskCreator = Number(task.created_by_id) === Number(user?.id);
 
     // Check if user is assignee
     const isAssignee =
       Array.isArray(task.assigned_user_ids) &&
       task.assigned_user_ids.some(id => Number(id) === Number(user?.id));
+    const isSuperAdmin = String(user?.role || '').toLowerCase() === 'super_admin';
+    const canInteract = taskPerms?.canView === true || isSuperAdmin;
 
-    // Block task creators only if they are NOT assigned to the task
-    if (isTaskCreator && !isAssignee) {
-      return false;
-    }
+    // Creators can see all MOVs, but can interact only when also assigned.
+    if (isTaskCreator) return isAssignee && canInteract;
 
-    // ONLY assignees can check/uncheck MOV items
-    if (isAssignee) {
-      return taskPerms?.canView === true;
-    }
-
-
-
-
-    return false;
+    // Other users can interact only with their assigned MOVs.
+    return isAssignee && canInteract;
   }, [task, user, taskPerms]);
 
   const canChangeStatusInline = useMemo(() => {
@@ -1228,6 +1209,20 @@ const ViewTask = ({
       : movFromDescription && movFromDescription.length > 0
         ? movFromDescription
         : [];
+  const movChecklistLines = movLines.map((text, index) => {
+    const movIndex = Array.isArray(task?.mov_item_indices)
+      ? task.mov_item_indices[index]
+      : index;
+    return {
+    text,
+    mov_index: movIndex,
+    assigned_user_id:
+      Array.isArray(task?.mov_assignments)
+        ? task.mov_assignments.find((item) => Number(item.mov_index) === Number(movIndex))?.user_id ?? null
+        : null,
+    };
+  });
+  const hasMovItems = movLines.length > 0 || Number(task?.mov_item_count) > 0;
   const shouldTruncateDescription = rawDescription.length > 200;
   const descriptionMidpoint = shouldTruncateDescription
     ? Math.floor(rawDescription.length / 2)
@@ -1551,12 +1546,14 @@ const ViewTask = ({
                     </h3>
                     <div className="task-view-grid task-progress-layout">
                       <div className="task-view-item task-progress-item">
-                        {movLines.length > 0 ? (
+                        {movChecklistLines.length > 0 ? (
                           <ProgressUpdate
                             taskId={task.id}
                             currentProgress={task.progress || 0}
                             lastProgressNotes={task.last_progress_notes}
-                            movLines={movLines}
+                            movLines={movChecklistLines}
+                            assignedUsers={assignedUsers}
+                            isTaskCreator={isCurrentUserCreator}
                             canEdit={canEditMovChecklist}
                             currentUser={user}
                             progressActivities={task.activities || []}
@@ -1577,8 +1574,9 @@ const ViewTask = ({
                           />
                         ) : (
                           <div className="task-progress-empty">
-                            No Means of Verification (MOV) checklist items have been defined for this
-                            task.
+                            {hasMovItems
+                              ? 'No MOV items are assigned to your user.'
+                              : 'No Means of Verification (MOV) checklist items have been defined for this task.'}
                           </div>
                         )}
                       </div>
@@ -1775,9 +1773,9 @@ const ViewTask = ({
                         <div className="team-assignment">
                           <div className="team-assignment-main">
                             <span className="team-assignment-label">Assignee:</span>
-                            {assignedUsers && assignedUsers.length > 0 ? (
+                            {assignmentUsersForDisplay.length > 0 ? (
                               <div className="team-assignment-pill-list">
-                                {assignedUsers.map((u) => {
+                                {assignmentUsersForDisplay.map((u) => {
                                   const meta = assignedUsersMeta.find(
                                     (m) => m?.user_id === u.id,
                                   );
@@ -1827,10 +1825,10 @@ const ViewTask = ({
                           <div className="team-assignment-meta">
                             <div className="collaboration-summary">
                               <span className="collaboration-count">
-                                {assignedUsers.length}
+                                {assignmentUsersForDisplay.length}
                               </span>
                               <span className="collaboration-label">
-                                {assignedUsers.length === 1
+                                {assignmentUsersForDisplay.length === 1
                                   ? 'Person assigned'
                                   : 'People assigned'}
                               </span>
