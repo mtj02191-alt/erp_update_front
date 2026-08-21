@@ -333,12 +333,6 @@ const ProgressUpdate = ({
         }
       }
 
-      // Check if we should show the custom prompt
-      const isTaskAlreadyCompleted = String(taskStatus).toLowerCase() === 'completed';
-      if (allCompleted && !isTaskAlreadyCompleted && onShowMovCompletionPrompt) {
-        onShowMovCompletionPrompt();
-      }
-
       toast.success('Progress updated');
     } catch (e2) {
       const msg = e2.response?.data?.message || 'Failed to update progress.';

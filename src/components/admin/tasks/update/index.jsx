@@ -319,17 +319,6 @@ const UpdateTask = ({
   const [reportedByUsers, setReportedByUsers] = useState([]);
   const [approverUsers, setApproverUsers] = useState([]);
   const [movItems, setMovItems] = useState([{ text: '', user_id: null }]);
-          const persistedMovAssignments = Array.isArray(t.mov_assignments)
-            ? t.mov_assignments
-            : [];
-          setMovItems(
-            combinedMovItems.length > 0
-              ? combinedMovItems.map((text, index) => ({
-                text,
-                user_id: persistedMovAssignments.find((item) => Number(item.mov_index) === index)?.user_id ?? null,
-              }))
-              : [{ text: '', user_id: null }],
-          );
   const [pendingAttachments, setPendingAttachments] = useState([]);
   const [existingAttachments, setExistingAttachments] = useState([]);
   const [removingAttachmentId, setRemovingAttachmentId] = useState(null);

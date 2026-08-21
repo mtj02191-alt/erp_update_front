@@ -156,9 +156,12 @@ export const isStatusActionAvailable = (action, context) => {
     case 'REOPEN_IN_PROGRESS':
       return perms.canUpdate && sameDeptOrOrg;
     case 'COMPLETE':
+      const isTaskCreatorForComplete =
+        context.currentUserId != null &&
+        context.createdByUserId != null &&
+        Number(context.currentUserId) === Number(context.createdByUserId);
       return (
-        isAssignee &&
-        !isAdminRole &&
+        (isAssignee || isTaskCreatorForComplete || isAdminRole) &&
         (perms.canUpdate || perms.canView) &&
         sameDeptOrOrg
       );

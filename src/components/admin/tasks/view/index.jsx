@@ -133,6 +133,35 @@ const ViewTask = ({
     };
   }, [id]);
 
+  useEffect(() => {
+    if (!task || String(task.task_type || '').toLowerCase() !== 'recurring') {
+      return undefined;
+    }
+
+    let cancelled = false;
+    const refreshRecurringTask = async () => {
+      try {
+        const res = await axiosInstance.get(`/tasks/${id}`);
+        if (!cancelled && res.data?.data) {
+          const updatedTask = res.data.data;
+          setTask(updatedTask);
+          setAssignedUsersMeta(
+            Array.isArray(updatedTask.assigned_users_meta)
+              ? updatedTask.assigned_users_meta
+              : [],
+          );
+        }
+      } catch {
+        // Keep the current view if a background refresh fails.
+      }
+    };
+    const timer = window.setInterval(refreshRecurringTask, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [id, task?.id, task?.task_type]);
+
   // Optimized user resolution - CONDITIONAL API CALL
   // The /users/by-ids API is ONLY called when:
   // 1. Task has assigned users (assigned_user_ids)
@@ -616,7 +645,7 @@ const ViewTask = ({
             <div className="recurrence-content">
               <div className="recurrence-main-info">
                 <h4 className="recurrence-title-text">
-                  Recurring Task <span className="recurrence-dot-separator"></span> Every <strong>{rule}</strong>
+                  Recurring Task <span className="recurrence-dot-separator"></span><strong>{rule}</strong>
                 </h4>
                 <div className="recurrence-status-row">
                   {task.recurrence_end_type === 'on_date' && (

@@ -49,13 +49,10 @@ const StatusUpdateModal = ({
           toast.error('Unsupported status action.');
           return;
         }
-        const res = await axiosInstance.post(
-          `/tasks/${taskId}/status-transition`,
-          {
-            status,
-            notes,
-          },
-        );
+        const res = await axiosInstance.post(`/tasks/${taskId}/status-transition`, {
+          status,
+          notes,
+        });
         if (onUpdated) {
           onUpdated(res.data?.data || null);
         }
@@ -64,8 +61,38 @@ const StatusUpdateModal = ({
       setNotes('');
       onClose();
     } catch (e2) {
+      const responseData = e2.response?.data;
+      const responseMessage = responseData?.message;
+      const incompleteCount = responseData?.incomplete_assignee_count
+        || responseMessage?.incomplete_assignee_count;
+      const confirmationCode = responseData?.code || responseMessage?.code;
+      if (
+        action === 'COMPLETE' &&
+        confirmationCode === 'INCOMPLETE_MOV_CONFIRMATION_REQUIRED'
+      ) {
+        const count = Number(incompleteCount) || 0;
+        const confirmed = window.confirm(
+          `${count} assignees still have incomplete MOVs. Do you want to mark this task as Completed anyway?`,
+        );
+        if (confirmed) {
+          try {
+            const res = await axiosInstance.post(`/tasks/${taskId}/status-transition`, {
+              status: 'completed',
+              notes,
+              force_complete: true,
+            });
+            onUpdated?.(res.data?.data || null);
+            toast.success('Task marked as completed');
+            setNotes('');
+            onClose();
+          } catch (forceError) {
+            toast.error(forceError.response?.data?.message || 'Failed to complete task.');
+          }
+        }
+        return;
+      }
       const msg =
-        e2.response?.data?.message ||
+        responseMessage ||
         'Failed to update status.';
       toast.error(msg);
     } finally {
