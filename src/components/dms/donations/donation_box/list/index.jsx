@@ -15,6 +15,9 @@ import {
   DateFilter,
   DateRangeFilter,
   CollapsibleFilters,
+  TeamFilter,
+  defaultTeamFilterState,
+  appendTeamFilterParams,
 } from '../../../../common/filters';
 import { ClearButton, SearchButton } from '../../../../common/filters/index';
 import FormInput from '../../../../common/FormInput';
@@ -34,6 +37,7 @@ const EMPTY_FILTERS = {
   date: '',
   start_date: '',
   end_date: '',
+  ...defaultTeamFilterState(),
 };
 
 const DonationBoxDonationsList = () => {
@@ -170,6 +174,7 @@ const DonationBoxDonationsList = () => {
       sortOrder,
       ...appliedFilters,
     };
+    appendTeamFilterParams(params, appliedFilters);
     Object.keys(params).forEach((key) => {
       if (params[key] === '' || params[key] == null) {
         delete params[key];
@@ -390,6 +395,11 @@ const DonationBoxDonationsList = () => {
                 filters={tempFilters}
                 onFilterChange={handleFilterChange}
                 placeholder="All Methods"
+              />
+
+              <TeamFilter
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
               />
 
               <FormInput

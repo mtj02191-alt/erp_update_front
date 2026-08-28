@@ -5,7 +5,7 @@ import { HiOutlineSwitchHorizontal } from 'react-icons/hi';
 import { toast } from 'react-toastify';
 import axiosInstance from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
-import { RefreshButton, SearchFilter, DropdownFilter, CollapsibleFilters, SearchButton, ClearButton } from '../../../common/filters';
+import { RefreshButton, SearchFilter, DropdownFilter, CollapsibleFilters, SearchButton, ClearButton, TeamFilter } from '../../../common/filters';
 import Loader from '../../../common/loader/Loader';
 import Pagination from '../../../common/Pagination';
 import ActionMenu from '../../../common/ActionMenu';
@@ -351,12 +351,22 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
     const assignedMeta = Array.isArray(t.assigned_users_meta)
       ? t.assigned_users_meta
       : [];
+    const currentUserDetails = assigneeDetailsCache[t.id];
+    const currentUsersById = new Map(
+      Array.isArray(currentUserDetails)
+        ? currentUserDetails.map((details) => [Number(details.id), details])
+        : [],
+    );
     const isTaskCreator =
       currentUserId != null && Number(t.created_by_id) === currentUserId;
     const visibleMeta = isTaskCreator
       ? assignedMeta
       : assignedMeta.filter((m) => Number(m?.user_id) === currentUserId);
-    const depts = [...new Set(visibleMeta.map((m) => m?.department).filter(Boolean))];
+    const depts = [...new Set(
+      visibleMeta
+        .map((meta) => currentUsersById.get(Number(meta?.user_id))?.department || meta?.department)
+        .filter(Boolean),
+    )];
     if (depts.length > 0) {
       return depts.map((d) => capitalize(d)).join(', ');
     }
@@ -504,6 +514,47 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
       return 'User';
     };
 
+    // Single assignee: show name. Multiple: avatar stack.
+    if (meta.length === 1) {
+      const user = meta[0];
+      const info =
+        Array.isArray(details) && details.length > 0
+          ? details.find((d) => d.id === user.user_id)
+          : null;
+      const displayName = getDisplayName(user, info);
+      const isOpen = openAssigneeTaskId === t.id && openAssigneeUserId === user.user_id;
+      return (
+        <div className="tl-tasks-list-assignment-cell">
+          <div
+            className="tl-tasks-assignee-trigger"
+            onClick={(e) => handleAssigneeClick(e, t, user.user_id)}
+          >
+            <span className="tl-tasks-list-assignment-name" title={displayName}>
+              {displayName}
+            </span>
+            {isOpen && (
+              <div className="tl-tasks-assignee-popover">
+                {info ? (
+                  <ul className="tl-tasks-assignee-list">
+                    <li className="tl-tasks-assignee-list-item">
+                      <div className="tl-tasks-assignee-name">{info.name}</div>
+                      {info.department && (
+                        <div className="tl-tasks-assignee-department">
+                          department: {capitalize(info.department)}
+                        </div>
+                      )}
+                    </li>
+                  </ul>
+                ) : (
+                  <div className="tl-tasks-assignee-empty">No assignee details</div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="tl-tasks-list-assignment-cell">
         <div className="tl-task-card-assignees-group">
@@ -536,7 +587,7 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
                         <ul className="tl-tasks-assignee-list">
                           <li className="tl-tasks-assignee-list-item">
                             <div className="tl-tasks-assignee-name">{info.name}</div>
-                           {info.department && (
+                            {info.department && (
                               <div className="tl-tasks-assignee-department">
                                 department: {capitalize(info.department)}
                               </div>
@@ -558,12 +609,6 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
             )}
           </div>
         </div>
-        <div className="tl-tasks-list-assignment-info">
-          <span className="tl-assignee-text-label">
-            {meta.length === 1 ? 'Single User' : 'Multiple Users'}
-          </span>
-          {/* <span className="tl-tasks-list-assignment-name">{getPrimaryAssigneeName(t)}</span> */}
-        </div>
       </div>
     );
   };
@@ -575,6 +620,65 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
   const [reassignUsers, setReassignUsers] = useState([]);
   const [reassignSaving, setReassignSaving] = useState(false);
   const [reassignError, setReassignError] = useState('');
+
+  useEffect(() => {
+    const taskRows = Array.isArray(tasks) ? tasks : [];
+    const userIds = Array.from(new Set(
+      taskRows.flatMap((task) => [
+        ...(Array.isArray(task.assigned_user_ids) ? task.assigned_user_ids : []),
+        ...(Array.isArray(task.assigned_users_meta)
+          ? task.assigned_users_meta.map((meta) => meta?.user_id)
+          : []),
+      ])
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value) && value > 0),
+    ));
+
+    if (userIds.length === 0) return undefined;
+
+    let cancelled = false;
+    const refreshAssigneeDetails = async () => {
+      try {
+        const query = userIds.map((userId) => `ids=${encodeURIComponent(userId)}`).join('&');
+        const response = await axiosInstance.get(`/users/by-ids?${query}`);
+        const users = Array.isArray(response.data) ? response.data : [];
+        if (cancelled) return;
+
+        const usersById = new Map(users.map((resolvedUser) => [Number(resolvedUser.id), resolvedUser]));
+        setAssigneeDetailsCache((previous) => {
+          const next = { ...previous };
+          taskRows.forEach((task) => {
+            const taskUserIds = Array.from(new Set([
+              ...(Array.isArray(task.assigned_user_ids) ? task.assigned_user_ids : []),
+              ...(Array.isArray(task.assigned_users_meta)
+                ? task.assigned_users_meta.map((meta) => meta?.user_id)
+                : []),
+            ]))
+              .map((value) => Number(value))
+              .filter((value) => Number.isInteger(value) && value > 0);
+            next[task.id] = taskUserIds
+              .map((userId) => usersById.get(userId))
+              .filter(Boolean)
+              .map((resolvedUser) => ({
+                id: resolvedUser.id,
+                name: (`${resolvedUser.first_name || ''} ${resolvedUser.last_name || ''}`).trim()
+                  || resolvedUser.email
+                  || `User #${resolvedUser.id}`,
+                department: resolvedUser.department || '',
+              }));
+          });
+          return next;
+        });
+      } catch {
+        // Keep task metadata as a fallback when the refresh fails.
+      }
+    };
+
+    refreshAssigneeDetails();
+    return () => {
+      cancelled = true;
+    };
+  }, [tasks]);
 
   useEffect(() => {
     const close = () => {
@@ -1196,6 +1300,12 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
                 filters={tempFilters}
                 onFilterChange={handleFilterChange}
                 placeholder="All Priorities"
+              />
+
+              <TeamFilter
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
+                label="Team / Report (assignee)"
               />
 
               <div className="filters-actions">

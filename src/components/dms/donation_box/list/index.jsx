@@ -15,6 +15,9 @@ import {
   DateFilter,
   DateRangeFilter,
   CollapsibleFilters,
+  TeamFilter,
+  defaultTeamFilterState,
+  appendTeamFilterParams,
 } from '../../../common/filters';
 import { ClearButton, SearchButton } from '../../../common/filters/index';
 import SearchableDropdown from '../../../common/SearchableDropdown';
@@ -35,6 +38,7 @@ const EMPTY_FILTERS = {
   date: '',
   start_date: '',
   end_date: '',
+  ...defaultTeamFilterState(),
 };
 
 const DonationBoxList = () => {
@@ -186,6 +190,7 @@ const DonationBoxList = () => {
       sortOrder,
       ...appliedFilters,
     };
+    appendTeamFilterParams(params, appliedFilters);
     Object.keys(params).forEach((key) => {
       if (params[key] === '' || params[key] == null) {
         delete params[key];
@@ -503,6 +508,11 @@ const DonationBoxList = () => {
                 debounceDelay={400}
                 minSearchLength={2}
                 allowResearch
+              />
+
+              <TeamFilter
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
               />
 
               <DateFilter

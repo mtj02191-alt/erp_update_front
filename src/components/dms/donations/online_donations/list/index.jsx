@@ -6,7 +6,7 @@ import '../../../../../styles/components.css';
 // import { truncate } from '../../../../../utils/functions/column_function';
 import Pagination from '../../../../common/Pagination';
 import { DownloadCSV } from '../../../../common/download';
-import { SearchFilter, DropdownFilter, DateFilter, DateRangeFilter, CollapsibleFilters } from '../../../../common/filters';
+import { SearchFilter, DropdownFilter, DateFilter, DateRangeFilter, CollapsibleFilters, TeamFilter, defaultTeamFilterState, appendTeamFilterParams } from '../../../../common/filters';
 import { ClearButton } from '../../../../common/filters/index';
 import { SearchButton } from '../../../../common/filters/index';
 import HybridDropdown from '../../../../common/HybridDropdown';
@@ -101,6 +101,7 @@ const OnlineDonationsList = () => {
     donor_id: '',
     donor_search: '',
     orderId: '',
+    ...defaultTeamFilterState(),
     relationsFilters: {
       donor: {
         search: '',
@@ -302,6 +303,8 @@ const OnlineDonationsList = () => {
           
           // Donor filter - always use URL donor_id if present
           donor_id: donorIdForFilter,
+
+          ...appendTeamFilterParams({}, appliedFilters),
           
           // Future filters can be easily added here
           // amount_range: { min: 1000, max: 50000 },
@@ -822,6 +825,11 @@ const OnlineDonationsList = () => {
               filters={tempFilters}
               onFilterChange={handleFilterChange}
               placeholder="All Status"
+            />
+
+            <TeamFilter
+              filters={tempFilters}
+              onFilterChange={handleFilterChange}
             />
 
             {/* <DropdownFilter

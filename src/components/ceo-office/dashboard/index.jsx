@@ -217,8 +217,10 @@ const CeoDashboard = () => {
   };
 
   const refreshAllDashboardData = async (showToast = false) => {
-    await fetchDashboardStats(showToast);
-    await fetchPendingApprovals();
+    await Promise.all([
+      fetchDashboardStats(showToast),
+      fetchPendingApprovals(),
+    ]);
   };
 
   const handleApprovalAction = async (noteId, decision) => {
@@ -258,7 +260,7 @@ const CeoDashboard = () => {
     const intervalId = setInterval(() => refreshAllDashboardData(), 60000);
 
     return () => clearInterval(intervalId);
-  }, [selectedCategory, user]);
+  }, [selectedCategory, user?.department]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

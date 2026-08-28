@@ -2356,13 +2356,9 @@
   gap: 0.4rem;
   flex: 1;
   min-width: 0;
-  transition: all 0.3s ease;
+  /* transition: all 0.3s ease; */
 }
 
-.overdue-reminder--compact:hover {
-  padding: 0.6rem;
-  align-items: flex-start;
-}
 
 .overdue-reminder--compact .overdue-reminder-icon {
   /* width: 20px;
@@ -2401,12 +2397,6 @@
   transition: all 0.3s ease;
 }
 
-.overdue-reminder--compact:hover .overdue-reminder-text--compact {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  line-height: 1.2;
-}
 
 .overdue-reminder--warning .overdue-reminder-title--compact {
   color: #92400e;

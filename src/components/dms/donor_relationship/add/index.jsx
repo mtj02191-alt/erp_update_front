@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axiosInstance from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
@@ -6,6 +6,7 @@ import PageHeader from '../../../common/PageHeader';
 import FormInput from '../../../common/FormInput';
 import FormSelect from '../../../common/FormSelect';
 import FormTextarea from '../../../common/FormTextarea';
+import SearchableDropdown from '../../../common/SearchableDropdown';
 import { PrimaryButton } from '../../../common/buttons';
 import {
   ACTIVITY_TYPE_OPTIONS,
@@ -14,12 +15,31 @@ import {
 } from '../shared/constants';
 import '../donor-relationship.css';
 
+const donorDisplayName = (donor) =>
+  donor?.name ||
+  `${donor?.first_name || ''} ${donor?.last_name || ''}`.trim() ||
+  'Unnamed';
+
+const filterAssignedDonors = (donors, term = '') => {
+  const query = String(term || '').trim().toLowerCase();
+  if (!query) return donors;
+  return donors.filter((d) => {
+    const name = donorDisplayName(d).toLowerCase();
+    const email = String(d.email || '').toLowerCase();
+    const phone = String(d.phone || '').toLowerCase();
+    return (
+      name.includes(query) || email.includes(query) || phone.includes(query)
+    );
+  });
+};
+
 const AddDonorInteraction = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preselectedDonorId = searchParams.get('donor_id') || '';
 
   const [donors, setDonors] = useState([]);
+  const [selectedDonor, setSelectedDonor] = useState(null);
   const [loadingDonors, setLoadingDonors] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -35,17 +55,6 @@ const AddDonorInteraction = () => {
     next_followup_datetime: '',
     status: 'need_followup',
   });
-
-  const donorOptions = useMemo(
-    () => [
-      { value: '', label: 'Select donor' },
-      ...donors.map((d) => ({
-        value: String(d.id),
-        label: `${d.name || 'Unnamed'} (${d.phone || d.email || d.id})`,
-      })),
-    ],
-    [donors],
-  );
 
   useEffect(() => {
     const loadDonors = async () => {
@@ -65,16 +74,37 @@ const AddDonorInteraction = () => {
   }, []);
 
   useEffect(() => {
-    if (preselectedDonorId) {
-      setForm((prev) => ({ ...prev, donor_id: preselectedDonorId }));
+    if (!preselectedDonorId || !donors.length || selectedDonor) return;
+    const match = donors.find(
+      (d) => String(d.id) === String(preselectedDonorId),
+    );
+    if (match) {
+      setSelectedDonor(match);
+      setForm((prev) => ({ ...prev, donor_id: String(match.id) }));
     }
-  }, [preselectedDonorId]);
+  }, [preselectedDonorId, donors, selectedDonor]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     if (error) setError('');
   };
+
+  const handleDonorSelect = (donor) => {
+    setSelectedDonor(donor);
+    setForm((prev) => ({ ...prev, donor_id: String(donor.id) }));
+    if (error) setError('');
+  };
+
+  const handleDonorClear = () => {
+    setSelectedDonor(null);
+    setForm((prev) => ({ ...prev, donor_id: '' }));
+  };
+
+  const searchAssignedDonors = useCallback(
+    async (term) => filterAssignedDonors(donors, term),
+    [donors],
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -140,14 +170,40 @@ const AddDonorInteraction = () => {
             </p>
 
             <div className="form-grid-2">
-              <FormSelect
-                name="donor_id"
+              <SearchableDropdown
                 label="Donor"
-                value={form.donor_id}
-                onChange={handleChange}
-                options={donorOptions}
+                name="donor_id"
+                placeholder={
+                  loadingDonors
+                    ? 'Loading assigned donors…'
+                    : 'Search donors by name, email, or phone...'
+                }
+                onSearch={searchAssignedDonors}
+                staticOptions={donors}
+                onSelect={handleDonorSelect}
+                onClear={handleDonorClear}
+                value={selectedDonor}
+                displayKey="name"
+                debounceDelay={300}
+                minSearchLength={1}
+                allowResearch={true}
                 required
-                disabled={loadingDonors}
+                noResultsText={
+                  loadingDonors
+                    ? 'Loading…'
+                    : 'No assigned donors match your search'
+                }
+                renderOption={(donor) => (
+                  <>
+                    <div style={{ fontWeight: '500', marginBottom: '4px' }}>
+                      {donorDisplayName(donor)}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>
+                      {[donor.email, donor.phone].filter(Boolean).join(' • ') ||
+                        'No contact info'}
+                    </div>
+                  </>
+                )}
               />
 
               <FormSelect

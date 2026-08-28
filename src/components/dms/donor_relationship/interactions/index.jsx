@@ -18,7 +18,7 @@ import {
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import axiosInstance from '../../../../utils/axios';
-import Pagination from '../../../common/Pagination';
+import Pagination, { isViewAllPageSize } from '../../../common/Pagination';
 import {
   ACTIVITY_TYPE_OPTIONS,
   formatActivityType,
@@ -157,14 +157,16 @@ const InteractionsList = () => {
   const applySearch = () => setSearchApplied(search);
 
   const totalItems = items.length;
-  const effectivePageSize = pageSize === -1 ? totalItems || 1 : pageSize;
-  const totalPages =
-    pageSize === -1 ? 1 : Math.max(1, Math.ceil(totalItems / effectivePageSize));
+  const viewingAll = isViewAllPageSize(pageSize);
+  const effectivePageSize = viewingAll ? totalItems || 1 : pageSize;
+  const totalPages = viewingAll
+    ? 1
+    : Math.max(1, Math.ceil(totalItems / effectivePageSize));
   const pagedItems = useMemo(() => {
-    if (pageSize === -1) return items;
+    if (viewingAll) return items;
     const start = (page - 1) * pageSize;
     return items.slice(start, start + pageSize);
-  }, [items, page, pageSize]);
+  }, [items, page, pageSize, viewingAll]);
 
   const openDonor = (row) => {
     navigate(`/dms/donors/view/${row.donor_id || row.donor?.id}`);

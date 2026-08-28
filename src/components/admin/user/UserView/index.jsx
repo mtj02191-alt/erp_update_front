@@ -32,6 +32,16 @@ const formatManager = (manager) => {
   return name || manager.email || `User #${manager.id}`;
 };
 
+const formatManagers = (managers, fallbackManager) => {
+  const list = Array.isArray(managers) && managers.length
+    ? managers
+    : fallbackManager
+      ? [fallbackManager]
+      : [];
+  if (!list.length) return '—';
+  return list.map(formatManager).join(', ');
+};
+
 const InfoItem = ({ label, value }) => (
   <div className="view-item">
     <span className="view-item-label">{label}</span>
@@ -193,7 +203,7 @@ const UserView = () => {
               <InfoItem label="Department" value={formatLabel(user.department)} />
               <InfoItem label="Role" value={formatLabel(user.role)} />
               <InfoItem label="Joining Date" value={formatDate(user.joining_date)} />
-              <InfoItem label="Reporting Manager" value={formatManager(user.manager)} />
+              <InfoItem label="Reporting Managers" value={formatManagers(user.managers, user.manager)} />
               <InfoItem label="Status" value={user.isActive ? 'Active' : 'Inactive'} />
             </div>
           </section>

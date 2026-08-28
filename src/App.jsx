@@ -169,6 +169,10 @@ import EmailChecklist from './components/communication/email_checklist';
 import ReceiptTemplateList from './components/dms/receipt_templates/list';
 import ReceiptTemplateForm from './components/dms/receipt_templates/form';
 import ViewReceiptTemplate from './components/dms/receipt_templates/view';
+import WebsiteDonationProjectList from './components/dms/website_donation_projects/list';
+import WebsiteDonationProjectForm from './components/dms/website_donation_projects/form';
+import WebsiteHomeHeroList from './components/dms/website_home_hero/list';
+import WebsiteHomeHeroForm from './components/dms/website_home_hero/form';
 import AddInKindItem from './components/dms/in_kind/in_kind_items/add';
 import InKindItemsList from './components/dms/in_kind/in_kind_items/list';
 import EditInKindItem from './components/dms/in_kind/in_kind_items/edit';
@@ -541,6 +545,14 @@ const App = () => {
                                 <Route path="/dms/receipt_templates/add" element={<ReceiptTemplateForm />} />
                                 <Route path="/dms/receipt_templates/edit/:id" element={<ReceiptTemplateForm />} />
                                 <Route path="/dms/receipt_templates/view/:id" element={<ViewReceiptTemplate />} />
+
+                                <Route path="/dms/website_donation_projects/list" element={<WebsiteDonationProjectList />} />
+                                <Route path="/dms/website_donation_projects/add" element={<WebsiteDonationProjectForm />} />
+                                <Route path="/dms/website_donation_projects/edit/:id" element={<WebsiteDonationProjectForm />} />
+
+                                <Route path="/dms/website_home_hero/list" element={<WebsiteHomeHeroList />} />
+                                <Route path="/dms/website_home_hero/add" element={<WebsiteHomeHeroForm />} />
+                                <Route path="/dms/website_home_hero/edit/:id" element={<WebsiteHomeHeroForm />} />
 
                                 <Route path="/dms/reconciliation/list" element={<ReconciliationList />} />
                                 <Route path="/dms/reconciliation/add" element={<ReconciliationAdd />} />

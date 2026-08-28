@@ -493,6 +493,22 @@ const ViewDonor = () => {
                       <strong>{formatShortDate(donor.date_of_birth)}</strong>
                     </div>
                   )}
+                  {donor.area_of_interest && (
+                    <div className="donor-crm-summary-row">
+                      <span>Area of Interest</span>
+                      <strong>{donor.area_of_interest}</strong>
+                    </div>
+                  )}
+                  {isCsr && donor.business_type && (
+                    <div className="donor-crm-summary-row">
+                      <span>Business Type</span>
+                      <strong>
+                        {donor.business_type === 'Other'
+                          ? donor.business_type_other || 'Other'
+                          : donor.business_type}
+                      </strong>
+                    </div>
+                  )}
                   {(donor.organization_affiliations || []).length > 0 && (
                     <div className="donor-crm-summary-row donor-crm-summary-row--block">
                       <span>Organizations</span>

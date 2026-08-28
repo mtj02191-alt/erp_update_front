@@ -1,0 +1,248 @@
+.website-donation-project-form {
+  padding: 4px 0;
+}
+
+.website-donation-project-form .wdp-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.website-donation-project-form .wdp-tab {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border, #d1d5db);
+  background: var(--color-bg-primary, #fff);
+  color: var(--color-text-primary, #374151);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.website-donation-project-form .wdp-tab:hover {
+  border-color: var(--color-primary, #2563eb);
+  color: var(--color-primary, #2563eb);
+}
+
+.website-donation-project-form .wdp-tab--active {
+  background: var(--color-primary, #2563eb);
+  border-color: var(--color-primary, #2563eb);
+  color: #fff;
+}
+
+.website-donation-project-form .wdp-tab--active:hover {
+  color: #fff;
+}
+
+.website-donation-project-form .wdp-help {
+  margin: 0 0 16px;
+  color: var(--color-text-secondary, #6b7280);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.website-donation-project-form .wdp-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  background: var(--color-bg-secondary, #f9fafb);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.website-donation-project-form .wdp-checkbox-label input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.website-donation-project-form .wdp-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 8px 0 20px;
+}
+
+.website-donation-project-form .form-section-heading {
+  margin-top: 28px;
+}
+
+.website-donation-project-form .form-section-heading:first-child {
+  margin-top: 0;
+}
+
+.website-donation-project-form .wdp-repeat-card {
+  padding: 18px;
+  margin-bottom: 14px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 10px;
+  background: var(--color-bg-secondary, #f9fafb);
+}
+
+.website-donation-project-form .wdp-repeat-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.website-donation-project-form .wdp-repeat-card__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary, #111827);
+}
+
+.website-donation-project-form .wdp-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.website-donation-project-form .wdp-add-btn {
+  margin-top: 4px;
+  margin-bottom: 12px;
+}
+
+.website-donation-project-form .wdp-image-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.website-donation-project-form .wdp-image-upload__label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary, #374151);
+}
+
+.website-donation-project-form .wdp-image-upload__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.website-donation-project-form .wdp-image-upload__status {
+  font-size: 13px;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.website-donation-project-form .wdp-image-upload__url {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--color-bg-primary, #fff);
+}
+
+.website-donation-project-form .wdp-image-upload__url:focus {
+  outline: none;
+  border-color: var(--color-primary, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.website-donation-project-form .wdp-image-upload__error {
+  margin: 0;
+}
+
+.website-donation-project-form .wdp-image-upload__preview img {
+  max-width: 220px;
+  max-height: 130px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--color-border, #e5e7eb);
+}
+
+/* Compact buttons — override global .primary_btn full-width grid rule */
+.website-donation-project-form .primary_btn,
+.website-donation-project-form .secondary_btn {
+  grid-column: auto;
+  width: auto;
+  margin-top: 0;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.website-donation-project-form .secondary_btn {
+  background: var(--color-bg-primary, #fff);
+  color: var(--color-text-primary, #374151);
+  border: 1px solid var(--color-border, #d1d5db);
+}
+
+.website-donation-project-form .secondary_btn:hover:not(:disabled) {
+  background: var(--color-bg-secondary, #f3f4f6);
+  border-color: #94a3b8;
+}
+
+.website-donation-project-form .secondary_btn:disabled,
+.website-donation-project-form .primary_btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.website-donation-project-form .secondary_btn--danger {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fff;
+}
+
+.website-donation-project-form .secondary_btn--danger:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #f87171;
+}
+
+.website-donation-project-form .form-actions {
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border, #e5e7eb);
+}
+
+.website-donation-project-form .form-actions .primary_btn {
+  min-width: 130px;
+}
+
+.website-donation-project-form .wdp-preview-panel {
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.website-donation-project-form .wdp-preview-panel__header {
+  padding: 12px 16px;
+  background: var(--color-bg-secondary, #f3f4f6);
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  font-size: 13px;
+  color: var(--color-text-secondary, #4b5563);
+}
+
+.website-donation-project-form .wdp-preview-panel__body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.website-donation-project-form .wdp-preview-empty {
+  padding: 24px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 14px;
+}

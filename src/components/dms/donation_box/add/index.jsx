@@ -12,9 +12,11 @@ import {
   radiusFormToMeters,
   validateCollectionRadiusMeters,
 } from '../../../../utils/geolocation';
+import { useAuth } from '../../../../context/AuthContext';
 
 const AddDonationBox = () => {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [form, setForm] = useState({
     // Box identification
     key_no: '',
@@ -171,11 +173,17 @@ const AddDonationBox = () => {
       const location = deviceLocation;
 
       // Prepare donation box data
+      const assignedIds = form.assigned_user_ids?.length
+        ? form.assigned_user_ids
+        : currentUser?.id
+          ? [currentUser.id]
+          : [];
+
       const donationBoxData = {
         key_no: form.key_no || null,
         city_id: form.city_id || null,
         route_id: form.route_id ? Number(form.route_id) : null,
-        assigned_user_ids: form.assigned_user_ids || [],
+        assigned_user_ids: assignedIds,
         shop_name: form.shop_name,
         shopkeeper: form.shopkeeper || null,
         cell_no: form.cell_no || null,

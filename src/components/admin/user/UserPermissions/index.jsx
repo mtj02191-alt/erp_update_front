@@ -464,6 +464,7 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
     csv_xport:'CSV Export',
     approve: 'Approve / Reject',
     manage_overview: 'Manage Overview',
+    bypass_location: 'Bypass location (GPS + territory filter)',
   };
 
   const initializePermissions = () => {

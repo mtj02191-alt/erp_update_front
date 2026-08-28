@@ -35,6 +35,16 @@ const formatManager = (manager) => {
   return name || manager.email || `User #${manager.id}`;
 };
 
+const formatManagers = (managers, fallbackManager) => {
+  const list = Array.isArray(managers) && managers.length
+    ? managers
+    : fallbackManager
+      ? [fallbackManager]
+      : [];
+  if (!list.length) return '—';
+  return list.map(formatManager).join(', ');
+};
+
 const formatAmount = (amount) => {
   if (amount == null || Number.isNaN(Number(amount))) return '—';
   return `Rs. ${Number(amount).toLocaleString()}`;
@@ -242,8 +252,8 @@ const UserPerformance = () => {
                 <span className="view-item-value">{profile.branch_location || '—'}</span>
               </div>
               <div className="view-item">
-                <span className="view-item-label">Reporting Manager</span>
-                <span className="view-item-value">{formatManager(profile.manager)}</span>
+                <span className="view-item-label">Reporting Managers</span>
+                <span className="view-item-value">{formatManagers(profile.managers, profile.manager)}</span>
               </div>
               <div className="view-item">
                 <span className="view-item-label">Joined</span>

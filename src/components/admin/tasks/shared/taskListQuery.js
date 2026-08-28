@@ -4,6 +4,8 @@ export const EMPTY_TASK_FILTERS = {
   project_name: '',
   status: '',
   priority: '',
+  team_filter: 'all',
+  team_filter_user_id: '',
 };
 
 export function mapActiveTabToViewType(activeTab) {
@@ -36,6 +38,12 @@ export function buildTasksSearchPayload({
 
   if (assigneeId) {
     filters.assignee_id = assigneeId;
+  }
+
+  const teamMode = String(appliedFilters.team_filter || 'all').trim().toLowerCase();
+  filters.team_filter = teamMode;
+  if (teamMode === 'user' && appliedFilters.team_filter_user_id) {
+    filters.team_filter_user_id = appliedFilters.team_filter_user_id;
   }
 
   return {

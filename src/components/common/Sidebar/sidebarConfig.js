@@ -1,5 +1,5 @@
 // Sidebar configuration for different user roles and departments
-import { canViewModule, isSuperAdmin } from '../../../utils/permissions';
+import { canViewModule, hasPermission, isSuperAdmin } from '../../../utils/permissions';
 import {
   FiHome,
   FiUsers,
@@ -381,6 +381,8 @@ const adminDepartmentItems = () => [
     icon: FiHeart,
     subItems: [ 
       {label: "Donations", path: "/donations/online_donations/list", type: "list", icon: BiSolidDonateHeart},
+      {label: "Website Donation Projects", path: "/dms/website_donation_projects/list", type: "list", icon: FiGrid},
+      {label: "Home Hero Slides", path: "/dms/website_home_hero/list", type: "list", icon: FiLayers},
       {label: "Recurring Donations", path: "/dms/recurring-donations/list", type: "list", module: "recurring_donations", icon: FiRepeat},
       {label: "Recurring Donors", path: "/dms/recurring-donors/list", type: "list", icon: FiRepeat},
       {label: "Donation Boxes", path: "/dms/donation_box/list", type: "list", icon: FiBox},
@@ -521,6 +523,20 @@ const fundRaisingDepartmentItems = (isUser = false) => [
     module: 'online_donations',
     icon: BiSolidDonateHeart
   },
+  {
+    label: 'Website Donation Projects',
+    path: '/dms/website_donation_projects/list',
+    type: 'list',
+    module: 'website_donation_projects',
+    icon: FiGrid
+  },
+  {
+    label: 'Home Hero Slides',
+    path: '/dms/website_home_hero/list',
+    type: 'list',
+    module: 'website_home_hero',
+    icon: FiLayers
+  },
   // {
   //   label: 'Offline Donations',
   //   path: '/donations/offline_donations/list',
@@ -626,8 +642,14 @@ const fundRaisingDepartmentItems = (isUser = false) => [
     icon: FiUsers,
     subItems: [
       { label: 'Follow Ups & Interactions', path: '/dms/donor-relationship/follow-ups', type: 'list', icon: FiList },
-      { label: 'Add Interaction', path: '/dms/donor-relationship/add', type: 'list', icon: FiPlusCircle },
-      { label: 'Management Overview', path: '/dms/donor-relationship/overview', type: 'list', icon: FiBarChart2 },
+      { label: 'Add Interaction', path: '/dms/donor-relationship/add', type: 'create', action: 'create', icon: FiPlusCircle },
+      {
+        label: 'Management Overview',
+        path: '/dms/donor-relationship/overview',
+        type: 'list',
+        action: 'manage_overview',
+        icon: FiBarChart2,
+      },
     ],
   },
   // {
@@ -957,26 +979,80 @@ ceo_office: (isUser = false) => ({
   }),
 };
  
-// Filter items based on user permissions
-const filterItemsByPermissions = (items, permissions, department) => {
-  if (!permissions || !department) {
-    return items; // Return all items if no permissions (fallback)
+// Sidebar section id → permissions department key (when they differ)
+const permissionDepartmentFor = (sectionId) => {
+  if (sectionId === 'email_templates') return 'communication';
+  return sectionId;
+};
+
+const canAccessSidebarEntry = (permissions, department, item, parentModule = null) => {
+  if (!item) return false;
+
+  // Tasks are shown from a dedicated global Tasking section only.
+  if (item.module && TASK_MODULE_KEYS.has(item.module)) {
+    return false;
   }
 
-  return items.filter(item => {
-    // Tasks are shown from a dedicated global Tasking section only.
-    if (item.module && TASK_MODULE_KEYS.has(item.module)) {
-      return false;
-    }
+  const moduleKey = item.module || parentModule;
+  const permDept = permissionDepartmentFor(department);
 
-    // If item has no module, show it (for backward compatibility)
-    if (!item.module) {
+  // Explicit action (e.g. manage_overview) — must be granted on the module
+  if (item.action) {
+    if (!moduleKey) return false;
+    if (permissions?.super_admin === true) return true;
+    if (
+      permDept === 'fund_raising' &&
+      (permissions?.fund_raising_manager === true ||
+        permissions?.fund_raising?.manager === true)
+    ) {
       return true;
     }
+    return hasPermission(permissions, permDept, moduleKey, item.action);
+  }
 
-    // Check if user has permission to view this module
-    return canViewModule(permissions, department, item.module);
-  });
+  // Module-level visibility (view / list_view)
+  if (moduleKey) {
+    return canViewModule(permissions, department, moduleKey);
+  }
+
+  // No module/action: keep for backward compatibility
+  return true;
+};
+
+// Filter items (and nested subItems) based on user permissions
+const filterItemsByPermissions = (items, permissions, department) => {
+  if (!permissions || !department) {
+    return items;
+  }
+
+  return items
+    .map((item) => {
+      if (!canAccessSidebarEntry(permissions, department, item)) {
+        return null;
+      }
+
+      if (!item.subItems?.length) {
+        return item;
+      }
+
+      const parentModule = item.module || null;
+      const filteredSubItems = item.subItems.filter((subItem) =>
+        canAccessSidebarEntry(permissions, department, subItem, parentModule),
+      );
+
+      if (!filteredSubItems.length) {
+        if (!item.path) return null;
+        // No permitted children — render parent as a plain link
+        const { subItems: _removed, ...rest } = item;
+        return rest;
+      }
+
+      return {
+        ...item,
+        subItems: filteredSubItems,
+      };
+    })
+    .filter(Boolean);
 };
 
 // Get sidebar configuration based on user role, department, and permissions

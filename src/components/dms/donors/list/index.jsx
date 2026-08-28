@@ -9,7 +9,7 @@ import ActionMenu from '../../../common/ActionMenu';
 import ConfirmationModal from '../../../common/ConfirmationModal';
 import Modal from '../../../common/Modal';
 import Pagination from '../../../common/Pagination';
-import { SearchFilter, DropdownFilter, DateFilter, DateRangeFilter, CollapsibleFilters } from '../../../common/filters';
+import { SearchFilter, DropdownFilter, DateFilter, DateRangeFilter, CollapsibleFilters, TeamFilter, defaultTeamFilterState, appendTeamFilterParams } from '../../../common/filters';
 import { SearchButton, ClearButton } from '../../../common/filters';
 import SearchableDropdown from '../../../common/SearchableDropdown';
 import HybridDropdown from '../../../common/HybridDropdown';
@@ -82,6 +82,7 @@ const DonorsList = () => {
     donated_amount: '',
     donated_amount_operator: '',
     pipeline_stage: '',
+    ...defaultTeamFilterState(),
   });
 
   // Applied filters - Actually sent to API
@@ -100,6 +101,7 @@ const DonorsList = () => {
     donated_amount: '',
     donated_amount_operator: '',
     pipeline_stage: '',
+    ...defaultTeamFilterState(),
   });
 
   const selectionResetKey = useMemo(
@@ -134,6 +136,7 @@ const DonorsList = () => {
       donated_amount: '',
       donated_amount_operator: '',
       pipeline_stage: '',
+      ...defaultTeamFilterState(),
     };
     return JSON.stringify(appliedFilters) !== JSON.stringify(empty);
   }, [appliedFilters]);
@@ -374,6 +377,7 @@ const DonorsList = () => {
       donated_amount: '',
       donated_amount_operator: '',
       pipeline_stage: '',
+      ...defaultTeamFilterState(),
     };
     
     setSelectedAssignedUser(null);
@@ -411,6 +415,7 @@ const DonorsList = () => {
         sortOrder: sortOrder,
         ...appliedFilters
       };
+      appendTeamFilterParams(params, appliedFilters);
 
       // Don't send multi_time_donors when it's not selected
       if (params.multi_time_donors === null || params.multi_time_donors === undefined) {
@@ -793,6 +798,11 @@ const DonorsList = () => {
                   )}
                 </>
               )}
+            />
+
+            <TeamFilter
+              filters={tempFilters}
+              onFilterChange={handleFilterChange}
             />
                
             {/* <DateFilter

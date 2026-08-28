@@ -197,11 +197,11 @@ const ProgressUpdate = ({
   const clampedProgress = Math.max(0, Math.min(100, calculatedProgress));
 
   const getAssignedUserName = (userId) => {
-    if (userId == null) return 'Unassigned';
+    if (userId == null) return null;
     const assignedUser = assignedUsers.find((user) => Number(user.id) === Number(userId));
     return assignedUser
       ? `${assignedUser.first_name || ''} ${assignedUser.last_name || ''}`.trim() || assignedUser.email
-      : `User #${userId}`;
+      : null;
   };
 
   const handleToggle = async (index) => {
@@ -413,15 +413,6 @@ const ProgressUpdate = ({
                 {'assigned_user_id' in item && (
                   <span className="mov-checklist-assignee">
                     {getAssignedUserName(item.assigned_user_id)}
-                  </span>
-                )}
-                {isChecked && checkedById && (
-                  <span
-                    className="mov-checklist-info"
-                  >
-                    {Number(checkedById) === Number(currentUser?.id)
-                      ? '(You checked)'
-                      : `(Locked)`}
                   </span>
                 )}
               </button>

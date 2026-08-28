@@ -6,3 +6,4 @@ export { default as SearchButton } from './SearchButton/index';
 export { default as ClearButton } from './ClearButton/index';
 export { default as RefreshButton } from './RefreshButton';
 export { default as CollapsibleFilters } from './CollapsibleFilters';
+export { default as TeamFilter, defaultTeamFilterState, appendTeamFilterParams, TEAM_FILTER_DEFAULT } from './TeamFilter';

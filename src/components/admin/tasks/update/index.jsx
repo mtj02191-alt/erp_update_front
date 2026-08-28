@@ -374,10 +374,9 @@ const UpdateTask = ({
       : 'Save Changes';
 
   const handleMovChange = (index, value) => {
-      next[index] = { ...next[index], text: value };
     setMovItems((prev) => {
       const next = [...prev];
-      next[index] = value;
+      next[index] = { ...next[index], text: value };
       return next;
     });
   };
@@ -387,12 +386,12 @@ const UpdateTask = ({
   };
 
   const handleMovRemove = (index) => {
-      const handleMovUserChange = (index, userId) => {
-        setMovItems((prev) => prev.map((item, itemIndex) => (
-          itemIndex === index ? { ...item, user_id: userId } : item
-        )));
-      };
     setMovItems((prev) => prev.filter((_, i) => i !== index));
+  };
+  const handleMovUserChange = (index, userId) => {
+    setMovItems((prev) => prev.map((item, itemIndex) => (
+      itemIndex === index ? { ...item, user_id: userId } : item
+    )));
   };
 
   // Auto-calculate due date based on recurrence frequency
