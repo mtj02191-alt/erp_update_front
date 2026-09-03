@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   FiMail,
   FiCheckCircle,
@@ -51,6 +51,12 @@ const PROGRESS_STEP_STATUS_OPTIONS = [
 const ViewOnlineDonation = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isOfflineRoute = location.pathname.includes('/donations/offline_donations');
+  const donationsBasePath = isOfflineRoute
+    ? '/donations/offline_donations'
+    : '/donations/online_donations';
+  const pageTitle = isOfflineRoute ? 'View Offline Donation' : 'View Online Donation';
   const { hasAnyPermission } = useAuth();
   const [donation, setDonation] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -710,9 +716,9 @@ const ViewOnlineDonation = () => {
         <Navbar />
         <div className="view-wrapper">
           <PageHeader
-            title="View Online Donation"
+            title={pageTitle}
             showBackButton={true}
-            backPath="/donations/online_donations/list"
+            backPath={`${donationsBasePath}/list`}
           />
           <div className="loading">Loading...</div>
         </div>
@@ -726,9 +732,9 @@ const ViewOnlineDonation = () => {
         <Navbar />
         <div className="view-wrapper">
           <PageHeader 
-            title="View Online Donation"
+            title={pageTitle}
             showBackButton={true}
-            backPath="/donations/online_donations/list"
+            backPath={`${donationsBasePath}/list`}
           />
           <div className="view-content">
             <div className="status-message status-message--error">{error}</div>
@@ -744,9 +750,9 @@ const ViewOnlineDonation = () => {
         <Navbar />
         <div className="view-wrapper">
           <PageHeader 
-            title="View Online Donation"
+            title={pageTitle}
             showBackButton={true}
-            backPath="/donations/online_donations/list"
+            backPath={`${donationsBasePath}/list`}
           />
           <div className="view-content">
             <div className="status-message status-message--error">Donation not found</div>
@@ -761,9 +767,9 @@ const ViewOnlineDonation = () => {
       <Navbar /> 
       <div className="view-wrapper">
         <PageHeader 
-          title="View Online Donation"
+          title={pageTitle}
           showBackButton={true}
-          backPath="/donations/online_donations/list"
+          backPath={`${donationsBasePath}/list`}
         />
         <div className="view-content">
           {isPendingOffline && (

@@ -432,8 +432,11 @@ const App = () => {
                                 <Route path="/donations/allotments/pending" element={<PendingAllotmentsList />} />
                                 <Route path="/donations/offline_donations/list" element={<OnlineDonationsList key="offline-donations-list" />} />
                                 <Route path="/donations/online_donations/view/:id" element={<ViewOnlineDonation />} />
+                                <Route path="/donations/offline_donations/view/:id" element={<ViewOnlineDonation />} />
                                 <Route path="/donations/online_donations/update/:id" element={<UpdateOnlineDonation />} />
-                                <Route path="/donations/online_donations/add" element={<AddDonation />} /> 
+                                <Route path="/donations/offline_donations/update/:id" element={<UpdateOnlineDonation />} />
+                                <Route path="/donations/online_donations/add" element={<AddDonation />} />
+                                <Route path="/donations/offline_donations/add" element={<AddDonation />} /> 
 
                                 {/* Recurring Donations (Stripe / ledger subscriptions) */}
                                 <Route path="/dms/recurring-donations/list" element={<RecurringDonationsList />} />
@@ -448,11 +451,21 @@ const App = () => {
                                 <Route path="/dms/social-posts/edit/:id" element={<SocialPostEdit />} />
                                 
                                 {/* Donors Routes */}
-                                <Route path="/dms/donors/list" element={<DonorsList />} />
+                                <Route path="/dms/donors/list" element={<DonorsList key="donors-list" />} />
+                                <Route path="/dms/online_donors/list" element={<DonorsList key="online-donors-list" />} />
+                                <Route path="/dms/offline_donors/list" element={<DonorsList key="offline-donors-list" />} />
                                 <Route path="/dms/donors/view/:id" element={<ViewDonor />} />
+                                <Route path="/dms/online_donors/view/:id" element={<ViewDonor />} />
+                                <Route path="/dms/offline_donors/view/:id" element={<ViewDonor />} />
                                 <Route path="/dms/donors/:donorId/donations" element={<OnlineDonationsList key="donor-donations-list" />} />
+                                <Route path="/dms/online_donors/:donorId/donations" element={<OnlineDonationsList key="online-donor-donations-list" />} />
+                                <Route path="/dms/offline_donors/:donorId/donations" element={<OnlineDonationsList key="offline-donor-donations-list" />} />
                                 <Route path="/dms/donors/add" element={<RegisterDonor />} />
+                                <Route path="/dms/online_donors/add" element={<RegisterDonor />} />
+                                <Route path="/dms/offline_donors/add" element={<RegisterDonor />} />
                                 <Route path="/dms/donors/edit/:id" element={<EditDonor />} />
+                                <Route path="/dms/online_donors/edit/:id" element={<EditDonor />} />
+                                <Route path="/dms/offline_donors/edit/:id" element={<EditDonor />} />
 
                                 {/* Organizations (Organization → Branch → Sub-branch) */}
                                 <Route path="/dms/organizations/list" element={<OrganizationsList />} />

@@ -7,6 +7,14 @@ export const EMPTY_GEOGRAPHIC_ASSIGNMENTS = {
   routes: [],
 };
 
+/** Departments that can receive geographic area assignments on Create/Update User. */
+export const GEOGRAPHIC_ASSIGNMENT_DEPARTMENTS = ['fund_raising', 'crd'];
+
+export const isGeographicAssignmentDepartment = (department) =>
+  GEOGRAPHIC_ASSIGNMENT_DEPARTMENTS.includes(
+    String(department || '').trim().toLowerCase(),
+  );
+
 export const GEO_TYPE_TO_FIELD = {
   country: 'countries',
   region: 'regions',

@@ -1,22 +1,14 @@
 export const STATUS_BUTTON_CONFIG = {
   DRAFT: [],
-  OPEN: [
-    { label: 'Start Working', action: 'START', color: 'primary' },
-  ],
-  ASSIGNED: [
-    { label: 'Start Working', action: 'START', color: 'primary' },
-  ],
-  IN_PROGRESS: [
-    { label: 'Complete Task', action: 'COMPLETE', color: 'success' },
-  ],
+  OPEN: [],
+  ASSIGNED: [],
+  IN_PROGRESS: [],
   PENDING: [],
   PENDING_APPROVAL: [
     { label: 'Approve', action: 'APPROVE', color: 'success' },
     { label: 'Reject', action: 'REJECT', color: 'danger' },
   ],
-  REJECTED: [
-    { label: 'Start Working', action: 'START', color: 'primary' },
-  ],
+  REJECTED: [],
   APPROVED: [
     { label: 'Close Task', action: 'CLOSE', color: 'danger' },
   ],
@@ -150,21 +142,14 @@ export const isStatusActionAvailable = (action, context) => {
     });
   switch (action) {
     case 'START':
+      return isAssignee && sameDeptOrOrg;
     case 'PAUSE':
     case 'BLOCK':
     case 'REOPEN':
     case 'REOPEN_IN_PROGRESS':
       return perms.canUpdate && sameDeptOrOrg;
     case 'COMPLETE':
-      const isTaskCreatorForComplete =
-        context.currentUserId != null &&
-        context.createdByUserId != null &&
-        Number(context.currentUserId) === Number(context.createdByUserId);
-      return (
-        (isAssignee || isTaskCreatorForComplete || isAdminRole) &&
-        (perms.canUpdate || perms.canView) &&
-        sameDeptOrOrg
-      );
+      return isAssignee && sameDeptOrOrg;
     case 'CLOSE':
       const isCreator = context.currentUserId != null && context.createdByUserId != null && Number(context.currentUserId) === Number(context.createdByUserId);
       const isReporter = context.currentUserId != null && context.reportedById != null && Number(context.currentUserId) === Number(context.reportedById);

@@ -7,29 +7,43 @@ import { toast } from 'react-toastify';
 import { FiChevronRight } from 'react-icons/fi';
 import { useAuth } from '../../../../context/AuthContext';
 
-/** Merge legacy fund_raising online_donors/offline_donors into donors and drop old keys for save/load. */
+/** Normalize fund_raising donor keys: keep online_donors + offline_donors (like donations).
+ * Migrates legacy unified `donors` into both modules when specific keys are missing. */
 const mergeFundRaisingDonorPermissions = (rawPermissions) => {
   if (!rawPermissions || typeof rawPermissions !== 'object') return rawPermissions;
   const next = JSON.parse(JSON.stringify(rawPermissions));
   if (!next.fund_raising) return next;
   const fr = next.fund_raising;
   const actions = ['create', 'list_view', 'view', 'update', 'delete', 'csv_xport'];
-  const merged = {
-    scope: fr.donors?.scope || fr.online_donors?.scope || fr.offline_donors?.scope || 'self',
-    view_all:
-      fr.donors?.view_all === true ||
-      fr.online_donors?.view_all === true ||
-      fr.offline_donors?.view_all === true,
+  const blank = () => {
+    const o = { scope: 'self', view_all: false };
+    actions.forEach((a) => {
+      o[a] = false;
+    });
+    return o;
   };
-  actions.forEach((a) => {
-    merged[a] =
-      fr.donors?.[a] === true ||
-      fr.online_donors?.[a] === true ||
-      fr.offline_donors?.[a] === true;
-  });
-  next.fund_raising = { ...fr, donors: merged };
-  delete next.fund_raising.online_donors;
-  delete next.fund_raising.offline_donors;
+
+  const fromUnified = fr.donors && typeof fr.donors === 'object' ? fr.donors : null;
+  const ensure = (key) => {
+    if (fr[key] && typeof fr[key] === 'object') return { ...blank(), ...fr[key] };
+    if (fromUnified) {
+      const o = blank();
+      o.scope = fromUnified.scope || 'self';
+      o.view_all = fromUnified.view_all === true;
+      actions.forEach((a) => {
+        o[a] = fromUnified[a] === true;
+      });
+      return o;
+    }
+    return fr[key] && typeof fr[key] === 'object' ? fr[key] : blank();
+  };
+
+  next.fund_raising = {
+    ...fr,
+    online_donors: ensure('online_donors'),
+    offline_donors: ensure('offline_donors'),
+  };
+  delete next.fund_raising.donors;
   return next;
 };
 
@@ -73,8 +87,12 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
           label: 'My To-Dos',
           actions: ['create', 'list_view', 'view', 'update', 'delete']
         },
-        donors: {
-          label: 'Donors',
+        online_donors: {
+          label: 'Online Donors',
+          actions: ['create', 'list_view', 'view', 'update', 'delete', 'csv_xport']
+        },
+        offline_donors: {
+          label: 'Offline Donors',
           actions: ['create', 'list_view', 'view', 'update', 'delete', 'csv_xport']
         },
         organizations: {

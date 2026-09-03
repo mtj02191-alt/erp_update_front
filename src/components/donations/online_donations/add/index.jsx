@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import axiosInstance from '../../../../utils/axios';
 import FormInput from '../../../common/FormInput';
 import FormSelect from '../../../common/FormSelect';
@@ -19,6 +19,11 @@ import { toast } from 'react-toastify';
 
 const AddDonation = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isOfflineRoute = location.pathname.includes('/donations/offline_donations');
+  const donationsBasePath = isOfflineRoute
+    ? '/donations/offline_donations'
+    : '/donations/online_donations';
   const { inKindItems, refetchInKindItems } = useInKindItems();
   const [searchParams] = useSearchParams();
   const donorIdFromUrl = searchParams.get('donor_id');
@@ -361,14 +366,14 @@ const AddDonation = () => {
       }
 
       if (newDonationId) {
-        navigate(`/donations/online_donations/view/${newDonationId}`);
+        navigate(`${donationsBasePath}/view/${newDonationId}`);
         return;
       }
 
       if (donorIdFromUrl) {
-        navigate(`/donations/online_donations/list?donor_id=${donorIdFromUrl}`);
+        navigate(`${donationsBasePath}/list?donor_id=${donorIdFromUrl}`);
       } else {
-        navigate('/donations/online_donations/list');
+        navigate(`${donationsBasePath}/list`);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to add donation. Please try again.');
@@ -380,9 +385,9 @@ const AddDonation = () => {
 
   const handleBack = () => {
     if (donorIdFromUrl) {
-      navigate(`/donations/online_donations/list?donor_id=${donorIdFromUrl}`);
+      navigate(`${donationsBasePath}/list?donor_id=${donorIdFromUrl}`);
     } else {
-      navigate('/donations/online_donations/list');
+      navigate(`${donationsBasePath}/list`);
     }
   };
 

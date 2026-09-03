@@ -389,7 +389,9 @@ const AddTask = ({
     });
   };
   const handleMovAdd = () => {
-    setMovItems((prev) => [...prev, { text: '', user_id: prev.length === 0 && assignedUsers.length === 1 ? assignedUsers[0].id : null }]);
+    const defaultUserId =
+      assignedUsers.length === 1 ? assignedUsers[0].id : null;
+    setMovItems((prev) => [...prev, { text: '', user_id: defaultUserId }]);
   };
   const handleMovRemove = (index) => {
     setMovItems((prev) => prev.filter((_, i) => i !== index));
@@ -399,6 +401,20 @@ const AddTask = ({
       itemIndex === index ? { ...item, user_id: userId } : item
     )));
   };
+  const handleMovAssignAll = (userId) => {
+    setMovItems((prev) => prev.map((item) => ({ ...item, user_id: userId })));
+  };
+
+  // Single task assignee → all MOVs belong to them (no per-MOV picker).
+  useEffect(() => {
+    if (assignedUsers.length !== 1) return;
+    const soleId = assignedUsers[0].id;
+    setMovItems((prev) =>
+      prev.map((item) =>
+        Number(item.user_id) === Number(soleId) ? item : { ...item, user_id: soleId },
+      ),
+    );
+  }, [assignedUsers]);
 
   // Auto-calculate due date based on recurrence frequency
   const calculateDueDate = (startDate, frequency) => {
@@ -999,12 +1015,15 @@ const AddTask = ({
                       onChange={(e) => handleMovChange(index, e.target.value)}
                       placeholder="Define a clear, specific, and measurable verification point"
                     />
-                    <MovAssignmentPicker
-                      assignedUsers={assignedUsers}
-                      userId={assignedUsers.length === 1 ? assignedUsers[0].id : item.user_id}
-                      onChange={(userId) => handleMovUserChange(index, userId)}
-                      disabled={submitting || !taskPerms.canCreate}
-                    />
+                    {assignedUsers.length > 1 && (
+                      <MovAssignmentPicker
+                        assignedUsers={assignedUsers}
+                        userId={item.user_id}
+                        onChange={(userId) => handleMovUserChange(index, userId)}
+                        onAssignAll={handleMovAssignAll}
+                        disabled={submitting || !taskPerms.canCreate}
+                      />
+                    )}
                     {movItems.length > 1 && (
                       <button
                         type="button"

@@ -84,20 +84,28 @@ export const canViewModule = (permissions, department, module) => {
     return true;
   }
 
-  // Unified donors (fund_raising): allow sidebar if new `donors` or legacy online/offline donor flags exist
-  if (department === 'fund_raising' && module === 'donors') {
+  // Unified donors (fund_raising): allow sidebar if new or legacy donor module flags exist
+  if (department === 'fund_raising' && (module === 'donors' || module === 'online_donors' || module === 'offline_donors')) {
     const fr = permissions[department];
     if (!fr) return false;
-    const donors = fr.donors;
-    if (donors?.view === true || donors?.list_view === true) return true;
-    const online = fr.online_donors;
-    const offline = fr.offline_donors;
-    return (
-      online?.view === true ||
-      online?.list_view === true ||
-      offline?.view === true ||
-      offline?.list_view === true
-    );
+    const specific = fr[module];
+    if (specific?.view === true || specific?.list_view === true) return true;
+    // Legacy unified `donors` grants both online and offline sidebar items
+    if (module !== 'donors') {
+      const donors = fr.donors;
+      if (donors?.view === true || donors?.list_view === true) return true;
+    }
+    if (module === 'donors') {
+      const online = fr.online_donors;
+      const offline = fr.offline_donors;
+      return (
+        online?.view === true ||
+        online?.list_view === true ||
+        offline?.view === true ||
+        offline?.list_view === true
+      );
+    }
+    return false;
   }
 
   // Communication sidebar section uses id `email_templates` but permissions live under `communication`

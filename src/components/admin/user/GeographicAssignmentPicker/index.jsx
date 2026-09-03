@@ -175,7 +175,7 @@ const GeographicAssignmentPicker = ({
           onChange={(e) => onGeographicOffChange?.(e.target.checked)}
           disabled={disabled}
         />
-        <span>Exempt from geographic area restriction (DMS only; permissions still apply)</span>
+        <span>Exempt from geographic area restriction (permissions still apply)</span>
       </label>
 
       <div className="geo-assignment-search-wrap">

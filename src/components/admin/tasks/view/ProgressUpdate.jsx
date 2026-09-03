@@ -32,6 +32,7 @@ const ProgressUpdate = ({
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const showMovAssignee = Array.isArray(assignedUsers) && assignedUsers.length > 1;
 
   const parseCheckedIndices = useCallback((notes) => {
     if (!notes || typeof notes !== 'string') return null;
@@ -410,7 +411,7 @@ const ProgressUpdate = ({
                   {isChecked ? '✓' : ''}
                 </span>
                 <span className="mov-checklist-label">{item.text}</span>
-                {'assigned_user_id' in item && (
+                {showMovAssignee && 'assigned_user_id' in item && (
                   <span className="mov-checklist-assignee">
                     {getAssignedUserName(item.assigned_user_id)}
                   </span>

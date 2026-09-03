@@ -38,6 +38,9 @@ const OnlineDonationsList = () => {
   const isDonorDonationsRoute = Boolean(routeDonorId);
   const isOnlineRoute = location.pathname.includes('/donations/online_donations');
   const isOfflineRoute = location.pathname.includes('/donations/offline_donations');
+  const donationsBasePath = isOfflineRoute
+    ? '/donations/offline_donations'
+    : '/donations/online_donations';
   
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -565,7 +568,7 @@ const OnlineDonationsList = () => {
       icon: <FiEye />,
       label: 'View',
       color: '#4CAF50',
-      to: `/donations/online_donations/view/${donation.id}`,
+      to: `${donationsBasePath}/view/${donation.id}`,
       visible: true
     },
     {
@@ -587,7 +590,7 @@ const OnlineDonationsList = () => {
       icon: <FiEdit2 />,
       label: 'Edit',
       color: '#2196F3',
-      to: `/donations/online_donations/update/${donation.id}`,
+      to: `${donationsBasePath}/update/${donation.id}`,
       state: { fromList: location.pathname },
       visible: true
     },
@@ -787,8 +790,8 @@ const OnlineDonationsList = () => {
           showAdd={true}
           addPath={
             urlDonorId
-              ? `/donations/online_donations/add?donor_id=${urlDonorId}`
-              : '/donations/online_donations/add'
+              ? `${donationsBasePath}/add?donor_id=${urlDonorId}`
+              : `${donationsBasePath}/add`
           }
         />
         
@@ -1064,7 +1067,7 @@ const OnlineDonationsList = () => {
                     <td>
                       <div className="donor-info">
                         <Link
-                          to={`/donations/online_donations/view/${donation.id}`}
+                          to={`${donationsBasePath}/view/${donation.id}`}
                           className="donor-name"
                           style={{ color: 'inherit', textDecoration: 'inherit' }}
                         >

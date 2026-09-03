@@ -95,7 +95,11 @@ const UpdateOnlineDonation = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const listBackPath = location.state?.fromList || '/donations/online_donations/list';
+  const isOfflineRoute = location.pathname.includes('/donations/offline_donations');
+  const donationsBasePath = isOfflineRoute
+    ? '/donations/offline_donations'
+    : '/donations/online_donations';
+  const listBackPath = location.state?.fromList || `${donationsBasePath}/list`;
 
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -272,7 +276,7 @@ const UpdateOnlineDonation = () => {
         }
       }
 
-      navigate(`/donations/online_donations/view/${id}`);
+      navigate(`${donationsBasePath}/view/${id}`);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update donation');
     } finally {

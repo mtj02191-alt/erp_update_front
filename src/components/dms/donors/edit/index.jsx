@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import axiosInstance from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
 import PageHeader from '../../../common/PageHeader';
@@ -13,6 +13,12 @@ import '../register/index.css';
 const EditDonor = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const location = useLocation();
+  const donorsBasePath = location.pathname.includes('/dms/offline_donors')
+    ? '/dms/offline_donors'
+    : location.pathname.includes('/dms/online_donors')
+      ? '/dms/online_donors'
+      : '/dms/donors';
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -100,7 +106,7 @@ const EditDonor = () => {
     }
   };
 
-  const handleBack = () => navigate(`/dms/donors/view/${id}`);
+  const handleBack = () => navigate(`${donorsBasePath}/view/${id}`);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -146,11 +152,17 @@ const EditDonor = () => {
     setSaving(true);
     setError('');
     try {
+      const email = form.email?.trim() || '';
+      const phone = form.phone?.trim() || '';
+      if (!email && !phone) {
+        throw new Error('Please provide either an email or a phone number.');
+      }
+
       const payload = {
         donor_type: form.donor_type,
         name: form.name,
-        email: form.email,
-        phone: form.phone,
+        email: email || null,
+        phone: phone || null,
         cnic: form.cnic,
         source: form.source,
         address: form.address,
@@ -192,7 +204,7 @@ const EditDonor = () => {
 
       const res = await axiosInstance.patch(`/donors/${id}`, payload);
       if (!res.data?.success) throw new Error(res.data?.message || 'Failed to update donor');
-      navigate(`/dms/donors/view/${id}`);
+      navigate(`${donorsBasePath}/view/${id}`);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to update donor');
     } finally {
@@ -341,7 +353,6 @@ const EditDonor = () => {
                   name="email"
                   value={form.email}
                   onChange={handleChange}
-                  required
                 />
                 <FormInput
                   label="Phone"
@@ -349,9 +360,11 @@ const EditDonor = () => {
                   name="phone"
                   value={form.phone}
                   onChange={handleChange}
-                  required
                 />
               </div>
+              <p className="donor-register-contact-hint">
+                At least one of email or phone is required.
+              </p>
             </section>
 
             {form.donor_type === 'individual' ? (

@@ -31,7 +31,6 @@ import OfflinePendingBadge from '../../../../common/OfflinePendingBadge';
 const EMPTY_FILTERS = {
   search: '',
   status: '',
-  payment_method: '',
   min_amount: '',
   max_amount: '',
   date: '',
@@ -299,13 +298,6 @@ const DonationBoxDonationsList = () => {
     { value: 'cancelled', label: 'Cancelled' },
   ];
 
-  const paymentMethodOptions = [
-    { value: 'cash', label: 'Cash' },
-    { value: 'cheque', label: 'Cheque' },
-    { value: 'bank_transfer', label: 'Bank Transfer' },
-    { value: 'other', label: 'Other' },
-  ];
-
   const getBackPath = () => {
     if (donationBoxId) {
       return `/dms/donation_box/view/${donationBoxId}`;
@@ -386,15 +378,6 @@ const DonationBoxDonationsList = () => {
                 filters={tempFilters}
                 onFilterChange={handleFilterChange}
                 placeholder="All Status"
-              />
-
-              <DropdownFilter
-                filterKey="payment_method"
-                label="Payment Method"
-                data={paymentMethodOptions}
-                filters={tempFilters}
-                onFilterChange={handleFilterChange}
-                placeholder="All Methods"
               />
 
               <TeamFilter

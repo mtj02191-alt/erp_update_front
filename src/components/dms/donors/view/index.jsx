@@ -47,6 +47,12 @@ const ViewDonor = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
+  const donorsBasePath = location.pathname.includes('/dms/offline_donors')
+    ? '/dms/offline_donors'
+    : location.pathname.includes('/dms/online_donors')
+      ? '/dms/online_donors'
+      : '/dms/donors';
+  const isOfflineRoute = donorsBasePath === '/dms/offline_donors';
   const flashMessage = location.state?.flashMessage || '';
   const { permissions, user } = useAuth();
   const [donor, setDonor] = useState(null);
@@ -92,19 +98,23 @@ const ViewDonor = () => {
   };
 
   const handleBack = () => {
-    navigate('/dms/donors/list');
+    navigate(`${donorsBasePath}/list`);
   };
 
   const handleEdit = () => {
-    navigate(`/dms/donors/edit/${id}`);
+    navigate(`${donorsBasePath}/edit/${id}`);
   };
 
   const handleViewDonations = () => {
-    navigate(`/dms/donors/${id}/donations`);
+    navigate(`${donorsBasePath}/${id}/donations`);
   };
 
   const handleAddDonation = () => {
-    navigate(`/donations/online_donations/add?donor_id=${id}`);
+    navigate(
+      isOfflineRoute
+        ? `/donations/offline_donations/add?donor_id=${id}`
+        : `/donations/online_donations/add?donor_id=${id}`,
+    );
   };
 
   const handleLogInteraction = () => {

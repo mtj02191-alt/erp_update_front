@@ -394,8 +394,8 @@ const RecurringDonationsList = () => {
                 <th>Payment</th>
                 <th>Paid</th>
                 <th>Missing</th>
-                <th>Subscription</th>
-                <th>Initial order</th>
+                {/* <th>Subscription</th> */}
+                {/* <th>Initial order</th> */}
                 <th>Created</th>
                 <th>Actions</th>
               </tr>
@@ -441,10 +441,10 @@ const RecurringDonationsList = () => {
                     </td>
                     <td>{row.completed_installment_count ?? 0}</td>
                     <td>{row.pending_installment_count ?? 0}</td>
-                    <td style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {/* <td style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {row.stripe_subscription_id || '-'}
-                    </td>
-                    <td>{row.initial_order_id || row.initial_donation_id || '-'}</td>
+                    </td> */}
+                    {/* <td>{row.initial_order_id || row.initial_donation_id || '-'}</td> */}
                     <td>
                       {row.created_at
                         ? new Date(row.created_at).toLocaleDateString()

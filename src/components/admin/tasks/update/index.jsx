@@ -382,7 +382,9 @@ const UpdateTask = ({
   };
 
   const handleMovAdd = () => {
-    setMovItems((prev) => [...prev, { text: '', user_id: null }]);
+    const defaultUserId =
+      assignedUsers.length === 1 ? assignedUsers[0].id : null;
+    setMovItems((prev) => [...prev, { text: '', user_id: defaultUserId }]);
   };
 
   const handleMovRemove = (index) => {
@@ -393,6 +395,20 @@ const UpdateTask = ({
       itemIndex === index ? { ...item, user_id: userId } : item
     )));
   };
+  const handleMovAssignAll = (userId) => {
+    setMovItems((prev) => prev.map((item) => ({ ...item, user_id: userId })));
+  };
+
+  // Single task assignee → all MOVs belong to them (no per-MOV picker).
+  useEffect(() => {
+    if (assignedUsers.length !== 1) return;
+    const soleId = assignedUsers[0].id;
+    setMovItems((prev) =>
+      prev.map((item) =>
+        Number(item.user_id) === Number(soleId) ? item : { ...item, user_id: soleId },
+      ),
+    );
+  }, [assignedUsers]);
 
   // Auto-calculate due date based on recurrence frequency
   const calculateDueDate = (startDate, frequency) => {
@@ -1154,12 +1170,15 @@ const UpdateTask = ({
                       onChange={(e) => handleMovChange(index, e.target.value)}
                       placeholder="Define a clear, specific, and measurable verification point"
                     />
-                    <MovAssignmentPicker
-                      assignedUsers={assignedUsers}
-                      userId={assignedUsers.length === 1 ? assignedUsers[0].id : item.user_id}
-                      onChange={(userId) => handleMovUserChange(index, userId)}
-                      disabled={saving || !taskPerms.canUpdate}
-                    />
+                    {assignedUsers.length > 1 && (
+                      <MovAssignmentPicker
+                        assignedUsers={assignedUsers}
+                        userId={item.user_id}
+                        onChange={(userId) => handleMovUserChange(index, userId)}
+                        onAssignAll={handleMovAssignAll}
+                        disabled={saving || !taskPerms.canUpdate}
+                      />
+                    )}
                     {movItems.length > 1 && (
                       <button
                         type="button"

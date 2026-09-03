@@ -395,9 +395,20 @@ const TasksBoard = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 })
   };
 
   const canEditTask = (task) => {
+    if (!task || taskPerms.canUpdate !== true) return false;
+    const isCreator = currentUserId != null && Number(task.created_by_id) === currentUserId;
+    const isAssignee = isTaskAssignedToCurrentUser(task);
+    if (isAssignee && !isCreator) return false;
     const status = String(task.status || '').toLowerCase();
     const canEditCompleted = taskPerms.canEditCompleted === true;
-    return taskPerms.canUpdate && (status !== 'completed' || canEditCompleted);
+    return status !== 'completed' || canEditCompleted;
+  };
+
+  const canDeleteTask = (task) => {
+    if (!task || taskPerms.canDelete !== true) return false;
+    const isCreator = currentUserId != null && Number(task.created_by_id) === currentUserId;
+    const isAssignee = isTaskAssignedToCurrentUser(task);
+    return !(isAssignee && !isCreator);
   };
 
   const handleColumnDragOver = (e, columnId) => {
@@ -683,7 +694,7 @@ const TasksBoard = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 })
                               onColorChange={(colorId) => handleCardColorChange(task.id, colorId)}
                               canView={taskPerms.canViewDetail}
                               canEdit={canEditTask(task)}
-                              canDelete={taskPerms.canDelete}
+                              canDelete={canDeleteTask(task)}
                               canMove={canChangeStatus(task)}
                             />
                           </div>

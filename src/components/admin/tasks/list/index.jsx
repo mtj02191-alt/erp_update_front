@@ -57,7 +57,7 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
     refresh,
   } = useTasksServerQuery({
     storagePrefix: 'tasks-list',
-    defaultPageSize: 30,
+    defaultPageSize: 10,
     defaultSortField: 'created_at',
     activeTab,
     assignedUser,
@@ -144,6 +144,30 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
       return allIds.includes(currentUserId);
     },
     [currentUserId]
+  );
+
+  const canEditTaskByCurrentUser = useCallback(
+    (task) => {
+      if (!task) return false;
+      const isCreator = currentUserId != null && Number(task.created_by_id) === currentUserId;
+      const isAssignee = isTaskAssignedToCurrentUser(task);
+      if (isAssignee && !isCreator) return false;
+      const status = String(task.status || '').toLowerCase();
+      const canEditCompleted = taskPerms.canEditCompleted === true;
+      return taskPerms.canUpdate === true && (status !== 'completed' || canEditCompleted);
+    },
+    [currentUserId, isTaskAssignedToCurrentUser, taskPerms.canEditCompleted, taskPerms.canUpdate],
+  );
+
+  const canDeleteTaskByCurrentUser = useCallback(
+    (task) => {
+      if (!task) return false;
+      const isCreator = currentUserId != null && Number(task.created_by_id) === currentUserId;
+      const isAssignee = isTaskAssignedToCurrentUser(task);
+      if (isAssignee && !isCreator) return false;
+      return taskPerms.canDelete === true;
+    },
+    [currentUserId, isTaskAssignedToCurrentUser, taskPerms.canDelete],
   );
 
   const fetchApprovals = useCallback(async () => {
@@ -248,6 +272,35 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
   const approvalTasks = useMemo(() => {
     return Array.isArray(approvalRequestsForUser) ? approvalRequestsForUser : [];
   }, [approvalRequestsForUser]);
+
+  const approvalTabTotalCount = useMemo(() => {
+    const totalFromCategory = Number(categoryCounts?.approval_tasks ?? 0);
+    if (Number.isFinite(totalFromCategory) && totalFromCategory > 0) {
+      return totalFromCategory;
+    }
+    return approvalTasks.length;
+  }, [approvalTasks.length, categoryCounts]);
+
+  const displayedApprovalTasks = useMemo(() => {
+    if (activeTab !== 'approval_tasks') {
+      return tasks;
+    }
+
+    const pendingByTaskId = new Map();
+    approvalTasks.forEach((task) => {
+      const taskId = Number(task?.id ?? task?.task_id);
+      if (Number.isFinite(taskId)) {
+        pendingByTaskId.set(taskId, Boolean(task?._isPendingAction));
+      }
+    });
+
+    return [...tasks].sort((a, b) => {
+      const aPending = pendingByTaskId.get(Number(a?.id)) === true;
+      const bPending = pendingByTaskId.get(Number(b?.id)) === true;
+      if (aPending === bPending) return 0;
+      return aPending ? -1 : 1;
+    });
+  }, [activeTab, tasks, approvalTasks]);
 
   useEffect(() => {
     if (approvalsLoaded && activeTab === 'approval_tasks' && approvalTasks.length === 0) {
@@ -804,7 +857,8 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
     const status = String(task.status).toLowerCase();
     const canViewDetail = taskPerms.canViewDetail === true;
     const canUpdate = taskPerms.canUpdate === true;
-    const canDelete = taskPerms.canDelete === true;
+    const canDelete = canDeleteTaskByCurrentUser(task);
+    const canEditThisTask = canEditTaskByCurrentUser(task);
     const canEditCompleted = taskPerms.canEditCompleted === true;
     const isAssignee = isTaskAssignedToCurrentUser(task);
     const canChangeAsAssignee =
@@ -825,10 +879,10 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
         icon: <FiEdit2 />,
         label: 'Edit',
         color: '#1e92f1ff',
-        onClick: ((status !== 'completed' || canEditCompleted) && canUpdate) ? () => navigate(`${tasksRouteBase}/update/${task.id}`) : undefined,
+        onClick: ((status !== 'completed' || canEditCompleted) && canEditThisTask) ? () => navigate(`${tasksRouteBase}/update/${task.id}`) : undefined,
         visible: true,
-        disabled: (status === 'completed' && !canEditCompleted) || !canUpdate,
-        title: !canUpdate ? hoverText('update') : (status === 'completed' && !canEditCompleted ? hoverText('edit_completed') : 'Edit')
+        disabled: (status === 'completed' && !canEditCompleted) || !canEditThisTask,
+        title: !canEditThisTask ? 'You cannot edit this task as an assignee.' : (status === 'completed' && !canEditCompleted ? hoverText('edit_completed') : 'Edit')
       },
       {
         icon: <FiPlay />,
@@ -864,7 +918,7 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
         onClick: canDelete ? () => deleteTask(task) : undefined,
         visible: true,
         disabled: !canDelete,
-        title: !canDelete ? hoverText('delete') : 'Delete'
+        title: !canDelete ? (canEditThisTask ? hoverText('delete') : 'You cannot delete this task as an assignee.') : 'Delete'
       }
     ];
   };
@@ -872,6 +926,8 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
   const renderTaskCard = (t) => {
     const status = String(t.status || '').toLowerCase();
     const canUpdate = taskPerms.canUpdate === true;
+    const canEditThisTask = canEditTaskByCurrentUser(t);
+    const canDeleteThisTask = canDeleteTaskByCurrentUser(t);
     const isAssignee = isTaskAssignedToCurrentUser(t);
     const canChangeAsAssignee =
       isAssignee && (taskPerms.canUpdate === true || taskPerms.canComplete === true);
@@ -952,9 +1008,9 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
             </button>
             <button
               className="tl-task-action-icon tl-edit"
-              title={hoverText('update')}
-              onClick={((status !== 'completed' || taskPerms.canEditCompleted) && taskPerms.canUpdate) ? () => navigate(`${tasksRouteBase}/update/${t.id}`) : undefined}
-              disabled={(status === 'completed' && !taskPerms.canEditCompleted) || !taskPerms.canUpdate}
+              title={canEditThisTask ? hoverText('update') : 'You cannot edit this task as an assignee.'}
+              onClick={canEditThisTask ? () => navigate(`${tasksRouteBase}/update/${t.id}`) : undefined}
+              disabled={!canEditThisTask}
             >
               <FiEdit2 />
             </button>
@@ -1010,9 +1066,9 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
             )}
             <button
               className="tl-task-action-icon tl-delete"
-              title={hoverText('delete')}
-              onClick={taskPerms.canDelete ? () => deleteTask(t) : undefined}
-              disabled={!taskPerms.canDelete}
+              title={canDeleteThisTask ? hoverText('delete') : 'You cannot delete this task as an assignee.'}
+              onClick={canDeleteThisTask ? () => deleteTask(t) : undefined}
+              disabled={!canDeleteThisTask}
             >
               <FiTrash2 />
             </button>
@@ -1197,7 +1253,7 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
                     <span className="tl-scope-switch__count">{categoryCounts.assigned_to_team}</span>
                   </button>
                 )}
-                {approvalTasks.length > 0 && (
+                {(approvalTabTotalCount > 0 || approvalTasks.length > 0) && (
                   <button
                     type="button"
                     role="tab"
@@ -1208,7 +1264,7 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
                   >
                     <FiThumbsUp />
                     <span className="tl-scope-switch__label">Approvals</span>
-                    <span className="tl-scope-switch__count">{approvalTasks.length}</span>
+                    <span className="tl-scope-switch__count">{approvalTabTotalCount}</span>
                     {(() => {
                       try {
                         if (!approvalsLoaded || !Array.isArray(approvalRequestsForUser)) return null;
@@ -1321,8 +1377,8 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
 
           <div className="tl-task-card-list">
             <div className="tl-tab-content-wrapper">
-              {tasks.length > 0 ? (
-                renderTasksTable(tasks)
+              {displayedApprovalTasks.length > 0 ? (
+                renderTasksTable(displayedApprovalTasks)
               ) : (
                 <div className="tl-empty-tab-state">
                   {activeTab === 'assigned_to_me' && (

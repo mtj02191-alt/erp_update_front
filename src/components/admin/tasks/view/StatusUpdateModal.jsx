@@ -101,9 +101,7 @@ const StatusUpdateModal = ({
   };
 
   const labelMap = {
-    START: 'Start Working',
     PAUSE: 'Pause Task',
-    COMPLETE: 'Complete Task',
     BLOCK: 'Mark as Blocked',
     REOPEN: 'Reopen Task',
     REOPEN_IN_PROGRESS: 'Reopen Task',

@@ -37,6 +37,12 @@
   gap: 0.85rem 1rem;
 }
 
+.donor-register-contact-hint {
+  margin: -0.25rem 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
 .donor-register-lookup {
   display: flex;
   align-items: center;

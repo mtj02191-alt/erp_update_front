@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import axiosInstance from '../../../../utils/axios';
 import { useAuth } from '../../../../context/AuthContext';
 import { fundRaisingDonorsHas, hasPermission } from '../../../../utils/permissions';
@@ -27,6 +27,12 @@ import {
   formatPipelineStage,
 } from '../shared/donorPipelineConstants';
 
+const getDonorsBasePath = (pathname = '') => {
+  if (pathname.includes('/dms/offline_donors')) return '/dms/offline_donors';
+  if (pathname.includes('/dms/online_donors')) return '/dms/online_donors';
+  return '/dms/donors';
+};
+
 const DONOR_ASSIGNED_FILTER_ALL = {
   id: '__all__',
   first_name: 'Select all',
@@ -41,6 +47,21 @@ const DONOR_ASSIGNED_FILTER_ME = {
 
 const DonorsList = () => {
   const { permissions, user } = useAuth();
+  const location = useLocation();
+  const isOfflineRoute = location.pathname.includes('/dms/offline_donors');
+  const isOnlineRoute = location.pathname.includes('/dms/online_donors');
+  const donorsBasePath = getDonorsBasePath(location.pathname);
+  const lockedSource = isOfflineRoute ? 'offline' : isOnlineRoute ? 'online' : '';
+  const listTitle = isOfflineRoute
+    ? 'Offline Donors'
+    : isOnlineRoute
+      ? 'Online Donors'
+      : 'Donors';
+  const donorPermissionModule = isOfflineRoute
+    ? 'offline_donors'
+    : isOnlineRoute
+      ? 'online_donors'
+      : 'donors';
   const [donors, setDonors] = useState([]);
   const [loading, setLoading] = useState(true);
   const { filtersOpen, toggleFilters } = useFiltersPanel();
@@ -284,30 +305,61 @@ const DonorsList = () => {
 
   const canExportCsv = useMemo(() => {
     if (!permissions) return false;
-    return permissions.super_admin === true || fundRaisingDonorsHas(permissions, 'csv_xport');
-  }, [permissions]);
+    if (permissions.super_admin === true) return true;
+    if (hasPermission(permissions, 'fund_raising', donorPermissionModule, 'csv_xport')) {
+      return true;
+    }
+    return fundRaisingDonorsHas(permissions, 'csv_xport');
+  }, [permissions, donorPermissionModule]);
 
   const canImportCsv = useMemo(() => {
     if (!permissions) return false;
-    return permissions.super_admin === true || fundRaisingDonorsHas(permissions, 'create');
-  }, [permissions]);
+    if (permissions.super_admin === true) return true;
+    if (hasPermission(permissions, 'fund_raising', donorPermissionModule, 'create')) {
+      return true;
+    }
+    return fundRaisingDonorsHas(permissions, 'create');
+  }, [permissions, donorPermissionModule]);
 
   const canRevealPassword = useMemo(() => {
     if (!permissions) return false;
-    // UI-only gating; backend enforces final access control.
-    return permissions.super_admin === true || fundRaisingDonorsHas(permissions, 'update');
-  }, [permissions]);
+    if (permissions.super_admin === true) return true;
+    if (hasPermission(permissions, 'fund_raising', donorPermissionModule, 'update')) {
+      return true;
+    }
+    return fundRaisingDonorsHas(permissions, 'update');
+  }, [permissions, donorPermissionModule]);
+
+  const canCreateDonor = useMemo(() => {
+    if (!permissions) return false;
+    if (permissions.super_admin === true) return true;
+    if (hasPermission(permissions, 'fund_raising', donorPermissionModule, 'create')) {
+      return true;
+    }
+    return fundRaisingDonorsHas(permissions, 'create');
+  }, [permissions, donorPermissionModule]);
+
+  const canUpdateDonor = useMemo(() => {
+    if (!permissions) return false;
+    if (permissions.super_admin === true) return true;
+    if (hasPermission(permissions, 'fund_raising', donorPermissionModule, 'update')) {
+      return true;
+    }
+    return fundRaisingDonorsHas(permissions, 'update');
+  }, [permissions, donorPermissionModule]);
 
   const canAddDonation = useMemo(() => {
     if (!permissions) return false;
     return (
       permissions.super_admin === true ||
-      hasPermission(permissions, 'fund_raising', 'online_donations', 'create')
+      hasPermission(permissions, 'fund_raising', 'online_donations', 'create') ||
+      hasPermission(permissions, 'fund_raising', 'offline_donations', 'create')
     );
   }, [permissions]);
 
-  /** Align with server: online = source website; offline = all other sources. Empty value = all (select placeholder). */
+  /** Align with server: online = source website; offline = all other sources. */
   const donorSourceFilterOptions = useMemo(() => {
+    if (lockedSource) return [];
     if (!permissions) {
       return [
         { value: 'online', label: 'Online donors' },
@@ -336,7 +388,7 @@ const DonorsList = () => {
     if (online) opts.push({ value: 'online', label: 'Online donors' });
     if (offline) opts.push({ value: 'offline', label: 'Offline donors' });
     return opts;
-  }, [permissions]);
+  }, [permissions, lockedSource]);
 
   const csvColumns = [
     { key: 'donor_type', label: 'Type' },
@@ -429,6 +481,9 @@ const DonorsList = () => {
       }
       if (!params.source) {
         delete params.source;
+      }
+      if (lockedSource) {
+        params.source = lockedSource;
       }
       if (!params.pipeline_stage) {
         delete params.pipeline_stage;
@@ -531,15 +586,15 @@ const DonorsList = () => {
       icon: <FiEye />,
       label: 'View',
       color: '#2196f3',
-      to: `/dms/donors/view/${donor.id}`,
+      to: `${donorsBasePath}/view/${donor.id}`,
       visible: true
     },
     {
       icon: <FiEdit />,
       label: 'Edit',
       color: '#ff9800',
-      to: `/dms/donors/edit/${donor.id}`,
-      visible: true
+      to: `${donorsBasePath}/edit/${donor.id}`,
+      visible: canUpdateDonor
     },
     {
       icon: <FiKey />,
@@ -552,7 +607,9 @@ const DonorsList = () => {
       icon: <FiPlusCircle />,
       label: 'Add Donation',
       color: '#16a34a',
-      to: `/donations/online_donations/add?donor_id=${donor.id}`,
+      to: isOfflineRoute
+        ? `/donations/offline_donations/add?donor_id=${donor.id}`
+        : `/donations/online_donations/add?donor_id=${donor.id}`,
       visible: canAddDonation
     },
     {
@@ -641,10 +698,10 @@ const DonorsList = () => {
           <PageHeader
           onRefresh={fetchDonors}
           refreshing={loading} 
-            title="Registered Donors" 
+            title={listTitle}
             showBackButton={false}
-            showAdd={true}
-            addPath='/dms/donors/add'
+            showAdd={canCreateDonor}
+            addPath={`${donorsBasePath}/add`}
           />
           <div className="loading">Loading...</div>
         </div>
@@ -659,13 +716,13 @@ const DonorsList = () => {
         <PageHeader
           onRefresh={fetchDonors}
           refreshing={loading} 
-          title="Registered Donors" 
+          title={listTitle}
           showBackButton={false}
           showFilterToggle
           filtersOpen={filtersOpen}
           onFilterToggle={toggleFilters}
-          showAdd={true}
-          addPath='/dms/donors/add'
+          showAdd={canCreateDonor}
+          addPath={`${donorsBasePath}/add`}
         />
         
         <div className="list-content">
@@ -692,6 +749,7 @@ const DonorsList = () => {
               placeholder="All Types"
             />
 
+            {!lockedSource && donorSourceFilterOptions.length > 0 && (
             <DropdownFilter
               filterKey="source"
               label="Donor source"
@@ -700,6 +758,7 @@ const DonorsList = () => {
               onFilterChange={handleFilterChange}
               placeholder="All sources"
             />
+            )}
 
             <DropdownFilter
               filterKey="pipeline_stage"
@@ -948,7 +1007,7 @@ const DonorsList = () => {
                       <td>
                         <div className="donor-info">
                           <Link
-                            to={`/dms/donors/view/${donor.id}`}
+                            to={`${donorsBasePath}/view/${donor.id}`}
                             className="donor-name"
                             style={{ color: 'inherit', textDecoration: 'inherit' }}
                           >

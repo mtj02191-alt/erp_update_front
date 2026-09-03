@@ -380,7 +380,8 @@ const adminDepartmentItems = () => [
     module: 'fund_raising_admin',
     icon: FiHeart,
     subItems: [ 
-      {label: "Donations", path: "/donations/online_donations/list", type: "list", icon: BiSolidDonateHeart},
+      {label: "Online Donations", path: "/donations/online_donations/list", type: "list", module: "online_donations", icon: BiSolidDonateHeart},
+      {label: "Offline Donations", path: "/donations/offline_donations/list", type: "list", module: "offline_donations", icon: BiSolidDonateHeart},
       {label: "Website Donation Projects", path: "/dms/website_donation_projects/list", type: "list", icon: FiGrid},
       {label: "Home Hero Slides", path: "/dms/website_home_hero/list", type: "list", icon: FiLayers},
       {label: "Recurring Donations", path: "/dms/recurring-donations/list", type: "list", module: "recurring_donations", icon: FiRepeat},
@@ -388,10 +389,11 @@ const adminDepartmentItems = () => [
       {label: "Donation Boxes", path: "/dms/donation_box/list", type: "list", icon: FiBox},
       {label: "Donation Box Donations", path: "/dms/donation-box-donations/list", type: "list", icon: FiPackage},
       {label: "My To-Dos", path: "/dms/todos", type: "list", module: "dms_todos", icon: FiCheckSquare},
-      {label: "Donors", path: "/dms/donors/list", type: "list", icon: FiUsers},
+      {label: "Online Donors", path: "/dms/online_donors/list", type: "list", module: "online_donors", icon: FiUsers},
       // Enable later — Beneficiary Aid Applications (Phase 1)
       // {label: "Aid Applications", path: "/dms/aid/applications/list", type: "list", module: "aid_applications", icon: FiLifeBuoy},
       // {label: "Aid People", path: "/dms/aid/people/list", type: "list", module: "aid_people", icon: FiUsers},
+      {label: "Offline Donors", path: "/dms/offline_donors/list", type: "list", module: "offline_donors", icon: FiUsers},
       {label: "Organizations", path: "/dms/organizations/list", type: "list", module: "organizations", icon: FiBriefcase},
       {label: "Volunteers", path: "/dms/volunteers/list", type: "list", icon: FiUserPlus},
       // {label: "Surveys", path: "/dms/surveys/list", type: "list", icon: FiClipboard},
@@ -517,10 +519,17 @@ const fundRaisingDepartmentItems = (isUser = false) => [
   //   icon: FiUsers
   // },
   {
-    label: 'Donations',
+    label: 'Online Donations',
     path: '/donations/online_donations/list',
     type: 'list',
     module: 'online_donations',
+    icon: BiSolidDonateHeart
+  },
+  {
+    label: 'Offline Donations',
+    path: '/donations/offline_donations/list',
+    type: 'list',
+    module: 'offline_donations',
     icon: BiSolidDonateHeart
   },
   {
@@ -537,17 +546,18 @@ const fundRaisingDepartmentItems = (isUser = false) => [
     module: 'website_home_hero',
     icon: FiLayers
   },
-  // {
-  //   label: 'Offline Donations',
-  //   path: '/donations/offline_donations/list',
-  //   type: 'list',
-  //   module: 'offline_donations'
-  // },
   {
-    label: 'Donor',
-    path: '/dms/donors/list',
+    label: 'Online Donors',
+    path: '/dms/online_donors/list',
     type: 'list',
-    module: 'donors',
+    module: 'online_donors',
+    icon: FiUsers
+  },
+  {
+    label: 'Offline Donors',
+    path: '/dms/offline_donors/list',
+    type: 'list',
+    module: 'offline_donors',
     icon: FiUsers
   },
   {

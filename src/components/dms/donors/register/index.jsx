@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { FiSearch } from 'react-icons/fi';
 import axiosInstance from '../../../../utils/axios';
 import PageHeader from '../../../common/PageHeader';
@@ -70,6 +70,14 @@ const BUSINESS_TYPE_OPTIONS = [
 const RegisterDonor = () => {
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isOfflineRoute = location.pathname.includes('/dms/offline_donors');
+  const isOnlineRoute = location.pathname.includes('/dms/online_donors');
+  const donorsBasePath = isOfflineRoute
+    ? '/dms/offline_donors'
+    : isOnlineRoute
+      ? '/dms/online_donors'
+      : '/dms/donors';
   const [searchParams] = useSearchParams();
   const presetOrgId = searchParams.get('organization_id');
   const presetDonorType = searchParams.get('donor_type');
@@ -85,7 +93,7 @@ const RegisterDonor = () => {
     address: '',
     city: '',
     country: 'Pakistan',
-    source: 'fund_raising',
+    source: isOnlineRoute ? 'website' : 'fund_raising',
     postal_code: '',
     cnic: '',
     notes: '',
@@ -171,6 +179,14 @@ const RegisterDonor = () => {
     setIsSubmitting(true);
 
     try {
+      const email = form.email?.trim() || '';
+      const phone = form.phone?.trim() || '';
+      if (!email && !phone) {
+        setError('Please provide either an email or a phone number.');
+        setIsSubmitting(false);
+        return;
+      }
+
       if (form.donor_type === 'csr' && !selectedOrganization?.id) {
         setError('Please select or create an organization for CSR donors.');
         setIsSubmitting(false);
@@ -184,9 +200,9 @@ const RegisterDonor = () => {
 
       const donorData = {
         donor_type: form.donor_type,
-        email: form.email,
+        email: email || undefined,
         password: form.password,
-        phone: form.phone,
+        phone: phone || undefined,
         name: fullName,
         first_name: form.first_name || undefined,
         last_name: form.last_name || undefined,
@@ -225,7 +241,7 @@ const RegisterDonor = () => {
       if (presetOrgId && newId) {
         navigate(`/dms/organizations/view/${presetOrgId}?person=${newId}`);
       } else {
-        navigate('/dms/donors/list');
+        navigate(`${donorsBasePath}/list`);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to register donor. Please try again.');
@@ -254,7 +270,7 @@ const RegisterDonor = () => {
       if (phone) params.phone = phone;
       const res = await axiosInstance.get('/donors/lookup', { params });
       if (res.data.success && res.data.data) {
-        navigate(`/dms/donors/view/${res.data.data.id}`);
+        navigate(`${donorsBasePath}/view/${res.data.data.id}`);
       } else {
         setDonorSearchMessage('No existing donor found for this email/phone.');
       }
@@ -340,7 +356,6 @@ const RegisterDonor = () => {
                   name="email"
                   value={form.email}
                   onChange={handleChange}
-                  required
                 />
                 <FormInput
                   label="Phone"
@@ -348,9 +363,11 @@ const RegisterDonor = () => {
                   name="phone"
                   value={form.phone}
                   onChange={handleChange}
-                  required
                 />
               </div>
+              <p className="donor-register-contact-hint">
+                At least one of email or phone is required.
+              </p>
               <div className="donor-register-lookup">
                 <button
                   type="button"

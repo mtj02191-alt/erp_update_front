@@ -14,6 +14,7 @@ import UserPermissions from '../UserPermissions';
 import GeographicAssignmentPicker from '../GeographicAssignmentPicker';
 import {
   EMPTY_GEOGRAPHIC_ASSIGNMENTS,
+  isGeographicAssignmentDepartment,
   toUserGeographicPayload,
 } from '../../../../utils/geographicAssignment';
 import './CreateUser.css';
@@ -60,7 +61,7 @@ const CreateUser = () => {
   );
   const [geographicOff, setGeographicOff] = useState(false);
 
-  const isFundRaising = form.department === 'fund_raising';
+  const showGeographicAssignment = isGeographicAssignmentDepartment(form.department);
 
   useEffect(() => {
     const fetchManagers = async () => {
@@ -109,7 +110,7 @@ const CreateUser = () => {
       role: rolesForDepartment[0].value 
     });
 
-    if (selectedDepartment !== 'fund_raising') {
+    if (!isGeographicAssignmentDepartment(selectedDepartment)) {
       setGeographicAssignments(EMPTY_GEOGRAPHIC_ASSIGNMENTS);
       setGeographicOff(false);
     }
@@ -201,8 +202,8 @@ const CreateUser = () => {
           : [],
       };
 
-      // Include geographic assignments for fund_raising department
-      if (form.department === 'fund_raising') {
+      // Include geographic assignments for Fund Raising / CRD
+      if (isGeographicAssignmentDepartment(form.department)) {
         Object.assign(payload, toUserGeographicPayload(geographicAssignments));
         payload.geographic_off = geographicOff;
       }
@@ -420,8 +421,8 @@ const CreateUser = () => {
               onChange={handleChange}
             />
 
-            {/* Geographic Assignment Section - Only for Fund Raising */}
-            {isFundRaising && (
+            {/* Geographic Assignment — Fund Raising & CRD */}
+            {showGeographicAssignment && (
               <div className="geographic-assignment-section" style={{ marginTop: '20px', padding: '16px', border: '1px solid var(--border-color, #e0e0e0)', borderRadius: '8px', background: 'var(--card-bg, #fafbfc)' }}>
                 <h3 style={{ marginBottom: '12px', fontSize: '16px', fontWeight: '600' }}>Geographic Assignment</h3>
                 <p style={{ marginBottom: '16px', fontSize: '13px', color: 'var(--text-secondary, #666)' }}>
