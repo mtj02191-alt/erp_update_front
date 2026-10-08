@@ -47,14 +47,21 @@ import {
   FiMessageSquare,
   FiSend,
   FiCoffee,
+  FiSearch,
 } from 'react-icons/fi';
 import { BiSolidDonateHeart } from 'react-icons/bi';
 import { departments } from '../../../utils/admin';
 
 const TASK_MODULE_KEYS = new Set(['tasks', 'tasking']);
+const COMPLAINT_MODULE_KEYS = new Set(['tickets', 'complaints']);
 
 const TASKS_LIST_PATH = '/tasks/list';
 const TASKS_DASHBOARD_PATH = '/tasks/dashboard';
+const COMPLAINTS_LIST_PATH = '/tickets/list';
+const COMPLAINTS_DASHBOARD_PATH = '/tickets/dashboard';
+const GRIEVANCE_LIST_PATH = '/complaints/list';
+const GRIEVANCE_ADD_PATH = '/complaints/add';
+const GRIEVANCE_TRACK_PATH = '/complaints/track';
 
 const hasGlobalTaskingAccess = (permissions) => (
   permissions?.tasks?.view === true ||
@@ -63,6 +70,21 @@ const hasGlobalTaskingAccess = (permissions) => (
   permissions?.tasking?.tasks?.list_view === true ||
   permissions?.tasking?.dashboard?.view === true ||
   permissions?.tasking?.dashboard?.list_view === true
+);
+
+const hasGlobalComplaintsAccess = (permissions) => (
+  permissions?.tickets?.view === true ||
+  permissions?.complaints?.view === true ||
+  permissions?.tickets?.list_view === true ||
+  permissions?.complaints?.list_view === true ||
+  permissions?.tickets?.tickets?.view === true ||
+  permissions?.complaints?.complaints?.view === true ||
+  permissions?.tickets?.tickets?.list_view === true ||
+  permissions?.complaints?.complaints?.list_view === true ||
+  permissions?.tickets?.dashboard?.view === true ||
+  permissions?.complaints?.dashboard?.view === true ||
+  permissions?.tickets?.dashboard?.list_view === true ||
+  permissions?.complaints?.dashboard?.list_view === true
 );
 
 const hasAnyDepartmentTaskAccess = (permissions) => {
@@ -74,8 +96,73 @@ const hasAnyDepartmentTaskAccess = (permissions) => {
   );
 };
 
+const hasAnyDepartmentComplaintAccess = (permissions) => {
+  if (!permissions) return false;
+  return departments.some(
+    (dept) => canViewModule(permissions, dept, 'tickets') || canViewModule(permissions, dept, 'complaints'),
+  );
+};
+
 const shouldShowUnifiedTasking = (permissions) =>
   hasGlobalTaskingAccess(permissions) || hasAnyDepartmentTaskAccess(permissions);
+
+const shouldShowUnifiedComplaints = (permissions) =>
+  hasGlobalComplaintsAccess(permissions) || hasAnyDepartmentComplaintAccess(permissions);
+
+const hasGlobalComplaintCaseAccess = (permissions) => (
+  permissions?.tickets?.complaints_case?.view === true ||
+  permissions?.tickets?.complaints_case?.list_view === true ||
+  permissions?.tickets?.complaints_case?.create === true ||
+  permissions?.complaints_case?.view === true ||
+  permissions?.complaints_case?.list_view === true ||
+  permissions?.complaints_case?.create === true
+);
+
+const hasAnyDepartmentComplaintCaseAccess = (permissions) => {
+  if (!permissions) return false;
+  return departments.some((dept) => {
+    const mod = permissions?.[dept]?.tickets?.complaints_case;
+    return mod?.view === true || mod?.list_view === true || mod?.create === true;
+  });
+};
+
+const shouldShowComplaintCase = (permissions) =>
+  hasGlobalComplaintCaseAccess(permissions) || hasAnyDepartmentComplaintCaseAccess(permissions);
+
+const buildComplaintCaseGroup = (user, permissions) => {
+  if (!user || !permissions) return null;
+  if (!shouldShowComplaintCase(permissions) && !isSuperAdmin(permissions) && user.role !== 'super_admin') {
+    return null;
+  }
+  return {
+    id: 'complaints_case_global',
+    label: 'Complaints',
+    icon: FiAlertCircle,
+    items: [
+      {
+        label: 'Complaints List',
+        path: GRIEVANCE_LIST_PATH,
+        type: 'list',
+        module: 'tickets',
+        icon: FiList,
+      },
+      {
+        label: 'Submit Complaint',
+        path: GRIEVANCE_ADD_PATH,
+        type: 'list',
+        module: 'tickets',
+        icon: FiAlertCircle,
+      },
+      {
+        label: 'Track by Code',
+        path: GRIEVANCE_TRACK_PATH,
+        type: 'list',
+        module: 'tickets',
+        icon: FiSearch,
+      },
+    ],
+  };
+};
 
 const buildUnifiedTaskingGroup = (user, permissions) => {
   if (!user || !permissions || !shouldShowUnifiedTasking(permissions)) {
@@ -104,6 +191,33 @@ const buildUnifiedTaskingGroup = (user, permissions) => {
   };
 };
 
+const buildUnifiedComplaintsGroup = (user, permissions) => {
+  if (!user || !permissions || !shouldShowUnifiedComplaints(permissions)) {
+    return null;
+  }
+  return {
+    id: 'tickets_global',
+    label: 'Issues',
+    icon: FiAlertCircle,
+    items: [
+      {
+        label: 'Issues List',
+        path: COMPLAINTS_LIST_PATH,
+        type: 'list',
+        module: 'tickets',
+        icon: FiList,
+      },
+      {
+        label: 'Issues Dashboard',
+        path: COMPLAINTS_DASHBOARD_PATH,
+        type: 'list',
+        module: 'tickets',
+        icon: FiBarChart2,
+      },
+    ],
+  };
+};
+
 /** Super admin: single Tasks section (flat `/tasks/...` routes). */
 const buildSuperAdminTaskingGroup = () => ({
   id: 'tasking_global',
@@ -122,6 +236,29 @@ const buildSuperAdminTaskingGroup = () => ({
       path: TASKS_DASHBOARD_PATH,
       type: 'list',
       module: 'tasks',
+      icon: FiBarChart2,
+    },
+  ],
+});
+
+/** Super admin: single Tickets section (flat `/complaints/...` routes). */
+const buildSuperAdminComplaintsGroup = () => ({
+  id: 'tickets_global',
+  label: 'Issues',
+  icon: FiAlertCircle,
+  items: [
+    {
+      label: 'Issues List',
+      path: COMPLAINTS_LIST_PATH,
+      type: 'list',
+      module: 'tickets',
+      icon: FiList,
+    },
+    {
+      label: 'Issues Dashboard',
+      path: COMPLAINTS_DASHBOARD_PATH,
+      type: 'list',
+      module: 'tickets',
       icon: FiBarChart2,
     },
   ],
@@ -373,38 +510,41 @@ const adminDepartmentItems = () => [
       {label: "Subprograms", path: "/program/subprograms", type: "list", icon: FiList}
     ]
   },
-  {
-    label: 'Fund Raising',
-    path: '/fund_raising',
-    type: 'list',
-    module: 'fund_raising_admin',
-    icon: FiHeart,
-    subItems: [ 
-      {label: "Online Donations", path: "/donations/online_donations/list", type: "list", module: "online_donations", icon: BiSolidDonateHeart},
-      {label: "Offline Donations", path: "/donations/offline_donations/list", type: "list", module: "offline_donations", icon: BiSolidDonateHeart},
-      {label: "Website Donation Projects", path: "/dms/website_donation_projects/list", type: "list", icon: FiGrid},
-      {label: "Home Hero Slides", path: "/dms/website_home_hero/list", type: "list", icon: FiLayers},
-      {label: "Recurring Donations", path: "/dms/recurring-donations/list", type: "list", module: "recurring_donations", icon: FiRepeat},
-      {label: "Recurring Donors", path: "/dms/recurring-donors/list", type: "list", icon: FiRepeat},
-      {label: "Donation Boxes", path: "/dms/donation_box/list", type: "list", icon: FiBox},
-      {label: "Donation Box Donations", path: "/dms/donation-box-donations/list", type: "list", icon: FiPackage},
-      {label: "My To-Dos", path: "/dms/todos", type: "list", module: "dms_todos", icon: FiCheckSquare},
-      {label: "Online Donors", path: "/dms/online_donors/list", type: "list", module: "online_donors", icon: FiUsers},
-      // Enable later — Beneficiary Aid Applications (Phase 1)
-      // {label: "Aid Applications", path: "/dms/aid/applications/list", type: "list", module: "aid_applications", icon: FiLifeBuoy},
-      // {label: "Aid People", path: "/dms/aid/people/list", type: "list", module: "aid_people", icon: FiUsers},
-      {label: "Offline Donors", path: "/dms/offline_donors/list", type: "list", module: "offline_donors", icon: FiUsers},
-      {label: "Organizations", path: "/dms/organizations/list", type: "list", module: "organizations", icon: FiBriefcase},
-      {label: "Volunteers", path: "/dms/volunteers/list", type: "list", icon: FiUserPlus},
-      // {label: "Surveys", path: "/dms/surveys/list", type: "list", icon: FiClipboard},
-      // {label: "Events", path: "/dms/events/list", type: "list", icon: FiCalendar},
-      // {label: "Campaigns", path: "/dms/campaigns/list", type: "list", icon: FiFlag},
-      // {label: "Appeals", path: "/dms/appeals/list", type: "list", icon: FiAlertCircle},
-      // {label: "Social Media", path: "/dms/social-posts/list", type: "list", icon: FiFileText},
-      {label: "Reconciliation", path: "/dms/reconciliation/list", type: "list", icon: FiRefreshCw},
-      {label: "Donor Relationship", path: "/dms/donor-relationship/follow-ups", type: "list", icon: FiUsers}
-    ]
-  },
+  // {
+  //   label: 'Fund Raising',
+  //   path: '/fund_raising',
+  //   type: 'list',
+  //   module: 'fund_raising_admin',
+  //   icon: FiHeart,
+  //   subItems: [ 
+  //     {label: "Online Donations", path: "/donations/online_donations/list", type: "list", module: "online_donations", icon: BiSolidDonateHeart},
+  //     {label: "Offline Donations", path: "/donations/offline_donations/list", type: "list", module: "offline_donations", icon: BiSolidDonateHeart},
+  //     {label: "Website Donation Projects", path: "/dms/website_donation_projects/list", type: "list", icon: FiGrid},
+  //     {label: "Home Hero Slides", path: "/dms/website_home_hero/list", type: "list", icon: FiLayers},
+  //     {label: "Recurring Donations", path: "/dms/recurring-donations/list", type: "list", module: "recurring_donations", icon: FiRepeat},
+  //     {label: "Reminder Logs", path: "/dms/recurring-reminder-logs/list", type: "list", module: "recurring_reminder_logs", icon: FiMail},
+  //     {label: "Recurring Donors", path: "/dms/recurring-donors/list", type: "list", module: "recurring_donors", icon: FiRepeat},
+  //     {label: "Donation Boxes", path: "/dms/donation_box/list", type: "list", icon: FiBox},
+  //     {label: "Donation Box Donations", path: "/dms/donation-box-donations/list", type: "list", icon: FiPackage},
+  //     {label: "My To-Dos", path: "/dms/todos", type: "list", module: "dms_todos", icon: FiCheckSquare},
+  //     {label: "Online Donors", path: "/dms/online_donors/list", type: "list", module: "online_donors", icon: FiUsers},
+  //     // Enable later — Beneficiary Aid Applications (Phase 1)
+  //     // {label: "Aid Applications", path: "/dms/aid/applications/list", type: "list", module: "aid_applications", icon: FiLifeBuoy},
+  //     // {label: "Aid People", path: "/dms/aid/people/list", type: "list", module: "aid_people", icon: FiUsers},
+  //     {label: "Offline Donors", path: "/dms/offline_donors/list", type: "list", module: "offline_donors", icon: FiUsers},
+  //     {label: "CSR Donors", path: "/dms/csr-donors/list", type: "list", module: "organizations", icon: FiBriefcase},
+  //     {label: "CSR Donations", path: "/dms/csr-donations/list", type: "list", module: "organizations", icon: BiSolidDonateHeart},
+  //     {label: "CSR POCs", path: "/dms/csr-pocs/list", type: "list", module: "csr_pocs", icon: FiUsers},
+  //     {label: "Volunteers", path: "/dms/volunteers/list", type: "list", icon: FiUserPlus},
+  //     // {label: "Surveys", path: "/dms/surveys/list", type: "list", icon: FiClipboard},
+  //     // {label: "Events", path: "/dms/events/list", type: "list", icon: FiCalendar},
+  //     // {label: "Campaigns", path: "/dms/campaigns/list", type: "list", icon: FiFlag},
+  //     // {label: "Appeals", path: "/dms/appeals/list", type: "list", icon: FiAlertCircle},
+  //     // {label: "Social Media", path: "/dms/social-posts/list", type: "list", icon: FiFileText},
+  //     {label: "Reconciliation", path: "/dms/reconciliation/list", type: "list", icon: FiRefreshCw},
+  //     {label: "Donor Relationship", path: "/dms/donor-relationship/follow-ups", type: "list", icon: FiUsers}
+  //   ]
+  // },
   {
     label: 'Geographic',
     path: '/dms/geographic/countries/list',
@@ -414,6 +554,7 @@ const adminDepartmentItems = () => [
     subItems: [
       { label: 'Countries', path: '/dms/geographic/countries/list', type: 'list', icon: FiGlobe },
       { label: 'Regions', path: '/dms/geographic/regions/list', type: 'list', icon: FiMap },
+      { label: 'Sub Regions', path: '/dms/geographic/sub-regions/list', type: 'list', icon: FiMap },
       { label: 'Districts', path: '/dms/geographic/districts/list', type: 'list', icon: FiMap },
       { label: 'Tehsils', path: '/dms/geographic/tehsils/list', type: 'list', icon: FiMap },
       { label: 'Cities', path: '/dms/geographic/cities/list', type: 'list', icon: FiMapPin },
@@ -482,13 +623,13 @@ const hrDepartmentItems = (isUser = false) => [
     ]
   },
   // {
-  //   label: 'Complaints',
+  //   label: 'Tickets',
   //   path: '/hr/complaints/list',
   //   type: 'list',
-  //   module: 'complaints',
+  //   module: 'tickets',
   //   subItems: [
-  //     { label: 'Complaints List', path: '/hr/complaints/list', type: 'list', module: 'complaints' },
-  //     { label: 'Complaints Dashboard', path: '/hr/complaints/reports', type: 'list', module: 'complaints' }
+  //     { label: 'Tickets List', path: '/hr/complaints/list', type: 'list', module: 'tickets' },
+  //     { label: 'Tickets Dashboard', path: '/hr/complaints/reports', type: 'list', module: 'tickets' }
   //   ]
   // }
 ];
@@ -496,6 +637,7 @@ const hrDepartmentItems = (isUser = false) => [
 const geographicItems = (isUser = false) => [
   { label: 'Countries', path: '/dms/geographic/countries/list', type: 'list', module: 'countries', icon: FiGlobe },
   { label: 'Regions', path: '/dms/geographic/regions/list', type: 'list', module: 'regions', icon: FiMap },
+  { label: 'Sub Regions', path: '/dms/geographic/sub-regions/list', type: 'list', module: 'sub_regions', icon: FiMap },
   { label: 'Districts', path: '/dms/geographic/districts/list', type: 'list', module: 'districts', icon: FiMap },
   { label: 'Tehsils', path: '/dms/geographic/tehsils/list', type: 'list', module: 'tehsils', icon: FiMap },
   { label: 'Cities', path: '/dms/geographic/cities/list', type: 'list', module: 'cities', icon: FiMapPin },
@@ -575,11 +717,39 @@ const fundRaisingDepartmentItems = (isUser = false) => [
     icon: FiPackage
   },
   {
-    label: 'Organizations',
-    path: '/dms/organizations/list',
+    label: 'In Kind Items',
+    path: '/dms/in-kind-items/list',
+    type: 'list',
+    module: 'donation_in_kind_items',
+    icon: FiGift
+  },
+  {
+    label: 'In Kind Donations',
+    path: '/dms/in-kind-donations/list',
+    type: 'list',
+    module: 'in_kind_donations',
+    icon: FiGift
+  },
+  {
+    label: 'CSR Donors',
+    path: '/dms/csr-donors/list',
     type: 'list',
     module: 'organizations',
     icon: FiBriefcase
+  },
+  {
+    label: 'CSR Donations',
+    path: '/dms/csr-donations/list',
+    type: 'list',
+    module: 'organizations',
+    icon: BiSolidDonateHeart
+  },
+  {
+    label: 'CSR POCs',
+    path: '/dms/csr-pocs/list',
+    type: 'list',
+    module: 'csr_pocs',
+    icon: FiUsers
   },
   {
     label: 'My To-Dos',
@@ -623,19 +793,49 @@ const fundRaisingDepartmentItems = (isUser = false) => [
   //   module: 'appeals',
   //   icon: FiAlertCircle
   // },
-  // {
-  //   label: 'Social Media',
-  //   path: '/dms/social-posts/list',
-  //   type: 'list',
-  //   module: 'social_posts',
-  //   icon: FiFileText
-  // },
+  {
+    label: 'Social Posts',
+    path: '/dms/social-posts/list',
+    type: 'list',
+    module: 'social_posts',
+    icon: FiFileText
+  },
   {
     label: 'Recurring Donations',
     path: '/dms/recurring-donations/list',
     type: 'list',
     module: 'recurring_donations',
-    icon: FiRepeat
+    icon: FiRepeat,
+    subItems: [
+      {
+        label: 'Subscriptions',
+        path: '/dms/recurring-donations/list',
+        type: 'list',
+        module: 'recurring_donations',
+        icon: FiList,
+      },
+      {
+        label: 'Reminder Logs',
+        path: '/dms/recurring-reminder-logs/list',
+        type: 'list',
+        module: 'recurring_reminder_logs',
+        icon: FiMail,
+      },
+    ],
+  },
+  {
+    label: 'Recurring Donors',
+    path: '/dms/recurring-donors/list',
+    type: 'list',
+    module: 'recurring_donors',
+    icon: FiUsers
+  },
+  {
+    label: 'Event Pledges',
+    path: '/dms/event-pledges/list',
+    type: 'list',
+    module: 'event_pledges',
+    icon: FiClipboard
   },
   {
     label: 'Reconciliation',
@@ -703,6 +903,13 @@ const fundRaisingDepartmentItems = (isUser = false) => [
     type: 'list',
     module: 'dashboard',
     icon: FiHome
+  },
+  {
+    label: 'Recurring Performance',
+    path: '/fund_raising/recurring-performance',
+    type: 'list',
+    module: 'recurring_performance',
+    icon: FiRepeat
   }
 ];
 
@@ -723,6 +930,23 @@ const taskingItems = (isUser = false) => [
   },
 ];
 
+const complaintsItems = (isUser = false) => [
+  {
+    label: 'Tickets List',
+    path: COMPLAINTS_LIST_PATH,
+    type: 'list',
+    module: 'tickets',
+    icon: FiList
+  },
+  {
+    label: 'Tickets Dashboard',
+    path: COMPLAINTS_DASHBOARD_PATH,
+    type: 'list',
+    module: 'tickets',
+    icon: FiBarChart2
+  },
+];
+
 // IT department menu
 const itDepartmentItems = () => [
   {
@@ -737,13 +961,13 @@ const itDepartmentItems = () => [
     ]
   },
   // {
-  //   label: 'Complaints',
+  //   label: 'Tickets',
   //   path: '/it/complaints/list',
   //   type: 'list',
-  //   module: 'complaints',
+  //   module: 'tickets',
   //   subItems: [
-  //     { label: 'Complaints List', path: '/it/complaints/list', type: 'list', module: 'complaints' },
-  //     { label: 'Complaints Dashboard', path: '/it/complaints/reports', type: 'list', module: 'complaints' }
+  //     { label: 'Tickets List', path: '/it/complaints/list', type: 'list', module: 'tickets' },
+  //     { label: 'Tickets Dashboard', path: '/it/complaints/reports', type: 'list', module: 'tickets' }
   //   ]
   // }
 ];
@@ -762,13 +986,13 @@ const marketingDepartmentItems = () => [
     ]
   },
   // {
-  //   label: 'Complaints',
+  //   label: 'Tickets',
   //   path: '/marketing/complaints/list',
   //   type: 'list',
-  //   module: 'complaints',
+  //   module: 'tickets',
   //   subItems: [
-  //     { label: 'Complaints List', path: '/marketing/complaints/list', type: 'list', module: 'complaints' },
-  //     { label: 'Complaints Dashboard', path: '/marketing/complaints/reports', type: 'list', module: 'complaints' }
+  //     { label: 'Tickets List', path: '/marketing/complaints/list', type: 'list', module: 'tickets' },
+  //     { label: 'Tickets Dashboard', path: '/marketing/complaints/reports', type: 'list', module: 'tickets' }
   //   ]
   // }
 ];
@@ -810,6 +1034,13 @@ const ceoOfficeItems = () => [
     type: 'list',
     module: 'instruction_register',
     icon: FiList
+  },
+  {
+    label: 'CEO Complaints',
+    path: '/ceo-office/ceo-complaints/list',
+    type: 'list',
+    module: 'ceo_complaints',
+    icon: FiAlertCircle
   },
 ];
 
@@ -874,6 +1105,12 @@ const allDepartmentItems = (isUser = false) => [
     label: 'Tasking',
     icon: FiCheckSquare,
     items: taskingItems(isUser)
+  },
+  {
+    id: 'tickets',
+    label: 'Tickets',
+    icon: FiAlertCircle,
+    items: complaintsItems(isUser)
   },
   {
     id: 'it',
@@ -969,6 +1206,12 @@ ceo_office: (isUser = false) => ({
     icon: FiCheckSquare,
     items: taskingItems(isUser)
   }),
+  complaints: (isUser = false) => ({
+    id: 'tickets',
+    label: 'Tickets',
+    icon: FiAlertCircle,
+    items: complaintsItems(isUser)
+  }),
   it: (isUser = false) => ({
     id: 'it',
     label: 'IT',
@@ -998,8 +1241,11 @@ const permissionDepartmentFor = (sectionId) => {
 const canAccessSidebarEntry = (permissions, department, item, parentModule = null) => {
   if (!item) return false;
 
-  // Tasks are shown from a dedicated global Tasking section only.
+  // Tasks / Tickets are shown from dedicated global sections only.
   if (item.module && TASK_MODULE_KEYS.has(item.module)) {
+    return false;
+  }
+  if (item.module && COMPLAINT_MODULE_KEYS.has(item.module)) {
     return false;
   }
 
@@ -1085,6 +1331,9 @@ export const getSidebarConfig = (user, permissions = null) => {
       departmentConfigs.ceo_office(false),
     ];
     sections.push(buildSuperAdminTaskingGroup());
+    sections.push(buildSuperAdminComplaintsGroup());
+    const superAdminComplaintCaseGroup = buildComplaintCaseGroup(user, permissions);
+    if (superAdminComplaintCaseGroup) sections.push(superAdminComplaintCaseGroup);
     sections.push(departmentConfigs.email_templates());
     return sections;
   }
@@ -1116,6 +1365,16 @@ export const getSidebarConfig = (user, permissions = null) => {
       sections.push(unifiedTaskingGroup);
     }
 
+    const unifiedComplaintsGroup = buildUnifiedComplaintsGroup(user, permissions);
+    if (unifiedComplaintsGroup) {
+      sections.push(unifiedComplaintsGroup);
+    }
+
+    const complaintCaseGroup = buildComplaintCaseGroup(user, permissions);
+    if (complaintCaseGroup) {
+      sections.push(complaintCaseGroup);
+    }
+
     return sections;
   }
 
@@ -1140,6 +1399,16 @@ export const getSidebarConfig = (user, permissions = null) => {
   const unifiedTaskingGroup = buildUnifiedTaskingGroup(user, permissions);
   if (unifiedTaskingGroup) {
     sections.push(unifiedTaskingGroup);
+  }
+
+  const unifiedComplaintsGroup = buildUnifiedComplaintsGroup(user, permissions);
+  if (unifiedComplaintsGroup) {
+    sections.push(unifiedComplaintsGroup);
+  }
+
+  const complaintCaseGroup = buildComplaintCaseGroup(user, permissions);
+  if (complaintCaseGroup) {
+    sections.push(complaintCaseGroup);
   }
 
   return sections;

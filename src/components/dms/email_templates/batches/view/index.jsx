@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import axiosInstance from '../../../../../utils/axios';
 import Navbar from '../../../../Navbar';
 import PageHeader from '../../../../common/PageHeader';
+import { formatAuditActor } from '../../../../common/audit/auditHistoryLabels';
 import { formatFiltersSummary } from '../../communicationAudience';
 
 const formatDateTime = (value) => {
@@ -109,7 +110,14 @@ const CommunicationBatchView = () => {
             <p><strong>Failed:</strong> {batch.failed_count}</p>
             <p><strong>Status:</strong> {batch.batch_status}</p>
             <p><strong>Sent at:</strong> {formatDateTime(batch.sent_at || batch.created_at)}</p>
-            <p><strong>Sent by:</strong> {batch.sent_by?.email || batch.sent_by?.name || '—'}</p>
+            <p>
+              <strong>Created by:</strong>{' '}
+              {batch.created_by ? formatAuditActor(batch.created_by) : '—'}
+            </p>
+            <p>
+              <strong>Sent by:</strong>{' '}
+              {batch.sent_by ? formatAuditActor(batch.sent_by) : '—'}
+            </p>
           </div>
         )}
 

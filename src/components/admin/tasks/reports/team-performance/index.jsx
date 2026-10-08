@@ -92,7 +92,8 @@ const TeamPerformance = ({
         filters: {
           start_date: range.from,
           end_date: range.to,
-          assignee_id: memberId
+          assignee_id: memberId,
+          team_performance: true
         }
       };
 
@@ -290,7 +291,9 @@ const TeamPerformance = ({
             ))
           ) : (
             <div className="team-perf-empty-search">
-              No team members found matching "{teamSearchQuery}"
+              {teamSearchQuery.trim()
+                ? `No team members found matching "${teamSearchQuery}"`
+                : 'No direct reports found.'}
             </div>
           )}
         </div>

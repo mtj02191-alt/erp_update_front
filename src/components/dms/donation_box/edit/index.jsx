@@ -32,7 +32,6 @@ const EditDonationBox = () => {
     status: 'active',
     collection_frequency: 'weekly',
     landmark_marketplace: '',
-    require_collection_location: true,
     location_radius_value: String(DEFAULT_COLLECTION_RADIUS_METERS),
     location_radius_unit: 'm',
   });
@@ -127,7 +126,6 @@ const EditDonationBox = () => {
         status: box.status || 'active',
         collection_frequency: box.collection_frequency || box.frequency || 'weekly',
         landmark_marketplace: box.landmark_marketplace || '',
-        require_collection_location: box.require_collection_location !== false,
         location_radius_value: String(radiusForm.value),
         location_radius_unit: radiusForm.unit,
       });
@@ -202,11 +200,14 @@ const EditDonationBox = () => {
     setError('');
     setSuccess('');
     try {
+      const hasCoords =
+        donationBox?.registration_latitude != null &&
+        donationBox?.registration_longitude != null;
       const locationRadiusMeters = radiusFormToMeters(
         settingsForm.location_radius_value,
         settingsForm.location_radius_unit,
       );
-      const radiusError = settingsForm.require_collection_location
+      const radiusError = hasCoords
         ? validateCollectionRadiusMeters(locationRadiusMeters)
         : null;
       if (radiusError) {
@@ -221,8 +222,8 @@ const EditDonationBox = () => {
         status: settingsForm.status,
         frequency: settingsForm.collection_frequency,
         landmark_marketplace: settingsForm.landmark_marketplace?.trim() || null,
-        require_collection_location: settingsForm.require_collection_location,
-        location_radius_meters: locationRadiusMeters,
+        require_collection_location: hasCoords,
+        ...(hasCoords ? { location_radius_meters: locationRadiusMeters } : {}),
       };
       const response = await axiosInstance.patch(`/donation-box/${id}`, payload);
       if (!response.data?.success) {
@@ -242,11 +243,6 @@ const EditDonationBox = () => {
     e.preventDefault();
     if (!relocateForm.shop_name?.trim()) {
       setError('Shop name is required to relocate the box.');
-      return;
-    }
-
-    if (donationBox?.require_collection_location !== false && !relocateLocation) {
-      setError('Please select the new shop location on the map.');
       return;
     }
 
@@ -273,6 +269,7 @@ const EditDonationBox = () => {
         payload.registration_longitude = location.longitude;
         payload.registration_location_name = location.location_name || undefined;
         payload.registration_location_details = location.location_details || undefined;
+        payload.require_collection_location = true;
       }
 
       const response = await axiosInstance.patch(`/donation-box/${id}/relocate`, payload);
@@ -280,9 +277,7 @@ const EditDonationBox = () => {
         throw new Error(response.data?.message || 'Failed to relocate donation box');
       }
 
-      setSuccess(
-        'Donation box relocated successfully. Your reporting manager has been notified by email.',
-      );
+      setSuccess('Donation box relocated successfully.');
       setAuditRefreshKey((k) => k + 1);
       setRelocateForm({
         region: '',
@@ -318,11 +313,10 @@ const EditDonationBox = () => {
 
   const statusOptions = [
     { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
-    { value: 'maintenance', label: 'Maintenance' },
-    { value: 'damaged', label: 'Damaged' },
-    { value: 'retired', label: 'Retired' },
-    { value: 'pending', label: 'Pending' },
+    { value: 'inactive', label: 'In Active' },
+    { value: 'removed', label: 'Removed' },
+    { value: 'broken', label: 'Broken' },
+    { value: 'snr', label: 'SNR' },
   ];
 
   const collectionFrequencyOptions = [
@@ -552,9 +546,11 @@ const EditDonationBox = () => {
             </div>
           </div>
 
-          {donationBox?.require_collection_location !== false && (
           <div className="form-section">
-            <h3 className="form-section-heading">New shop location on map</h3>
+            <h3 className="form-section-heading">New shop location on map (optional)</h3>
+            <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#64748b' }}>
+              Optional. Save a pin only if you want GPS checks on future collections.
+            </p>
             <LocationMapPicker
               value={relocateLocation}
               onChange={setRelocateLocation}
@@ -562,7 +558,6 @@ const EditDonationBox = () => {
               disabled={relocating}
             />
           </div>
-          )}
 
           <div className="form-actions">
             <button type="submit" className="primary_btn" disabled={relocating}>
@@ -619,25 +614,8 @@ const EditDonationBox = () => {
                 placeholder="e.g., Millat Road, Green Town, Satyana Road"
               />
 
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    name="require_collection_location"
-                    checked={settingsForm.require_collection_location}
-                    onChange={handleSettingsChange}
-                    style={{ marginTop: '3px' }}
-                  />
-                  <span>
-                    <strong>Require on-site collection (device GPS)</strong>
-                    <span style={{ display: 'block', fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
-                      When off, this box can be collected from anywhere with no Google Maps / GPS check.
-                    </span>
-                  </span>
-                </label>
-              </div>
-
-              {settingsForm.require_collection_location && (
+              {donationBox?.registration_latitude != null &&
+                donationBox?.registration_longitude != null && (
                 <>
                   <FormInput
                     label="Collection margin"
@@ -645,7 +623,6 @@ const EditDonationBox = () => {
                     name="location_radius_value"
                     value={settingsForm.location_radius_value}
                     onChange={handleSettingsChange}
-                    required
                     min={settingsForm.location_radius_unit === 'km' ? '0.01' : '10'}
                     max={settingsForm.location_radius_unit === 'km' ? '10' : '10000'}
                     step={settingsForm.location_radius_unit === 'km' ? '0.1' : '1'}
@@ -660,7 +637,6 @@ const EditDonationBox = () => {
                       { value: 'm', label: 'Meters (m)' },
                       { value: 'km', label: 'Kilometers (km)' },
                     ]}
-                    required
                   />
                 </>
               )}

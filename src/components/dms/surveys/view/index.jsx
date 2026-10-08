@@ -5,6 +5,7 @@ import Navbar from '../../../Navbar';
 import PageHeader from '../../../common/PageHeader';
 import Card from '../../../common/Card';
 import { FiCheckCircle, FiXCircle, FiBarChart2, FiEdit, FiRefreshCw, FiEdit3 } from 'react-icons/fi';
+import { formatAuditActor } from '../../../common/audit/auditHistoryLabels';
 
 const QUESTION_TYPE_LABELS = {
   mcq_single: 'MCQ (Single)',
@@ -126,6 +127,9 @@ const ViewSurvey = () => {
                 'Start date': survey.start_at ? new Date(survey.start_at).toLocaleDateString() : '—',
                 'End date': survey.end_at ? new Date(survey.end_at).toLocaleDateString() : '—',
                 Description: survey.description || '—',
+                'Created by': survey.created_by
+                  ? formatAuditActor(survey.created_by)
+                  : '—',
               }}
             />
           </div>

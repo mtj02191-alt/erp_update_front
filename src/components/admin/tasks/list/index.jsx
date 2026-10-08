@@ -275,11 +275,8 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
 
   const approvalTabTotalCount = useMemo(() => {
     const totalFromCategory = Number(categoryCounts?.approval_tasks ?? 0);
-    if (Number.isFinite(totalFromCategory) && totalFromCategory > 0) {
-      return totalFromCategory;
-    }
-    return approvalTasks.length;
-  }, [approvalTasks.length, categoryCounts]);
+    return Number.isFinite(totalFromCategory) ? totalFromCategory : 0;
+  }, [categoryCounts]);
 
   const displayedApprovalTasks = useMemo(() => {
     if (activeTab !== 'approval_tasks') {
@@ -301,12 +298,6 @@ const TasksList = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 }) 
       return aPending ? -1 : 1;
     });
   }, [activeTab, tasks, approvalTasks]);
-
-  useEffect(() => {
-    if (approvalsLoaded && activeTab === 'approval_tasks' && approvalTasks.length === 0) {
-      setActiveTab('assigned_to_me');
-    }
-  }, [approvalTasks.length, activeTab, approvalsLoaded]);
 
   useEffect(() => {
     fetchApprovals();

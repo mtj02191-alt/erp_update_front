@@ -29,6 +29,8 @@ const CampaignsList = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [sortField, setSortField] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('DESC');
 
   const [tempFilters, setTempFilters] = useState({
     search: '',
@@ -51,6 +53,22 @@ const CampaignsList = () => {
   const handleFilterChange = (key, value) => {
     setTempFilters(prev => ({ ...prev, [key]: value }));
   };
+
+  const handleSortChange = (field, order) => {
+    setSortField(field);
+    setSortOrder(order);
+    setCurrentPage(1);
+  };
+
+  const sortOptions = [
+    { value: 'created_at', label: 'Created Date' },
+    { value: 'updated_at', label: 'Updated Date' },
+    { value: 'title', label: 'Title' },
+    { value: 'status', label: 'Status' },
+    { value: 'start_at', label: 'Start Date' },
+    { value: 'end_at', label: 'End Date' },
+    { value: 'id', label: 'ID' },
+  ];
 
   const handleApplyFilters = () => {
     const filtersChanged = JSON.stringify(appliedFilters) !== JSON.stringify(tempFilters);
@@ -81,7 +99,7 @@ const CampaignsList = () => {
 
   useEffect(() => {
     fetchCampaigns();
-  }, [currentPage, pageSize, appliedFilters]);
+  }, [currentPage, pageSize, sortField, sortOrder, appliedFilters]);
 
   const buildQueryParams = (filters) => {
     const params = { ...filters };
@@ -98,7 +116,13 @@ const CampaignsList = () => {
   const fetchCampaigns = async () => {
     try {
       setLoading(true);
-      const params = buildQueryParams(appliedFilters);
+      const params = {
+        ...buildQueryParams(appliedFilters),
+        page: currentPage,
+        pageSize,
+        sortField,
+        sortOrder,
+      };
       const response = await axiosInstance.get('/campaigns', { params });
       if (response.data.success) {
         const data = response.data.data || [];
@@ -381,6 +405,10 @@ const CampaignsList = () => {
               pageSize={pageSize}
               onPageChange={handlePageChange}
               onPageSizeChange={handlePageSizeChange}
+              onSortChange={handleSortChange}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              sortOptions={sortOptions}
             />
           )}
         </div>

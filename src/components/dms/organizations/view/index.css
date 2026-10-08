@@ -1,5 +1,5 @@
 .org-crm-page .org-people-search {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .org-people-empty {
@@ -12,7 +12,7 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 320px;
+  max-height: 280px;
   overflow: auto;
 }
 
@@ -193,6 +193,16 @@
   color: #1e293b;
 }
 
+.org-person-summary__subtitle {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.org-person-summary-card {
+  margin-bottom: 1rem;
+}
+
 .org-person-summary__header-actions {
   display: inline-flex;
   align-items: center;
@@ -341,4 +351,31 @@
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+.org-poc-sidebar-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+}
+
+.org-poc-sidebar-actions__label {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.org-poc-sidebar-actions__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.org-poc-sidebar-actions__buttons .donor-profile-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: center;
+  font-size: 11px;
+  padding: 6px 8px;
 }

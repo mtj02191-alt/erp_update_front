@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import axiosInstance from '../../../../utils/axios';
 import FormInput from '../../../common/FormInput';
@@ -15,18 +15,75 @@ import { projectCards } from '../../../../utils/program';
 import DonationPendingAttachments, {
   uploadPendingDonationAttachments,
 } from '../../../dms/donations/shared/DonationPendingAttachments';
+import {
+  getDonationListRoutes,
+  donationViewPath,
+} from '../../../dms/donations/shared/donationListRoutes';
 import { toast } from 'react-toastify';
+import { getInKindCategoryLabel } from '../../../../utils/inKindCategories';
+import { useAuth } from '../../../../context/AuthContext';
+import {
+  canReconcileDonations,
+  donationStatusOptionsForUser,
+} from '../../../../utils/permissions';
 
-const AddDonation = () => {
+const AddDonation = ({
+  embedded = false,
+  embeddedCsrDonorId = null,
+  embeddedCsrPocId = null,
+  embeddedDonorId = null,
+  embeddedChannel = null,
+  onSaved = null,
+  onCancel = null,
+} = {}) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isOfflineRoute = location.pathname.includes('/donations/offline_donations');
-  const donationsBasePath = isOfflineRoute
-    ? '/donations/offline_donations'
-    : '/donations/online_donations';
+  const { permissions } = useAuth();
+  const isCsrHubAddRoute = !embedded && location.pathname.includes('/dms/csr-donations/add');
+  const isInKindHubAddRoute =
+    !embedded && location.pathname.includes('/dms/in-kind-donations/add');
   const { inKindItems, refetchInKindItems } = useInKindItems();
   const [searchParams] = useSearchParams();
-  const donorIdFromUrl = searchParams.get('donor_id');
+  const donorIdFromUrl =
+    (embeddedDonorId != null && embeddedDonorId !== ''
+      ? String(embeddedDonorId)
+      : null) || searchParams.get('donor_id');
+  const csrDonorIdFromUrl =
+    (embeddedCsrDonorId != null && embeddedCsrDonorId !== ''
+      ? String(embeddedCsrDonorId)
+      : null) || searchParams.get('csr_donor_id');
+  const csrPocIdFromUrl =
+    (embeddedCsrPocId != null && embeddedCsrPocId !== ''
+      ? String(embeddedCsrPocId)
+      : null) || searchParams.get('csr_poc_id');
+  const isCsrMode = Boolean(csrDonorIdFromUrl) || isCsrHubAddRoute;
+  const donationRoutes = useMemo(() => {
+    if (isCsrHubAddRoute || csrDonorIdFromUrl) {
+      return getDonationListRoutes(
+        csrDonorIdFromUrl
+          ? { pathname: `/dms/csr-donors/${csrDonorIdFromUrl}/donations` }
+          : location,
+        { csrDonorId: csrDonorIdFromUrl || '', channel: 'csr' },
+      );
+    }
+    if (isInKindHubAddRoute) {
+      return getDonationListRoutes(location, { channel: 'in_kind' });
+    }
+    if (embedded && donorIdFromUrl) {
+      return getDonationListRoutes(location, {
+        channel: embeddedChannel === 'offline' ? 'offline' : 'online',
+      });
+    }
+    return getDonationListRoutes(location);
+  }, [
+    location.pathname,
+    isCsrHubAddRoute,
+    isInKindHubAddRoute,
+    csrDonorIdFromUrl,
+    embedded,
+    donorIdFromUrl,
+    embeddedChannel,
+  ]);
   // console.log("inKindItems", inKindItems);
   const [form, setForm] = useState({
     // Donor information (will come from selected donor)
@@ -37,7 +94,7 @@ const AddDonation = () => {
     currency: 'PKR',
     date: new Date().toISOString().split('T')[0], // Current date
     donation_type: 'general',
-    donation_method: 'cash',
+    donation_method: isInKindHubAddRoute ? 'in_kind' : 'cash',
     source: '',
     collection_center: '',
     status: 'pending',
@@ -77,6 +134,7 @@ const AddDonation = () => {
 
     /** Qurbani only: optional on-behalf name(s) */
     on_behalf_names: '',
+    csr_poc_id: '',
   });
 
   const QURBANI_PROJECT_ID = 'qurbani-baraye-mustehqeen'; 
@@ -145,6 +203,9 @@ const AddDonation = () => {
   };
   
   const [selectedDonor, setSelectedDonor] = useState(null);
+  const [selectedCsrDonor, setSelectedCsrDonor] = useState(null);
+  const [csrPocs, setCsrPocs] = useState([]);
+  const [loadingCsrContext, setLoadingCsrContext] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState([]);
   const attachmentsRef = useRef(null);
@@ -222,12 +283,17 @@ const AddDonation = () => {
               ...item,
               id: selectedItem.id,
               name: selectedItem.name,
-              description: selectedItem.description || item.description,
-              category: selectedItem.category || item.category,
-              // Don't override estimated_value, let user keep their input
+              description: selectedItem.description || '',
+              category: selectedItem.category || '',
               estimated_value: item.estimated_value
             };
           }
+          return {
+            ...item,
+            id: null,
+            name: value,
+            category: '',
+          };
         }
         return { ...item, [field]: value };
       }
@@ -239,13 +305,98 @@ const AddDonation = () => {
     });
   };
 
+  const sumInKindEstimatedValue = (items = []) =>
+    items.reduce((sum, item) => {
+      const value = parseFloat(item?.estimated_value);
+      return sum + (Number.isFinite(value) ? value : 0);
+    }, 0);
+
+  // Check if cheque is selected as payment method — declared early for amount sync
+  const isChequeSelected = form.donation_method === 'cheque';
+  const isInKindSelected = form.donation_method === 'in_kind';
+  const canReconcile = useMemo(
+    () =>
+      canReconcileDonations(permissions, {
+        channel: donationRoutes.channel,
+        donation_method:
+          isInKindSelected || isInKindHubAddRoute ? 'in_kind' : undefined,
+      }),
+    [
+      permissions,
+      donationRoutes.channel,
+      isInKindSelected,
+      isInKindHubAddRoute,
+    ],
+  );
+
+  // In-kind: amount is always the sum of estimated values (read-only for user).
+  // Non-reconciler: keep status forced to pending.
+  useEffect(() => {
+    if (!isInKindSelected) return;
+    const total = sumInKindEstimatedValue(form.in_kind_items);
+    const nextAmount = Number.isFinite(total) ? String(total) : '0';
+    setForm((prev) => {
+      if (prev.donation_method !== 'in_kind') return prev;
+      const nextStatus = canReconcile ? prev.status : 'pending';
+      if (String(prev.amount) === nextAmount && prev.status === nextStatus) return prev;
+      return { ...prev, amount: nextAmount, status: nextStatus };
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInKindSelected, form.in_kind_items, canReconcile]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     
     try {
-      // Validate donor selection
-      if (!form.donor_id) {
+      let resolvedDonorId = form.donor_id || null;
+      let csrBillingContact = null;
+
+      if (isCsrMode) {
+        const activeCsrDonorId = csrDonorIdFromUrl || selectedCsrDonor?.id;
+        if (!activeCsrDonorId) {
+          setError('Please select a CSR donor company');
+          setIsSubmitting(false);
+          return;
+        }
+
+        const pocId = form.csr_poc_id || csrPocIdFromUrl || '';
+        const pocRow = pocId
+          ? csrPocs.find((row) => {
+              const pocEntity = row.poc || row;
+              return String(pocEntity.id) === String(pocId);
+            })
+          : null;
+        const pocEntity = pocRow?.poc || pocRow || null;
+        const legacyDonorId =
+          pocId && pocEntity
+            ? pocEntity?.legacy_donor_id || pocRow?.legacy_donor_id || null
+            : null;
+
+        if (legacyDonorId) {
+          resolvedDonorId = legacyDonorId;
+        } else if (pocEntity) {
+          csrBillingContact = {
+            donor_name: pocEntity.name || selectedCsrDonor?.name || 'CSR Donor',
+            donor_email: pocEntity.email || selectedCsrDonor?.email || null,
+            donor_phone: pocEntity.phone || selectedCsrDonor?.phone || null,
+          };
+        } else {
+          csrBillingContact = {
+            donor_name: selectedCsrDonor?.name || 'CSR Donor',
+            donor_email: selectedCsrDonor?.email || null,
+            donor_phone: selectedCsrDonor?.phone || null,
+          };
+        }
+
+        if (!resolvedDonorId && !csrBillingContact?.donor_email && !csrBillingContact?.donor_phone) {
+          setError(
+            'Add company or POC email/phone on the CSR donor profile before recording a donation.',
+          );
+          setIsSubmitting(false);
+          return;
+        }
+      } else if (!form.donor_id) {
         setError('Please select a donor before submitting');
         setIsSubmitting(false);
         return;
@@ -283,23 +434,50 @@ const AddDonation = () => {
           ? qurbaniPayloadItems.reduce((sum, it) => sum + Number(it.totalAmount || 0), 0)
           : null;
 
+      const activeCsrPocId = form.csr_poc_id || csrPocIdFromUrl || '';
+
       const donationData = {
-        donor_id: form.donor_id,
-        amount: qurbaniTotal != null ? Number(qurbaniTotal) : parseFloat(form.amount),
+        ...(resolvedDonorId ? { donor_id: resolvedDonorId } : {}),
+        ...(isCsrMode
+          ? {
+              organization_id: Number(csrDonorIdFromUrl || selectedCsrDonor?.id),
+              ...(activeCsrPocId ? { csr_poc_id: Number(activeCsrPocId) } : {}),
+              ...(csrBillingContact || {}),
+              city: selectedCsrDonor?.city || null,
+              country: selectedCsrDonor?.country || null,
+              address: selectedCsrDonor?.address || null,
+            }
+          : {}),
+        amount:
+          form.donation_method === 'in_kind' || isInKindHubAddRoute
+            ? sumInKindEstimatedValue(form.in_kind_items)
+            : qurbaniTotal != null
+              ? Number(qurbaniTotal)
+              : parseFloat(form.amount),
         currency: form.currency,
         date: form.date,
         donation_type: form.donation_type,
-        donation_method: form.donation_method,
-        // API field is donation_source (not `source`); empty → website default
-        donation_source: String(form.source || '').trim() || 'website',
-        status: form.status,
+        donation_method: isInKindHubAddRoute ? 'in_kind' : form.donation_method,
+        donation_source: isCsrMode
+          ? 'fund_raising'
+          : isInKindHubAddRoute || form.donation_method === 'in_kind'
+            ? String(form.source || '').trim() || 'fund_raising'
+            : String(form.source || '').trim() ||
+              (donationRoutes.channel === 'offline' ||
+              donationRoutes.channel === 'csr'
+                ? 'fund_raising'
+                : 'website'),
+        status:
+          form.donation_method === 'in_kind' || isInKindHubAddRoute
+            ? canReconcile
+              ? form.status || 'pending'
+              : 'pending'
+            : canReconcile
+              ? form.status
+              : 'pending',
         project_id: form.project_id || null,
         project_name: form.project_name,
-        ...(isQurbaniProject
-          ? {
-              on_behalf_names: String(form.on_behalf_names || '').trim() || null,
-            }
-          : {}),
+        on_behalf_names: String(form.on_behalf_names || '').trim() || null,
         ...(qurbaniPayloadItems.length > 0 ? { donation_items: qurbaniPayloadItems } : {}),
         // Payment method specific fields
         cheque_number: form.cheque_number || null,
@@ -366,14 +544,28 @@ const AddDonation = () => {
       }
 
       if (newDonationId) {
-        navigate(`${donationsBasePath}/view/${newDonationId}`);
+        if (embedded && typeof onSaved === 'function') {
+          onSaved({ donationId: newDonationId });
+          return;
+        }
+        navigate(donationViewPath(donationRoutes, newDonationId));
+        return;
+      }
+
+      if (embedded && typeof onSaved === 'function') {
+        onSaved({ donationId: null });
         return;
       }
 
       if (donorIdFromUrl) {
-        navigate(`${donationsBasePath}/list?donor_id=${donorIdFromUrl}`);
+        navigate(`${donationRoutes.listPath}?donor_id=${donorIdFromUrl}`);
+      } else if (csrDonorIdFromUrl) {
+        const pocQuery = csrPocIdFromUrl || form.csr_poc_id
+          ? `?person=${csrPocIdFromUrl || form.csr_poc_id}`
+          : '';
+        navigate(`${donationRoutes.listPath}${pocQuery}`);
       } else {
-        navigate(`${donationsBasePath}/list`);
+        navigate(donationRoutes.listPath);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to add donation. Please try again.');
@@ -384,11 +576,22 @@ const AddDonation = () => {
   };
 
   const handleBack = () => {
-    if (donorIdFromUrl) {
-      navigate(`${donationsBasePath}/list?donor_id=${donorIdFromUrl}`);
-    } else {
-      navigate(`${donationsBasePath}/list`);
+    if (embedded && typeof onCancel === 'function') {
+      onCancel();
+      return;
     }
+    if (donorIdFromUrl) {
+      navigate(`${donationRoutes.listPath}?donor_id=${donorIdFromUrl}`);
+      return;
+    }
+    if (csrDonorIdFromUrl) {
+      const pocQuery = csrPocIdFromUrl || form.csr_poc_id
+        ? `?person=${csrPocIdFromUrl || form.csr_poc_id}`
+        : '';
+      navigate(`${donationRoutes.listPath}${pocQuery}`);
+      return;
+    }
+    navigate(donationRoutes.listPath);
   };
 
   // Dropdown options
@@ -401,12 +604,14 @@ const AddDonation = () => {
     { value: 'qurbani-barai-mustehqeen', label: 'Qurbani Barai Mustehqeen' },
   ];
 
-  const donationMethodOptions = [
-    { value: 'cash', label: 'Cash' },
-    { value: 'cheque', label: 'Cheque' },
-    { value: 'in_kind', label: 'In Kind' },
-    { value: 'bank_transfer', label: 'Bank Transfer' },
-  ];
+  const donationMethodOptions = isInKindHubAddRoute
+    ? [{ value: 'in_kind', label: 'In Kind' }]
+    : [
+        { value: 'cash', label: 'Cash' },
+        { value: 'cheque', label: 'Cheque' },
+        { value: 'in_kind', label: 'In Kind' },
+        { value: 'bank_transfer', label: 'Bank Transfer' },
+      ];
 
   const statusOptions = [
     { value: 'pending', label: 'Pending' },
@@ -415,6 +620,35 @@ const AddDonation = () => {
     { value: 'cancelled', label: 'Cancelled' },
     { value: 'registered', label: 'Registered' }
   ];
+
+  const visibleStatusOptions = useMemo(() => {
+    const channelOpts = {
+      channel: donationRoutes.channel,
+      donation_method: isInKindSelected ? 'in_kind' : undefined,
+    };
+    if (isInKindSelected) {
+      if (!canReconcileDonations(permissions, channelOpts)) {
+        return [{ value: 'pending', label: 'Pending' }];
+      }
+      return [
+        { value: 'pending', label: 'Pending' },
+        { value: 'completed', label: 'Completed' },
+        { value: 'failed', label: 'Failed' },
+        { value: 'cancelled', label: 'Cancelled' },
+      ];
+    }
+    return donationStatusOptionsForUser(
+      permissions,
+      statusOptions,
+      form.status,
+      channelOpts,
+    );
+  }, [
+    permissions,
+    isInKindSelected,
+    form.status,
+    donationRoutes.channel,
+  ]);
 
   const currencyOptions = [
     { value: 'PKR', label: 'PKR - Pakistani Rupee' },
@@ -460,20 +694,6 @@ const AddDonation = () => {
     { value: 'other', label: 'Other Bank' }
   ];
 
-  // In-kind donation category options
-  const inKindCategoryOptions = [
-    { value: 'clothing', label: 'Clothing' },
-    { value: 'food', label: 'Food' },
-    { value: 'medical', label: 'Medical' },
-    { value: 'educational', label: 'Educational' },
-    { value: 'electronics', label: 'Electronics' },
-    { value: 'furniture', label: 'Furniture' },
-    { value: 'books', label: 'Books' },
-    { value: 'toys', label: 'Toys' },
-    { value: 'household', label: 'Household' },
-    { value: 'other', label: 'Other' }
-  ];
-
   // In-kind donation condition options
   const inKindConditionOptions = [
     { value: 'new', label: 'New' },
@@ -483,12 +703,6 @@ const AddDonation = () => {
     { value: 'poor', label: 'Poor' }
   ];
 
-  // Check if cheque is selected as payment method
-  const isChequeSelected = form.donation_method === 'cheque';
-  
-  // Check if in kind is selected as payment method
-  const isInKindSelected = form.donation_method === 'in_kind';
-  
   // Check if collection center is selected as donation source
   const isCollectionCenter = form.source === 'collection_center';
 
@@ -511,14 +725,136 @@ const AddDonation = () => {
     // eslint-disable-next-line
   }, [donorIdFromUrl, selectedDonor]);
 
+  const loadCsrContext = async (csrId, initialPocId = '') => {
+    if (!csrId) return;
+    try {
+      setLoadingCsrContext(true);
+      setError('');
+      const [orgRes, pocsRes] = await Promise.all([
+        axiosInstance.get(`/csr-donors/${csrId}`),
+        axiosInstance.get(`/csr-donors/${csrId}/pocs`, {
+          params: { page: 1, pageSize: 200 },
+        }),
+      ]);
+
+      const org = orgRes.data?.data || null;
+      const pocList = pocsRes.data?.data || [];
+      setSelectedCsrDonor(org);
+      setCsrPocs(pocList);
+      setSelectedDonor(null);
+
+      if (initialPocId) {
+        const pocRow = pocList.find((row) => {
+          const pocEntity = row.poc || row;
+          return String(pocEntity.id) === String(initialPocId);
+        });
+        const pocEntity = pocRow?.poc || pocRow || null;
+        const legacyDonorId =
+          pocEntity?.legacy_donor_id || pocRow?.legacy_donor_id || null;
+        setForm((prev) => ({
+          ...prev,
+          csr_poc_id: String(initialPocId),
+          donor_id: legacyDonorId ? String(legacyDonorId) : '',
+        }));
+        if (legacyDonorId) {
+          try {
+            const donorRes = await axiosInstance.get(`/donors/${legacyDonorId}`);
+            if (donorRes.data?.data) setSelectedDonor(donorRes.data.data);
+          } catch {
+            /* legacy donor optional */
+          }
+        }
+      } else {
+        setForm((prev) => ({
+          ...prev,
+          csr_poc_id: '',
+          donor_id: '',
+        }));
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load CSR donor context');
+    } finally {
+      setLoadingCsrContext(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!csrDonorIdFromUrl) return;
+    loadCsrContext(csrDonorIdFromUrl, csrPocIdFromUrl || '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [csrDonorIdFromUrl, csrPocIdFromUrl]);
+
+  const handleCsrDonorHubSelect = async (org) => {
+    setForm((prev) => ({ ...prev, csr_poc_id: '', donor_id: '' }));
+    setSelectedDonor(null);
+    if (error) setError('');
+    await loadCsrContext(org?.id, '');
+  };
+
+  const handleCsrDonorHubClear = () => {
+    setSelectedCsrDonor(null);
+    setCsrPocs([]);
+    setForm((prev) => ({ ...prev, csr_poc_id: '', donor_id: '' }));
+    setSelectedDonor(null);
+  };
+
+  const handleCsrPocChange = (e) => {
+    const pocId = e.target.value;
+    const pocRow = pocId
+      ? csrPocs.find((row) => {
+          const pocEntity = row.poc || row;
+          return String(pocEntity.id) === String(pocId);
+        })
+      : null;
+    const pocEntity = pocRow?.poc || pocRow || null;
+    const legacyDonorId =
+      pocEntity?.legacy_donor_id || pocRow?.legacy_donor_id || null;
+
+    setForm((prev) => ({
+      ...prev,
+      csr_poc_id: pocId,
+      donor_id: legacyDonorId ? String(legacyDonorId) : '',
+    }));
+
+    if (legacyDonorId) {
+      axiosInstance
+        .get(`/donors/${legacyDonorId}`)
+        .then((res) => {
+          if (res.data?.data) setSelectedDonor(res.data.data);
+        })
+        .catch(() => setSelectedDonor(null));
+    } else {
+      setSelectedDonor(null);
+    }
+    if (error) setError('');
+  };
+
 
   return (
     <>
-      <Navbar />
-      <div className="form-content">
-        <PageHeader 
-          title="Add Donation" 
-          onBack={handleBack}
+      {!embedded && <Navbar />}
+      <div className={embedded ? 'donor-profile-donations-embed' : 'form-content'}>
+        <PageHeader
+          title={
+            isInKindHubAddRoute
+              ? 'Add In Kind Donation'
+              : isCsrMode
+                ? 'Add CSR Donation'
+                : 'Add Donation'
+          }
+          backPath={
+            embedded
+              ? undefined
+              : donationRoutes.channel === 'csr' && !csrDonorIdFromUrl
+                ? donationRoutes.listPath
+                : undefined
+          }
+          onBackClick={
+            embedded || donationRoutes.channel !== 'csr' || csrDonorIdFromUrl
+              ? handleBack
+              : undefined
+          }
+          showBackButton
         />
         
         {error && (
@@ -527,16 +863,91 @@ const AddDonation = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="form">
-          {/* if the donor_id exists in the url, then show the donor  */}
-          
+        {loadingCsrContext && isCsrMode ? (
+          <div className="loading">Loading CSR donor...</div>
+        ) : null}
 
-          {/* Donor Selection */}
+        <form onSubmit={handleSubmit} className="form">
           <div className="form-section">
+            {isCsrMode ? (
+              <>
+                <p className="reconciliation-notes">
+                  Donation is credited to the CSR donor company. Choose a POC when the gift is tied to a specific contact; otherwise it is recorded company-wide.
+                </p>
+                <div className="form-grid-2">
+                  {isCsrHubAddRoute && !csrDonorIdFromUrl ? (
+                    <SearchableDropdown
+                      label="CSR Donor"
+                      placeholder="Search CSR donor company..."
+                      apiEndpoint="/csr-donors"
+                      apiParams={{ pageSize: 20 }}
+                      onSelect={handleCsrDonorHubSelect}
+                      onClear={handleCsrDonorHubClear}
+                      value={selectedCsrDonor}
+                      displayKey="name"
+                      debounceDelay={400}
+                      minSearchLength={2}
+                      required
+                      renderOption={(org) => (
+                        <div className="searchable-dropdown__option" style={{ padding: '12px' }}>
+                          <div style={{ fontWeight: 500 }}>{org.name}</div>
+                          <div style={{ fontSize: 12, color: '#666' }}>
+                            {[org.city, org.registration_number].filter(Boolean).join(' · ') ||
+                              'CSR Donor'}
+                          </div>
+                        </div>
+                      )}
+                    />
+                  ) : (
+                    <FormInput
+                      label="CSR Donor"
+                      name="csr_donor_display"
+                      value={selectedCsrDonor?.name || (loadingCsrContext ? 'Loading…' : 'CSR Donor')}
+                      readOnly
+                      disabled
+                    />
+                  )}
+                  {selectedCsrDonor ? (
+                  <div className="form-group">
+                    <label htmlFor="csr_poc_id">POC (optional)</label>
+                    <select
+                      id="csr_poc_id"
+                      name="csr_poc_id"
+                      className="form-control"
+                      value={form.csr_poc_id || ''}
+                      onChange={handleCsrPocChange}
+                      disabled={loadingCsrContext}
+                    >
+                      <option value="">Company-wide (no specific POC)</option>
+                      {csrPocs.map((row) => {
+                        const pocEntity = row.poc || row;
+                        return (
+                          <option key={pocEntity.id} value={String(pocEntity.id)}>
+                            {pocEntity.name || pocEntity.email || `POC #${pocEntity.id}`}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                  ) : null}
+                </div>
+                {selectedDonor ? (
+                  <FormInput
+                    label="Billing donor (legacy link)"
+                    name="legacy_donor_display"
+                    value={selectedDonor.name || selectedDonor.email || `Donor #${selectedDonor.id}`}
+                    readOnly
+                    disabled
+                  />
+                ) : null}
+              </>
+            ) : (
+            <>
             <SearchableDropdown
               label="Select Donor :"
               placeholder="Search donors by name, email, or phone..."
-              apiEndpoint="/donors"
+              apiEndpoint="/donors/lookup"
+              apiParams={{ pageSize: 20 }}
               onSelect={handleDonorSelect}
               onClear={handleDonorClear}
               value={selectedDonor}
@@ -574,6 +985,8 @@ const AddDonation = () => {
                 💡 Please register the donor first if not in the system
               </div>
             )}
+            </>
+            )}
           </div>
 
           {/* Donation Details */}
@@ -581,15 +994,21 @@ const AddDonation = () => {
             <h3 className="form-section-heading">Donation Details</h3>
             <div className="form-grid-2">
               <FormInput
-                label="Amount"
+                label={isInKindSelected ? 'Amount (from estimated values)' : 'Amount'}
                 type="number"
                 name="amount"
                 value={form.amount}
                 onChange={handleChange}
-                required
+                required={!isInKindSelected}
                 placeholder="0.00"
                 step="0.01"
                 min="0"
+                disabled={isInKindSelected}
+                title={
+                  isInKindSelected
+                    ? 'Amount is the sum of Estimated Value on in-kind items'
+                    : undefined
+                }
               />
 
               <FormSelect
@@ -623,13 +1042,21 @@ const AddDonation = () => {
                 label="Payment Method"
                 name="donation_method"
                 value={form.donation_method}
+                disabled={isInKindHubAddRoute}
                 onChange={(e) => {
                   const method = e.target.value;
                   setForm({ 
                     ...form, 
                     donation_method: method,
-                    // Set status to pending if cheque is selected
-                    status: method === 'cheque' ? 'pending' : form.status,
+                    // In-kind / cheque start as pending
+                    status:
+                      method === 'cheque' || method === 'in_kind'
+                        ? 'pending'
+                        : form.status,
+                    amount:
+                      method === 'in_kind'
+                        ? String(sumInKindEstimatedValue(form.in_kind_items))
+                        : form.amount,
                     // Reset cheque fields if not cheque
                     cheque_number: method === 'cheque' ? form.cheque_number : '',
                     bank_name: method === 'cheque' ? form.bank_name : '',
@@ -687,8 +1114,9 @@ const AddDonation = () => {
                 name="status"
                 value={form.status}
                 onChange={handleChange}
-                options={statusOptions}
+                options={visibleStatusOptions}
                 required
+                disabled={!canReconcile}
               />
 
               <HybridDropdown
@@ -821,10 +1249,12 @@ const AddDonation = () => {
                            onChange={(e) => handleInKindItemChange(index, 'name', e.target.value)}
                            options={[
                              { value: '', label: 'Select item name...' },
-                             ...inKindItems.map(item => ({
-                               value: item.name,
-                               label: item.name
-                             }))
+                             ...inKindItems.map((catalogItem) => ({
+                               value: catalogItem.name,
+                               label: catalogItem.category
+                                 ? `${catalogItem.name} (${getInKindCategoryLabel(catalogItem.category)})`
+                                 : catalogItem.name,
+                             })),
                            ]}
                            required
                          />
@@ -848,15 +1278,23 @@ const AddDonation = () => {
                    />
 
                    <div className="form-grid-2" style={{ marginBottom: '1rem' }}>
-                     <FormSelect
-                       label="Category"
-                       name={`category_${index}`}
-                       value={item.category}
-                       onChange={(e) => handleInKindItemChange(index, 'category', e.target.value)}
-                       options={inKindCategoryOptions}
-                       required
-                       placeholder="Select category"
-                     />
+                     <div className="form-group">
+                       <label>Category</label>
+                       <div
+                         className="form-control"
+                         style={{
+                           background: '#f3f4f6',
+                           color: item.category ? '#111827' : '#9ca3af',
+                           minHeight: '38px',
+                           display: 'flex',
+                           alignItems: 'center',
+                         }}
+                       >
+                         {item.name
+                           ? getInKindCategoryLabel(item.category)
+                           : 'Select an item to see category'}
+                       </div>
+                     </div>
 
                      <FormSelect
                        label="Condition"
@@ -996,8 +1434,6 @@ const AddDonation = () => {
                       project_id: id,
                       project_name: proj?.title || prev.project_name,
                       donation_items: id === QURBANI_PROJECT_ID ? prev.donation_items : [],
-                      on_behalf_names:
-                        id === QURBANI_PROJECT_ID ? prev.on_behalf_names : '',
                     }));
                   }}
                   showDefaultOption={true}
@@ -1129,18 +1565,20 @@ const AddDonation = () => {
                     </div>
                   </div>
                 )}
-
-                <FormInput
-                  label="On behalf name(s) (optional)"
-                  type="textarea"
-                  name="on_behalf_names"
-                  value={form.on_behalf_names}
-                  onChange={handleChange}
-                  placeholder="Enter name(s) this Qurbani is performed on behalf of"
-                  rows="3"
-                />
               </>
             )}
+          </div>
+
+          <div className="form-section">
+            <h3 className="form-section-heading">On behalf (optional)</h3>
+            <FormInput
+              label="On behalf name(s)"
+              type="text"
+              name="on_behalf_names"
+              value={form.on_behalf_names}
+              onChange={handleChange}
+              placeholder="Enter name(s) this donation is on behalf of"
+            />
           </div>
 
           {/* Payment Details */}

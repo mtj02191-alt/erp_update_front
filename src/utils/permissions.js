@@ -84,6 +84,30 @@ export const canViewModule = (permissions, department, module) => {
     return true;
   }
 
+  // Recurring reminder logs: own flags, or recurring donations list/view
+  if (department === 'fund_raising' && module === 'recurring_reminder_logs') {
+    const fr = permissions[department];
+    if (!fr) return false;
+    const specific = fr.recurring_reminder_logs;
+    if (specific?.view === true || specific?.list_view === true) return true;
+    const recurring = fr.recurring_donations;
+    return recurring?.view === true || recurring?.list_view === true;
+  }
+
+  // CSR donors / CSR POCs share access in sidebar when either submodule is granted
+  if (
+    department === 'fund_raising' &&
+    (module === 'organizations' || module === 'csr_pocs')
+  ) {
+    const fr = permissions[department];
+    if (!fr) return false;
+    const specific = fr[module];
+    if (specific?.view === true || specific?.list_view === true) return true;
+    const siblingKey = module === 'organizations' ? 'csr_pocs' : 'organizations';
+    const sibling = fr[siblingKey];
+    return sibling?.view === true || sibling?.list_view === true;
+  }
+
   // Unified donors (fund_raising): allow sidebar if new or legacy donor module flags exist
   if (department === 'fund_raising' && (module === 'donors' || module === 'online_donors' || module === 'offline_donors')) {
     const fr = permissions[department];
@@ -138,6 +162,19 @@ export const fundRaisingDonorsHas = (permissions, action) => {
     fr.donors?.[action] === true ||
     fr.online_donors?.[action] === true ||
     fr.offline_donors?.[action] === true
+  );
+};
+
+/**
+ * True if CSR Donor (organizations) or CSR POC permissions grant `action`.
+ */
+export const fundRaisingOrganizationsOrPocsHas = (permissions, action) => {
+  if (!permissions?.fund_raising || !action) {
+    return false;
+  }
+  const fr = permissions.fund_raising;
+  return (
+    fr.organizations?.[action] === true || fr.csr_pocs?.[action] === true
   );
 };
 
@@ -300,6 +337,7 @@ export default {
   hasDepartmentAccess,
   canViewModule,
   fundRaisingDonorsHas,
+  fundRaisingOrganizationsOrPocsHas,
   isSuperAdmin,
   getAccessibleModules,
   getModulePermissions,
@@ -416,3 +454,233 @@ export const getTaskPermissions = (permissions, department, userRole) => {
   
   return result;
 };
+
+export const getComplaintPermissions = (permissions, department, userRole) => {
+  const role = String(userRole || '').toLowerCase();
+  const isAdmin = isSuperAdmin(permissions) || role === 'super_admin' || role === 'admin';
+  const isDeptHeadRole = role === 'dept_head';
+  const isManagerRole = role === 'manager' || role === 'assistant_manager';
+  const isTeamLeadRole = role === 'team_lead' || role === 'coordinator';
+  const isStaffRole = role === 'staff' || role === 'officer' || role === 'support' || role === 'analyst' || role === 'developer' || role === 'it_support' || role === 'user';
+  const isFieldOfficerRole = role === 'field_officer';
+  const isVolunteerRole = role === 'volunteer';
+
+  const deptKey =
+    department &&
+    (permissions?.[department]?.tickets || permissions?.[department]?.complaints)
+      ? department
+      : null;
+  const modulePermissions =
+    (deptKey
+      ? permissions?.[deptKey]?.tickets || permissions?.[deptKey]?.complaints
+      : null) ||
+    permissions?.tickets?.tickets ||
+    permissions?.complaints?.complaints ||
+    permissions?.admin?.tickets ||
+    permissions?.admin?.complaints ||
+    permissions?.tickets ||
+    permissions?.complaints ||
+    {};
+  const reports = modulePermissions?.reports || {};
+  const actions = {
+    ...modulePermissions,
+    ...reports,
+  };
+
+  let scope = 'self';
+  if (reports.view_all === true) {
+    scope = 'org';
+  } else if (reports.view_dept === true) {
+    scope = 'department';
+  } else if (reports.view_team === true) {
+    scope = 'team';
+  } else if (reports.view_own === true) {
+    scope = 'self';
+  } else if (modulePermissions.view_all === true || modulePermissions.scope === 'org') {
+    scope = 'org';
+  } else if (modulePermissions.scope === 'department') {
+    scope = 'department';
+  } else if (modulePermissions.scope === 'team') {
+    scope = 'team';
+  } else if (isAdmin) {
+    scope = 'org';
+  } else if (isDeptHeadRole) {
+    scope = 'department';
+  } else if (isManagerRole || isTeamLeadRole) {
+    scope = 'team';
+  } else if (isStaffRole || isFieldOfficerRole || isVolunteerRole) {
+    scope = 'self';
+  }
+
+  const canViewDetail = actions.view === true || isAdmin;
+  const canViewBase = canViewDetail || actions.list_view === true;
+  const canViewReports =
+    reports.view_all === true ||
+    reports.view_dept === true ||
+    reports.view_team === true ||
+    reports.view_own === true;
+  const canUpdate = actions.update === true || isAdmin;
+  const canEditCompleted =
+    actions.edit_completed === true || actions.update === true || isAdmin;
+  const canApproveBase = actions.approve === true || isAdmin;
+  const canApproveByRole =
+    isAdmin || isDeptHeadRole || isManagerRole || isTeamLeadRole;
+
+  return {
+    canView: canViewBase || canViewReports,
+    canViewDetail,
+    canCreate: actions.create === true || isAdmin,
+    canUpdate,
+    canDelete: actions.delete === true || isAdmin,
+    canAssign:
+      actions.assign === true ||
+      isAdmin ||
+      isManagerRole ||
+      isDeptHeadRole ||
+      isTeamLeadRole,
+    canApprove: canApproveBase || canApproveByRole,
+    canComplete: actions.complete === true || isAdmin,
+    canEditCompleted,
+    reportScope: scope,
+  };
+};
+
+export const getTicketPermissions = getComplaintPermissions;
+
+export const getComplaintCasePermissions = (permissions, department, userRole) => {
+  const role = String(userRole || '').toLowerCase();
+  const isAdmin = isSuperAdmin(permissions) || role === 'super_admin' || role === 'admin';
+
+  const deptKey =
+    department &&
+    (permissions?.[department]?.tickets || permissions?.[department]?.complaints)
+      ? department
+      : null;
+  const ticketsRoot =
+    (deptKey ? permissions?.[deptKey]?.tickets : null) ||
+    permissions?.tickets ||
+    {};
+  const casePerms =
+    ticketsRoot?.complaints_case ||
+    permissions?.tickets?.complaints_case ||
+    permissions?.complaints_case ||
+    {};
+
+  const has = (key) => casePerms[key] === true || isAdmin;
+
+  return {
+    canView: has('view') || has('list_view'),
+    canList: has('list_view') || has('view'),
+    canCreate: has('create'),
+    canInvestigate: has('investigate'),
+    canUpdateStatus: has('update_status') || has('investigate'),
+    canManageNominees: has('manage_nominees') || has('investigate'),
+    canViewNominees: has('view_nominees') || has('view') || has('list_view'),
+    canScheduleMeetings: has('schedule_meetings') || has('investigate'),
+    canAddNarrative: has('add_narrative') || has('investigate'),
+  };
+};
+
+/**
+ * Map UI channel / donation fields → reconciler module.
+ * online ← website source; in_kind ← method; else offline (incl. CSR / fund_raising).
+ */
+export const resolveDonationReconcileChannel = ({
+  channel,
+  donation_method,
+  donation_source,
+} = {}) => {
+  const method = String(donation_method || '').toLowerCase();
+  if (method === 'in_kind' || channel === 'in_kind') return 'in_kind';
+  if (channel === 'online') return 'online';
+  if (channel === 'offline' || channel === 'csr') return 'offline';
+  const source = String(donation_source || '').toLowerCase();
+  if (source === 'website') return 'online';
+  return 'offline';
+};
+
+const DONATION_RECONCILE_MODULE = {
+  online: 'online_donations',
+  offline: 'offline_donations',
+  in_kind: 'in_kind_donations',
+};
+
+/**
+ * Reconciler: may set donation status beyond pending for a specific channel.
+ * Pass channel ('online'|'offline'|'in_kind'|csr) or method/source via options.
+ * Super admin and fund_raising_manager always pass.
+ */
+export const canReconcileDonations = (permissions, channelOrOptions) => {
+  if (!permissions) return false;
+  if (permissions.super_admin === true) return true;
+  if (permissions.fund_raising_manager === true) return true;
+
+  let channel = null;
+  if (typeof channelOrOptions === 'string') {
+    channel = resolveDonationReconcileChannel({ channel: channelOrOptions });
+  } else if (channelOrOptions && typeof channelOrOptions === 'object') {
+    channel = resolveDonationReconcileChannel(channelOrOptions);
+  }
+
+  if (channel && DONATION_RECONCILE_MODULE[channel]) {
+    return hasPermission(
+      permissions,
+      'fund_raising',
+      DONATION_RECONCILE_MODULE[channel],
+      'reconciler',
+    );
+  }
+
+  // No channel: any donation reconciler (legacy / generic gates)
+  return (
+    hasPermission(permissions, 'fund_raising', 'online_donations', 'reconciler') ||
+    hasPermission(permissions, 'fund_raising', 'offline_donations', 'reconciler') ||
+    hasPermission(permissions, 'fund_raising', 'in_kind_donations', 'reconciler')
+  );
+};
+
+export const canReconcileBoxCollections = (permissions) => {
+  if (!permissions) return false;
+  if (permissions.super_admin === true) return true;
+  if (permissions.fund_raising_manager === true) return true;
+  return hasPermission(
+    permissions,
+    'fund_raising',
+    'donation_box_donations',
+    'reconciler',
+  );
+};
+
+export const canReconcileRecurring = (permissions) => {
+  if (!permissions) return false;
+  if (permissions.super_admin === true) return true;
+  if (permissions.fund_raising_manager === true) return true;
+  return hasPermission(
+    permissions,
+    'fund_raising',
+    'recurring_donations',
+    'reconciler',
+  );
+};
+
+/** Status options: pending-only unless reconciler for that channel. */
+export const donationStatusOptionsForUser = (
+  permissions,
+  allOptions,
+  currentStatus = 'pending',
+  channelOrOptions = null,
+) => {
+  const pendingOnly = [{ value: 'pending', label: 'Pending' }];
+  if (canReconcileDonations(permissions, channelOrOptions)) {
+    return allOptions;
+  }
+  const current = String(currentStatus || 'pending').toLowerCase();
+  if (current && current !== 'pending') {
+    return [
+      ...pendingOnly,
+      { value: current, label: current },
+    ];
+  }
+  return pendingOnly;
+};
+

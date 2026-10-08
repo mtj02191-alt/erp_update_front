@@ -33,6 +33,8 @@ const EmailTemplateList = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [sortField, setSortField] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('DESC');
 
   const [tempFilters, setTempFilters] = useState({
     search: '',
@@ -49,7 +51,22 @@ const EmailTemplateList = () => {
 
   useEffect(() => {
     fetchTemplates();
-  }, [currentPage, pageSize, appliedFilters]);
+  }, [currentPage, pageSize, sortField, sortOrder, appliedFilters]);
+
+  const handleSortChange = (field, order) => {
+    setSortField(field);
+    setSortOrder(order);
+    setCurrentPage(1);
+  };
+
+  const sortOptions = [
+    { value: 'created_at', label: 'Created Date' },
+    { value: 'updated_at', label: 'Updated Date' },
+    { value: 'name', label: 'Name' },
+    { value: 'status', label: 'Status' },
+    { value: 'category', label: 'Category' },
+    { value: 'id', label: 'ID' },
+  ];
 
   const fetchTemplates = async () => {
     try {
@@ -62,6 +79,8 @@ const EmailTemplateList = () => {
           channels: appliedFilters.channels.join(',') || undefined,
           purposes: appliedFilters.purposes.join(',') || undefined,
           statuses: appliedFilters.statuses.join(',') || undefined,
+          sortField,
+          sortOrder,
         },
       });
 
@@ -260,6 +279,10 @@ const EmailTemplateList = () => {
               setPageSize(size);
               setCurrentPage(1);
             }}
+            onSortChange={handleSortChange}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            sortOptions={sortOptions}
           />
         </div>
         {error && <div className="error-message">{error}</div>}

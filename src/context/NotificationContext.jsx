@@ -90,12 +90,11 @@ export const NotificationProvider = ({ children }) => {
     }
 
     const token = getToken();
+    // Missing/expired token → socket helper clears session and sends user to login
+    notificationSocket.connect(token);
     if (!token) {
-      console.error('No JWT token for notifications WebSocket');
       return undefined;
     }
-
-    notificationSocket.connect(token);
     notificationSocket.on('new_notification', handleNewNotification);
     notificationSocket.on('unread_count', handleUnreadCount);
 

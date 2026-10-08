@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '../../../../common/PageHeader';
-import axiosInstance from '../../../../../utils/axios'; 
+import axiosInstance from '../../../../../utils/axios';
+import FormInput from '../../../../common/FormInput';
 import FormSelect from '../../../../common/FormSelect';
 import Navbar from '../../../../Navbar';
+import { IN_KIND_CATEGORY_OPTIONS } from '../../../../../utils/inKindCategories';
 
 const EditInKindItem = () => {
   const { id } = useParams();
@@ -11,38 +13,27 @@ const EditInKindItem = () => {
   const [form, setForm] = useState({
     name: '',
     description: '',
-    category: ''
+    category: '',
   });
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const categoryOptions = [
-    { value: 'clothing', label: 'Clothing' },
-    { value: 'food', label: 'Food' },
-    { value: 'medical', label: 'Medical' },
-    { value: 'educational', label: 'Educational' },
-    { value: 'electronics', label: 'Electronics' },
-    { value: 'furniture', label: 'Furniture' },
-    { value: 'books', label: 'Books' },
-    { value: 'toys', label: 'Toys' },
-    { value: 'household', label: 'Household' },
-    { value: 'other', label: 'Other' }
-  ];
+  const categoryOptions = IN_KIND_CATEGORY_OPTIONS;
 
   useEffect(() => {
     const fetchItem = async () => {
       try {
         setLoading(true);
-        const response = await axiosInstance.get(`/in-kind-items/${id}`);
-        
+        const response = await axiosInstance.get(`/dms/in-kind-items/${id}`);
+
         if (response.data.success) {
           const itemData = response.data.data;
           setForm({
             name: itemData.name || '',
             description: itemData.description || '',
-            category: itemData.category || ''
+            category: itemData.category || '',
           });
         } else {
           setError('Failed to fetch in-kind item details');
@@ -68,20 +59,20 @@ const EditInKindItem = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       const itemData = {
         name: form.name,
         description: form.description || null,
-        category: form.category
+        category: form.category,
       };
 
-      await axiosInstance.put(`dms/in-kind-items/${id}`, itemData);
-
-      // Redirect to in-kind items list after successful update
+      await axiosInstance.patch(`/dms/in-kind-items/${id}`, itemData);
       navigate('/dms/in-kind-items/list');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update in-kind item. Please try again.');
+      setError(
+        err.response?.data?.message || 'Failed to update in-kind item. Please try again.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -111,9 +102,7 @@ const EditInKindItem = () => {
         <Navbar />
         <div className="form-content">
           <PageHeader title="Edit In-Kind Item" onBack={handleBack} />
-          <div className="status-message status-message--error">
-            {error}
-          </div>
+          <div className="status-message status-message--error">{error}</div>
         </div>
       </>
     );
@@ -123,23 +112,15 @@ const EditInKindItem = () => {
     <>
       <Navbar />
       <div className="form-content">
-        <PageHeader 
-          title="Edit In-Kind Item" 
-          onBack={handleBack}
-        />
-        
-        {error && (
-          <div className="status-message status-message--error">
-            {error}
-          </div>
-        )}
+        <PageHeader title="Edit In-Kind Item" onBack={handleBack} />
+
+        {error && <div className="status-message status-message--error">{error}</div>}
 
         <form onSubmit={handleSubmit} className="form">
           <div className="form-section">
             <h3 className="form-section-heading">Item Details</h3>
-            
-            <div className="form-grid-2">
 
+            <div className="form-grid-2">
               <FormInput
                 label="Item Name"
                 type="text"
@@ -181,11 +162,7 @@ const EditInKindItem = () => {
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              className="primary_btn"
-              disabled={isSubmitting}
-            >
+            <button type="submit" className="primary_btn" disabled={isSubmitting}>
               {isSubmitting ? 'Updating...' : 'Update Item'}
             </button>
           </div>

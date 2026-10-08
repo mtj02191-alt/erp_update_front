@@ -6,6 +6,7 @@ import PageHeader from '../../../common/PageHeader';
 import Card from '../../../common/Card';
 import ConfirmationModal from '../../../common/ConfirmationModal';
 import { FiEdit, FiUsers, FiCalendar, FiMapPin, FiCopy, FiCheck, FiX } from 'react-icons/fi';
+import { formatAuditActor } from '../../../common/audit/auditHistoryLabels';
 
 const ViewEvent = () => {
   const navigate = useNavigate();
@@ -283,7 +284,10 @@ const ViewEvent = () => {
                       'Start Date': new Date(event.start_at).toLocaleString(),
                       'End Date': new Date(event.end_at).toLocaleString(),
                       Location: event.location || '-',
-                      'Public Event': event.is_public ? 'Yes' : 'No'
+                      'Public Event': event.is_public ? 'Yes' : 'No',
+                      'Created by': event.created_by
+                        ? formatAuditActor(event.created_by)
+                        : '—',
                     }}
                   />
                 </div>

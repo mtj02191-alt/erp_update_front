@@ -75,7 +75,13 @@ const EventsList = () => {
     try {
       setLoading(true);
       const response = await axiosInstance.get('/events', {
-        params: { ...appliedFilters }
+        params: {
+          ...appliedFilters,
+          page: currentPage,
+          pageSize,
+          sortField,
+          sortOrder,
+        },
       });
       if (response.data.success) {
         setEvents(response.data.data || []);
@@ -97,6 +103,22 @@ const EventsList = () => {
     setPageSize(newPageSize);
     setCurrentPage(1);
   };
+
+  const handleSortChange = (field, order) => {
+    setSortField(field);
+    setSortOrder(order);
+    setCurrentPage(1);
+  };
+
+  const sortOptions = [
+    { value: 'created_at', label: 'Created Date' },
+    { value: 'updated_at', label: 'Updated Date' },
+    { value: 'title', label: 'Title' },
+    { value: 'status', label: 'Status' },
+    { value: 'start_at', label: 'Start Date' },
+    { value: 'end_at', label: 'End Date' },
+    { value: 'id', label: 'ID' },
+  ];
 
   const handleDeleteClick = (event) => {
     setEventToDelete(event);
@@ -314,6 +336,10 @@ const EventsList = () => {
               pageSize={pageSize}
               onPageChange={handlePageChange}
               onPageSizeChange={handlePageSizeChange}
+              onSortChange={handleSortChange}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              sortOptions={sortOptions}
             />
           )}
         </div>

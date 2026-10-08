@@ -49,8 +49,10 @@ const DonationBoxList = () => {
   const [error, setError] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [boxToDelete, setBoxToDelete] = useState(null);
-  const [regions, setRegions] = useState([]);
-  const [cities, setCities] = useState([]);
+  const [regionCatalog, setRegionCatalog] = useState([]);
+  const [cityCatalog, setCityCatalog] = useState([]);
+  const [selectedRegion, setSelectedRegion] = useState(null);
+  const [selectedCity, setSelectedCity] = useState(null);
   const [selectedAssignee, setSelectedAssignee] = useState(null);
   const { filtersOpen, toggleFilters } = useFiltersPanel();
 
@@ -114,53 +116,90 @@ const DonationBoxList = () => {
       clearTempFilters();
       clearAppliedFilters();
       setSelectedAssignee(null);
-      setCities([]);
+      setSelectedRegion(null);
+      setSelectedCity(null);
       setCurrentPage(1);
     }
   };
 
   useEffect(() => {
-    const loadRegions = async () => {
+    const loadGeoCatalogs = async () => {
       try {
-        const response = await axiosInstance.get('/regions?country_id=1');
-        if (response.data?.success) {
-          setRegions(response.data.data || []);
+        const [regionsRes, citiesRes] = await Promise.all([
+          axiosInstance.get('/regions', { params: { country_id: 1 } }),
+          axiosInstance.get('/cities', { params: { country_id: 1 } }),
+        ]);
+        if (regionsRes.data?.success) {
+          setRegionCatalog(regionsRes.data.data || []);
+        }
+        if (citiesRes.data?.success) {
+          setCityCatalog(citiesRes.data.data || []);
         }
       } catch (err) {
-        console.error('Error loading regions:', err);
+        console.error('Error loading geographic catalogs:', err);
       }
     };
-    loadRegions();
+    loadGeoCatalogs();
   }, []);
 
+  // Restore selected geo labels when persisted filter IDs exist.
   useEffect(() => {
-    const loadCities = async () => {
-      if (!tempFilters.region_id) {
-        setCities([]);
-        return;
-      }
-      try {
-        const response = await axiosInstance.get(
-          `/cities?region_id=${tempFilters.region_id}`,
-        );
-        if (response.data?.success) {
-          setCities(response.data.data || []);
-        }
-      } catch (err) {
-        console.error('Error loading cities:', err);
-        setCities([]);
-      }
-    };
-    loadCities();
-  }, [tempFilters.region_id]);
+    if (!selectedRegion && tempFilters.region_id && regionCatalog.length) {
+      const match = regionCatalog.find(
+        (r) => String(r.id) === String(tempFilters.region_id),
+      );
+      if (match) setSelectedRegion(match);
+    }
+    if (!selectedCity && tempFilters.city_id && cityCatalog.length) {
+      const match = cityCatalog.find(
+        (c) => String(c.id) === String(tempFilters.city_id),
+      );
+      if (match) setSelectedCity(match);
+    }
+  }, [
+    regionCatalog,
+    cityCatalog,
+    tempFilters.region_id,
+    tempFilters.city_id,
+    selectedRegion,
+    selectedCity,
+  ]);
 
-  const handleRegionChange = (key, value) => {
+  const filterByName = (rows, term) => {
+    const q = String(term || '').trim().toLowerCase();
+    if (!q) return rows.slice(0, 30);
+    return rows
+      .filter((row) => String(row.name || '').toLowerCase().includes(q))
+      .slice(0, 30);
+  };
+
+  const searchRegions = async (term) => filterByName(regionCatalog, term);
+  const searchCities = async (term) => filterByName(cityCatalog, term);
+
+  const handleRegionSelect = (region) => {
+    setSelectedRegion(region);
     setTempFilters((prev) => ({
       ...prev,
-      region_id: value,
-      city_id: '',
-      route_id: '',
+      region_id: region?.id ? String(region.id) : '',
     }));
+  };
+
+  const handleRegionClear = () => {
+    setSelectedRegion(null);
+    setTempFilters((prev) => ({ ...prev, region_id: '' }));
+  };
+
+  const handleCitySelect = (city) => {
+    setSelectedCity(city);
+    setTempFilters((prev) => ({
+      ...prev,
+      city_id: city?.id ? String(city.id) : '',
+    }));
+  };
+
+  const handleCityClear = () => {
+    setSelectedCity(null);
+    setTempFilters((prev) => ({ ...prev, city_id: '' }));
   };
 
   const handleAssigneeSelect = (user) => {
@@ -267,11 +306,10 @@ const DonationBoxList = () => {
   const getStatusBadge = (status) => {
     const statusMap = {
       'active': { class: 'status-completed', text: 'Active' },
-      'inactive': { class: 'status-cancelled', text: 'Inactive' },
-      'maintenance': { class: 'status-pending', text: 'Maintenance' },
-      'damaged': { class: 'status-failed', text: 'Damaged' },
-      'retired': { class: 'status-cancelled', text: 'Retired' },
-      'pending': { class: 'status-pending', text: 'Pending' }
+      'inactive': { class: 'status-cancelled', text: 'In Active' },
+      'removed': { class: 'status-cancelled', text: 'Removed' },
+      'broken': { class: 'status-failed', text: 'Broken' },
+      'snr': { class: 'status-pending', text: 'SNR' },
     };
     
     const statusInfo = statusMap[status] || { class: 'status-pending', text: status };
@@ -359,11 +397,10 @@ const DonationBoxList = () => {
 
   const statusOptions = [
     { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
-    { value: 'maintenance', label: 'Maintenance' },
-    { value: 'damaged', label: 'Damaged' },
-    { value: 'retired', label: 'Retired' },
-    { value: 'pending', label: 'Pending' }
+    { value: 'inactive', label: 'In Active' },
+    { value: 'removed', label: 'Removed' },
+    { value: 'broken', label: 'Broken' },
+    { value: 'snr', label: 'SNR' },
   ];
 
   const boxTypeOptions = [
@@ -381,16 +418,6 @@ const DonationBoxList = () => {
     { value: 'quarterly', label: 'Quarterly' },
     { value: 'as-needed', label: 'As needed' },
   ];
-
-  const regionOptions = useMemo(
-    () => regions.map((r) => ({ value: String(r.id), label: r.name })),
-    [regions],
-  );
-
-  const cityOptions = useMemo(
-    () => cities.map((c) => ({ value: String(c.id), label: c.name })),
-    [cities],
-  );
 
   const getLocationLabel = (box) => {
     const cityName =
@@ -478,22 +505,52 @@ const DonationBoxList = () => {
                 placeholder="All Frequencies"
               />
 
-              <DropdownFilter
-                filterKey="region_id"
+              <SearchableDropdown
                 label="Region"
-                data={regionOptions}
-                filters={tempFilters}
-                onFilterChange={handleRegionChange}
-                placeholder="All Regions"
+                placeholder="Search region..."
+                onSearch={searchRegions}
+                onSelect={handleRegionSelect}
+                onClear={handleRegionClear}
+                value={selectedRegion}
+                displayKey="name"
+                debounceDelay={300}
+                minSearchLength={1}
+                allowResearch
+                renderOption={(region) => (
+                  <>
+                    <div style={{ fontWeight: 500 }}>{region.name}</div>
+                    {region.country?.name && (
+                      <div style={{ fontSize: 12, color: '#666' }}>
+                        {region.country.name}
+                      </div>
+                    )}
+                  </>
+                )}
               />
 
-              <DropdownFilter
-                filterKey="city_id"
+              <SearchableDropdown
                 label="City"
-                data={tempFilters.region_id ? cityOptions : []}
-                filters={tempFilters}
-                onFilterChange={handleFilterChange}
-                placeholder={tempFilters.region_id ? 'All Cities' : 'Select region first'}
+                placeholder="Search city..."
+                onSearch={searchCities}
+                onSelect={handleCitySelect}
+                onClear={handleCityClear}
+                value={selectedCity}
+                displayKey="name"
+                debounceDelay={300}
+                minSearchLength={1}
+                allowResearch
+                renderOption={(city) => (
+                  <>
+                    <div style={{ fontWeight: 500 }}>{city.name}</div>
+                    {(city.region?.name || city.district?.name) && (
+                      <div style={{ fontSize: 12, color: '#666' }}>
+                        {[city.region?.name, city.district?.name]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </div>
+                    )}
+                  </>
+                )}
               />
 
               <SearchableDropdown
@@ -578,7 +635,7 @@ const DonationBoxList = () => {
                           className="box-id"
                           style={{ color: 'inherit', textDecoration: 'inherit' }}
                         >
-                          {box.key_no || `BOX-${box.id}`}
+                          {box.box_id_no || 'N/A'}
                         </Link>
                         {box.route?.name && (
                           <div className="box-key hide-on-mobile">Route: {box.route.name}</div>

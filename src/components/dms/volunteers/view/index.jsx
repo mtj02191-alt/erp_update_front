@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
 import PageHeader from '../../../common/PageHeader';
+import { formatAuditActor } from '../../../common/audit/auditHistoryLabels';
 
 const LABEL_STYLE = { color: '#6b7280', fontSize: '12px', marginBottom: '4px', fontWeight: 400 };
 const VALUE_STYLE = { fontWeight: 500, fontSize: '14px', color: '#1f2937' };
@@ -109,6 +110,12 @@ const ViewVolunteer = () => {
             <div>
               <p style={LABEL_STYLE}>Registered</p>
               <p style={VALUE_STYLE}>{v?.created_at ? new Date(v.created_at).toLocaleDateString() : '-'}</p>
+            </div>
+            <div>
+              <p style={LABEL_STYLE}>Created by</p>
+              <p style={VALUE_STYLE}>
+                {v?.created_by ? formatAuditActor(v.created_by) : '—'}
+              </p>
             </div>
           </div>
 

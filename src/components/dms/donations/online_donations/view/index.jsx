@@ -10,6 +10,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa';
 import { HiOutlineDocumentText } from 'react-icons/hi';
 import axiosInstance from '../../../../../utils/axios';
+import { getInKindCategoryLabel } from '../../../../../utils/inKindCategories';
 import '../../../../../styles/variables.css';
 import '../../../../../styles/components.css';
 import PageHeader from '../../../../common/PageHeader';
@@ -23,10 +24,26 @@ import DonationPendingAttachments, {
   uploadPendingDonationAttachments,
 } from '../../shared/DonationPendingAttachments';
 import '../../shared/DonationPendingAttachments.css';
+import { formatAuditActor } from '../../../../common/audit/auditHistoryLabels';
 import { useAuth } from '../../../../../context/AuthContext';
+import { canReconcileDonations } from '../../../../../utils/permissions';
 import { isLocalId } from '../../../../../offline/handlers';
 import { toast } from 'react-toastify';
+import {
+  getDonationListRoutes,
+  resolveDonationListBackPath,
+} from '../../shared/donationListRoutes';
 import './index.css';
+
+const formatReferrerUser = (user) => {
+  if (!user) return null;
+  const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
+  return name || user.email || (user.id != null ? `User #${user.id}` : null);
+};
+
+/** Donation-level referrer, else donor.referred_by (older / partial rows). */
+const resolveDonationReferrer = (donation) =>
+  donation?.referred_by || donation?.donor?.referred_by || null;
 
 /** Matches UserPermissions `communication.*` send flags; `super_admin` is handled in checks. */
 const COMM_PERMS = {
@@ -49,16 +66,31 @@ const PROGRESS_STEP_STATUS_OPTIONS = [
 ];
 
 const ViewOnlineDonation = () => {
-  const { id } = useParams();
+  const { id, csrDonorId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const isOfflineRoute = location.pathname.includes('/donations/offline_donations');
-  const donationsBasePath = isOfflineRoute
-    ? '/donations/offline_donations'
-    : '/donations/online_donations';
-  const pageTitle = isOfflineRoute ? 'View Offline Donation' : 'View Online Donation';
-  const { hasAnyPermission } = useAuth();
+  const donationRoutes = useMemo(
+    () => getDonationListRoutes(location, { csrDonorId }),
+    [location.pathname, csrDonorId],
+  );
+  const listBackPath = resolveDonationListBackPath(location, donationRoutes);
+  const pageTitle = `View ${donationRoutes.pageLabel}`;
+  const { hasAnyPermission, permissions } = useAuth();
   const [donation, setDonation] = useState(null);
+  const canReconcile = useMemo(
+    () =>
+      canReconcileDonations(permissions, {
+        channel: donationRoutes.channel,
+        donation_method: donation?.donation_method,
+        donation_source: donation?.donation_source,
+      }),
+    [
+      permissions,
+      donationRoutes.channel,
+      donation?.donation_method,
+      donation?.donation_source,
+    ],
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [totalDonationAmount, setTotalDonationAmount] = useState(0);
@@ -153,6 +185,14 @@ const ViewOnlineDonation = () => {
   const donationStatus = String(donation?.status || '').toLowerCase();
   const isDonationCompleted = donationStatus === 'completed';
   const isDonationFailed = donationStatus === 'failed';
+  const isInKindDonation =
+    String(donation?.donation_method || '').toLowerCase() === 'in_kind';
+  const canApproveInKind = hasAnyPermission([
+    'super_admin',
+    'fund_raising_manager',
+    'fund_raising.in_kind_donations.completing',
+    'fund_raising.in_kind_donations.reconciler',
+  ]);
 
   // Links for unpaid / non-completed; thanks + receipt only after completion
   const showPaymentLinkActions = !isDonationCompleted;
@@ -172,9 +212,14 @@ const ViewOnlineDonation = () => {
   const canSendReceiptEmail = canSendComm(COMM_PERMS.donationReceiptsSend);
   const showReceiptSection =
     isDonationCompleted && (canViewReceipt || canSendReceiptEmail);
-  const showMarkCompleted = !isDonationCompleted;
-  const showMarkFailed = !isDonationFailed;
+  const showMarkCompleted = isInKindDonation
+    ? !isDonationCompleted && (canApproveInKind || canReconcile)
+    : !isDonationCompleted && canReconcile;
+  const showMarkFailed =
+    !isDonationFailed && !isDonationCompleted && canReconcile;
   const showStatusActions = showMarkCompleted || showMarkFailed;
+  const showApproveRejectInDetails =
+    (isInKindDonation && canApproveInKind) || canReconcile;
   const isPendingOffline = isLocalId(id);
 
   useEffect(() => {
@@ -601,7 +646,7 @@ const ViewOnlineDonation = () => {
       if (response.data.success) {
         setMessageStatus({
           type: 'success',
-          message: response.data.message || 'Donation marked as completed successfully!',
+          message: response.data.message || 'Donation approved and marked completed.',
         });
         await fetchDonation();
         setAuditRefreshKey((k) => k + 1);
@@ -609,13 +654,13 @@ const ViewOnlineDonation = () => {
       } else {
         setMessageStatus({
           type: 'error',
-          message: response.data.message || 'Failed to mark donation as completed',
+          message: response.data.message || 'Failed to approve donation',
         });
       }
     } catch (err) {
       setMessageStatus({
         type: 'error',
-        message: err.response?.data?.message || 'Failed to mark donation as completed. Please try again.',
+        message: err.response?.data?.message || 'Failed to approve donation. Please try again.',
       });
       console.error('Error marking donation as completed:', err);
     } finally {
@@ -640,7 +685,7 @@ const ViewOnlineDonation = () => {
       if (response.data.success) {
         setMessageStatus({
           type: 'success',
-          message: response.data.message || 'Donation marked as failed successfully!',
+          message: response.data.message || 'Donation rejected.',
         });
         await fetchDonation();
         setAuditRefreshKey((k) => k + 1);
@@ -648,13 +693,13 @@ const ViewOnlineDonation = () => {
       } else {
         setMessageStatus({
           type: 'error',
-          message: response.data.message || 'Failed to mark donation as failed',
+          message: response.data.message || 'Failed to reject donation',
         });
       }
     } catch (err) {
       setMessageStatus({
         type: 'error',
-        message: err.response?.data?.message || 'Failed to mark donation as failed. Please try again.',
+        message: err.response?.data?.message || 'Failed to reject donation. Please try again.',
       });
       console.error('Error marking donation as failed:', err);
     } finally {
@@ -718,7 +763,7 @@ const ViewOnlineDonation = () => {
           <PageHeader
             title={pageTitle}
             showBackButton={true}
-            backPath={`${donationsBasePath}/list`}
+            backPath={listBackPath}
           />
           <div className="loading">Loading...</div>
         </div>
@@ -734,7 +779,7 @@ const ViewOnlineDonation = () => {
           <PageHeader 
             title={pageTitle}
             showBackButton={true}
-            backPath={`${donationsBasePath}/list`}
+            backPath={listBackPath}
           />
           <div className="view-content">
             <div className="status-message status-message--error">{error}</div>
@@ -752,7 +797,7 @@ const ViewOnlineDonation = () => {
           <PageHeader 
             title={pageTitle}
             showBackButton={true}
-            backPath={`${donationsBasePath}/list`}
+            backPath={listBackPath}
           />
           <div className="view-content">
             <div className="status-message status-message--error">Donation not found</div>
@@ -769,7 +814,7 @@ const ViewOnlineDonation = () => {
         <PageHeader 
           title={pageTitle}
           showBackButton={true}
-          backPath={`${donationsBasePath}/list`}
+          backPath={listBackPath}
         />
         <div className="view-content">
           {isPendingOffline && (
@@ -1137,6 +1182,59 @@ const ViewOnlineDonation = () => {
                 <span className="view-item-label">Status</span>
                 <span className="view-item-value">{getStatusBadge(donation.status)}</span>
               </div>
+              {showApproveRejectInDetails && !isDonationCompleted && !isDonationFailed && (
+                <div className="view-item">
+                  <span className="view-item-label">Review</span>
+                  <span className="view-item-value" style={{ display: 'inline-flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {showMarkCompleted && (
+                      <button
+                        type="button"
+                        className="donation-comm-btn donation-comm-btn--completed donation-comm-btn--inline"
+                        onClick={markAsCompleted}
+                        disabled={markingCompleted || markingFailed}
+                      >
+                        <span className="donation-comm-btn__icon">
+                          <FiCheckCircle />
+                        </span>
+                        <span className="donation-comm-btn__label">
+                          {markingCompleted ? 'Approving…' : 'Approve'}
+                        </span>
+                      </button>
+                    )}
+                    {showMarkFailed && (
+                      <button
+                        type="button"
+                        className="donation-comm-btn donation-comm-btn--failed donation-comm-btn--inline"
+                        onClick={markAsFailed}
+                        disabled={markingCompleted || markingFailed}
+                      >
+                        <span className="donation-comm-btn__icon">
+                          <FiXCircle />
+                        </span>
+                        <span className="donation-comm-btn__label">
+                          {markingFailed ? 'Rejecting…' : 'Reject'}
+                        </span>
+                      </button>
+                    )}
+                  </span>
+                </div>
+              )}
+              {showApproveRejectInDetails && isDonationCompleted && (
+                <div className="view-item">
+                  <span className="view-item-label">Review</span>
+                  <span className="view-item-value">
+                    <span className="status-badge status-completed">Approved</span>
+                  </span>
+                </div>
+              )}
+              {showApproveRejectInDetails && isDonationFailed && (
+                <div className="view-item">
+                  <span className="view-item-label">Review</span>
+                  <span className="view-item-value">
+                    <span className="status-badge status-failed">Rejected</span>
+                  </span>
+                </div>
+              )}
               <div className="view-item">
                 <span className="view-item-label">Amount</span>
                 <span className="view-item-value">{formatAmount(donation.amount, donation.currency)}</span>
@@ -1153,9 +1251,27 @@ const ViewOnlineDonation = () => {
                    donation.donation_type || 'General'}
                 </span>
               </div>
+              {donation.on_behalf_names ? (
+                <div className="view-item">
+                  <span className="view-item-label">On behalf name(s)</span>
+                  <span className="view-item-value">{donation.on_behalf_names}</span>
+                </div>
+              ) : null}
               <div className="view-item">
                 <span className="view-item-label">Payment Method</span>
                 <span className="view-item-value">{donation.donation_method?.toUpperCase() || 'N/A'}</span>
+              </div>
+              <div className="view-item">
+                <span className="view-item-label">Referred By</span>
+                <span className="view-item-value">
+                  {formatReferrerUser(resolveDonationReferrer(donation)) || '-'}
+                </span>
+              </div>
+              <div className="view-item">
+                <span className="view-item-label">Created by</span>
+                <span className="view-item-value">
+                  {donation.created_by ? formatAuditActor(donation.created_by) : '—'}
+                </span>
               </div>
               { donation?.donation_method && donation.donation_method == "cheque" &&( 
               <div className="view-item">
@@ -1179,6 +1295,28 @@ const ViewOnlineDonation = () => {
               )}
             </div>
           </div>
+
+          {resolveDonationReferrer(donation) && (
+            <div className="view-section">
+              <h3 className="view-section-title">Referral</h3>
+              <div className="view-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+                <div className="view-item">
+                  <span className="view-item-label">Referred By</span>
+                  <span className="view-item-value">
+                    {formatReferrerUser(resolveDonationReferrer(donation))}
+                  </span>
+                </div>
+                {resolveDonationReferrer(donation)?.email && (
+                  <div className="view-item">
+                    <span className="view-item-label">Referrer Email</span>
+                    <span className="view-item-value" style={{ wordBreak: 'break-word' }}>
+                      {resolveDonationReferrer(donation).email}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="view-section">
             <h3 className="view-section-title">Attachments</h3>
@@ -1284,54 +1422,164 @@ const ViewOnlineDonation = () => {
             </div>
           )}
 
-          <div className="view-section">
-            <h3 className="view-section-title">Donor Information</h3>
-            <div className="view-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
-              <div className="view-item">
-                <span className="view-item-label">Name</span>
-                <span className="view-item-value">
-                  {donation?.donor?.id ? (
-                    <a
-                      href={`/dms/donors/view/${donation.donor.id}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        navigate(`/dms/donors/view/${donation.donor.id}`);
-                      }}
-                      style={{ color: '#2563eb', textDecoration: 'underline' }}
-                    >
-                      {donation.donor.name || 'Anonymous'}
-                    </a>
-                  ) : (
-                    donation?.donor?.name || 'Anonymous'
+          {(donation?.organization_id || donation?.organization) ? (
+            <>
+              <div className="view-section">
+                <h3 className="view-section-title">CSR Donor</h3>
+                <div className="view-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+                  <div className="view-item">
+                    <span className="view-item-label">Company</span>
+                    <span className="view-item-value">
+                      {donation.organization?.id ? (
+                        <a
+                          href={`/dms/csr-donors/view/${donation.organization.id}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            navigate(`/dms/csr-donors/view/${donation.organization.id}`);
+                          }}
+                          style={{ color: '#2563eb', textDecoration: 'underline' }}
+                        >
+                          {donation.organization.name || 'CSR Donor'}
+                        </a>
+                      ) : (
+                        donation.organization?.name || 'CSR Donor'
+                      )}
+                    </span>
+                  </div>
+                  <div className="view-item">
+                    <span className="view-item-label">Email</span>
+                    <span className="view-item-value" style={{ wordBreak: 'break-word' }}>
+                      {donation.organization?.email || '-'}
+                    </span>
+                  </div>
+                  <div className="view-item">
+                    <span className="view-item-label">Phone</span>
+                    <span className="view-item-value">{donation.organization?.phone || '-'}</span>
+                  </div>
+                  <div className="view-item">
+                    <span className="view-item-label">Registration #</span>
+                    <span className="view-item-value">
+                      {donation.organization?.registration_number || '-'}
+                    </span>
+                  </div>
+                  <div className="view-item">
+                    <span className="view-item-label">Country</span>
+                    <span className="view-item-value">
+                      {donation.organization?.country || donation?.country || '-'}
+                    </span>
+                  </div>
+                  <div className="view-item">
+                    <span className="view-item-label">City</span>
+                    <span className="view-item-value">
+                      {donation.organization?.city || donation?.city || '-'}
+                    </span>
+                  </div>
+                  {(donation.organization?.address || donation?.address) && (
+                    <div className="view-item view-item--full">
+                      <span className="view-item-label">Address</span>
+                      <span className="view-item-value">
+                        {donation.organization?.address || donation?.address}
+                      </span>
+                    </div>
                   )}
-                </span>
-              </div>
-              <div className="view-item">
-                <span className="view-item-label">Email</span>
-                <span className="view-item-value" style={{ wordBreak: 'break-word' }}>
-                  {donation?.donor?.email || '-'}
-                </span>
-              </div>
-              <div className="view-item">
-                <span className="view-item-label">Phone</span>
-                <span className="view-item-value">{donation?.donor?.phone || '-'}</span>
-              </div>
-              <div className="view-item">
-                <span className="view-item-label">Country</span>
-                <span className="view-item-value">{donation?.donor?.country || '-'}</span>
-              </div>
-              <div className="view-item">
-                <span className="view-item-label">City</span>
-                <span className="view-item-value">{donation?.donor?.city || '-'}</span>
-              </div>
-              {donation.address && (
-                <div className="view-item view-item--full">
-                  <span className="view-item-label">Address</span>
-                  <span className="view-item-value">{donation?.donor?.address}</span>
                 </div>
-              )}
+              </div>
+
+              {donation?.csr_poc_id && donation?.csr_poc ? (
+                <div className="view-section">
+                  <h3 className="view-section-title">POC Information</h3>
+                  <div className="view-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+                    <div className="view-item">
+                      <span className="view-item-label">Name</span>
+                      <span className="view-item-value">
+                        {donation.organization?.id ? (
+                          <a
+                            href={`/dms/csr-donors/view/${donation.organization.id}?person=${donation.csr_poc.id}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              navigate(
+                                `/dms/csr-donors/view/${donation.organization.id}?person=${donation.csr_poc.id}`,
+                              );
+                            }}
+                            style={{ color: '#2563eb', textDecoration: 'underline' }}
+                          >
+                            {donation.csr_poc.name || 'POC'}
+                          </a>
+                        ) : (
+                          donation.csr_poc.name || 'POC'
+                        )}
+                      </span>
+                    </div>
+                    <div className="view-item">
+                      <span className="view-item-label">Email</span>
+                      <span className="view-item-value" style={{ wordBreak: 'break-word' }}>
+                        {donation.csr_poc.email || '-'}
+                      </span>
+                    </div>
+                    <div className="view-item">
+                      <span className="view-item-label">Phone</span>
+                      <span className="view-item-value">{donation.csr_poc.phone || '-'}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <div className="view-section">
+              <h3 className="view-section-title">Donor Information</h3>
+              <div className="view-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+                <div className="view-item">
+                  <span className="view-item-label">Name</span>
+                  <span className="view-item-value">
+                    {donation?.donor?.id ? (
+                      <a
+                        href={`/dms/donors/view/${donation.donor.id}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate(`/dms/donors/view/${donation.donor.id}`);
+                        }}
+                        style={{ color: '#2563eb', textDecoration: 'underline' }}
+                      >
+                        {donation.donor.name || 'Anonymous'}
+                      </a>
+                    ) : (
+                      donation?.donor?.name || 'Anonymous'
+                    )}
+                  </span>
+                </div>
+                <div className="view-item">
+                  <span className="view-item-label">Email</span>
+                  <span className="view-item-value" style={{ wordBreak: 'break-word' }}>
+                    {donation?.donor?.email || '-'}
+                  </span>
+                </div>
+                <div className="view-item">
+                  <span className="view-item-label">Phone</span>
+                  <span className="view-item-value">{donation?.donor?.phone || '-'}</span>
+                </div>
+                <div className="view-item">
+                  <span className="view-item-label">Country</span>
+                  <span className="view-item-value">{donation?.donor?.country || '-'}</span>
+                </div>
+                <div className="view-item">
+                  <span className="view-item-label">City</span>
+                  <span className="view-item-value">{donation?.donor?.city || '-'}</span>
+                </div>
+                <div className="view-item">
+                  <span className="view-item-label">Referred By</span>
+                  <span className="view-item-value">
+                    {formatReferrerUser(resolveDonationReferrer(donation)) || '-'}
+                  </span>
+                </div>
+                {donation.address && (
+                  <div className="view-item view-item--full">
+                    <span className="view-item-label">Address</span>
+                    <span className="view-item-value">{donation?.donor?.address}</span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {donation.in_kind_items && donation.in_kind_items.length > 0 && (
             <div className="view-section">
@@ -1354,7 +1602,9 @@ const ViewOnlineDonation = () => {
                     </div>
                     <div className="view-item">
                       <span className="view-item-label">Category</span>
-                      <span className="view-item-value">{item.category || '-'}</span>
+                      <span className="view-item-value">
+                        {getInKindCategoryLabel(item.category)}
+                      </span>
                     </div>
                     <div className="view-item">
                       <span className="view-item-label">Condition</span>
@@ -1576,9 +1826,11 @@ const ViewOnlineDonation = () => {
                       <span className="donation-comm-btn__icon">
                         <FiCheckCircle />
                       </span>
-                      <span className="donation-comm-btn__label">
-                        {markingCompleted ? 'Updating…' : 'Completed'}
-                      </span>
+                        <span className="donation-comm-btn__label">
+                          {markingCompleted
+                            ? 'Approving…'
+                            : 'Approve'}
+                        </span>
                     </button>
                   )}
                   {showMarkFailed && (
@@ -1586,13 +1838,13 @@ const ViewOnlineDonation = () => {
                       type="button"
                       className="donation-comm-btn donation-comm-btn--failed donation-comm-btn--inline"
                       onClick={markAsFailed}
-                      disabled={markingFailed}
+                      disabled={markingFailed || markingCompleted}
                     >
                       <span className="donation-comm-btn__icon">
                         <FiXCircle />
                       </span>
                       <span className="donation-comm-btn__label">
-                        {markingFailed ? 'Updating…' : 'Failed'}
+                        {markingFailed ? 'Rejecting…' : 'Reject'}
                       </span>
                     </button>
                   )}
@@ -1706,13 +1958,13 @@ const ViewOnlineDonation = () => {
                         type="button"
                         className="donation-comm-btn donation-comm-btn--completed donation-comm-btn--inline"
                         onClick={markAsCompleted}
-                        disabled={markingCompleted}
+                        disabled={markingCompleted || markingFailed}
                       >
                         <span className="donation-comm-btn__icon">
                           <FiCheckCircle />
                         </span>
                         <span className="donation-comm-btn__label">
-                          {markingCompleted ? 'Updating…' : 'Completed'}
+                          {markingCompleted ? 'Approving…' : 'Approve'}
                         </span>
                       </button>
                     )}
@@ -1721,13 +1973,13 @@ const ViewOnlineDonation = () => {
                         type="button"
                         className="donation-comm-btn donation-comm-btn--failed donation-comm-btn--inline"
                         onClick={markAsFailed}
-                        disabled={markingFailed}
+                        disabled={markingFailed || markingCompleted}
                       >
                         <span className="donation-comm-btn__icon">
                           <FiXCircle />
                         </span>
                         <span className="donation-comm-btn__label">
-                          {markingFailed ? 'Updating…' : 'Failed'}
+                          {markingFailed ? 'Rejecting…' : 'Reject'}
                         </span>
                       </button>
                     )}

@@ -1,0 +1,73 @@
+.referred-by-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 280px;
+  max-width: 320px;
+  flex: 0 1 320px;
+  align-self: flex-end;
+  position: relative;
+  z-index: 30;
+}
+
+.referred-by-filter__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 20px;
+}
+
+.referred-by-filter__label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text, #111827);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.referred-by-filter__any {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-secondary, #6b7280);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.referred-by-filter__any input {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* Keep SearchableMultiSelect sized like other list filters */
+.referred-by-filter .searchable-multi-select {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.referred-by-filter .searchable-multi-select__label {
+  display: none;
+}
+
+.referred-by-filter .searchable-multi-select__control {
+  min-height: 42px;
+  box-sizing: border-box;
+}
+
+.referred-by-filter .searchable-multi-select__dropdown {
+  z-index: 40;
+}
+
+.referred-by-filter .searchable-multi-select__value {
+  overflow: hidden;
+}
+
+.referred-by-filter .searchable-multi-select__search-input {
+  min-width: 0 !important;
+  max-width: 100%;
+}

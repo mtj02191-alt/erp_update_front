@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import axiosInstance from '../../../../../../utils/axios';
 import Navbar from '../../../../../Navbar';
 import PageHeader from '../../../../../common/PageHeader';
@@ -11,10 +11,27 @@ const ViewJob = () => {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [applicationsCount, setApplicationsCount] = useState(null);
 
   useEffect(() => {
     fetchJob();
   }, [id]);
+
+  useEffect(() => {
+    if (!job?.id) return;
+    const fetchApplicationsCount = async () => {
+      try {
+        const res = await axiosInstance.get('/job_applications', {
+          params: { job_id: job.id, page: 1, pageSize: 1 },
+        });
+        setApplicationsCount(res.data?.pagination?.total ?? 0);
+      } catch (err) {
+        console.error('Error fetching applications count:', err);
+        setApplicationsCount(null);
+      }
+    };
+    fetchApplicationsCount();
+  }, [job?.id]);
 
   const fetchJob = async () => {
     try {
@@ -277,11 +294,21 @@ const ViewJob = () => {
               <div className="view-item">
                 <span className="view-item-label">Total Applications</span>
                 <span className="view-item-value">
-                  {job.applications?.length || 0}
+                  {applicationsCount === null ? (
+                    '-'
+                  ) : (
+                    <Link
+                      to={`/hr/career/applications/list?jobId=${job.id}`}
+                      style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'underline' }}
+                      title="View applications for this job"
+                    >
+                      {applicationsCount}
+                    </Link>
+                  )}
                 </span>
               </div>
             </div>
-            {job.applications && job.applications.length > 0 && (
+            {applicationsCount > 0 && (
               <button
                 onClick={() => navigate(`/hr/career/applications/list?jobId=${job.id}`)}
                 style={{

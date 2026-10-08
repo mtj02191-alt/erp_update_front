@@ -20,6 +20,7 @@ import {
   formatMaritalStatus,
   personAge,
 } from '../../aidConstants';
+import { formatAuditActor } from '../../../../common/audit/auditHistoryLabels';
 import '../../aid.css';
 
 const emptyRelative = {
@@ -450,6 +451,12 @@ const AidPersonView = () => {
                 {person.date_of_birth
                   ? `${String(person.date_of_birth).slice(0, 10)}${age != null ? ` (${age} yrs)` : ''}`
                   : '—'}
+              </strong>
+            </div>
+            <div className="aid-meta-row">
+              <span>Created by</span>
+              <strong>
+                {person.created_by ? formatAuditActor(person.created_by) : '—'}
               </strong>
             </div>
             {person.health_notes && (

@@ -1,0 +1,44 @@
+.complaint-case-add .complaint-case-form {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.complaint-case-form__section {
+  padding: 18px 20px;
+}
+
+.complaint-case-form__hint {
+  margin: -4px 0 14px;
+  font-size: 13px;
+  color: var(--cc-text-soft, #64748b);
+}
+
+.complaint-case-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.complaint-case-form__grid .form-group--full {
+  grid-column: 1 / -1;
+}
+
+.complaint-case-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 4px 0 12px;
+}
+
+@media (max-width: 768px) {
+  .complaint-case-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .complaint-case-form__section {
+    padding: 14px;
+  }
+}

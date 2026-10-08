@@ -1,4 +1,9 @@
 import { io } from 'socket.io-client';
+import {
+  isAuthFailureMessage,
+  isOnLoginPage,
+  redirectToLogin,
+} from '../authSession';
 
 class NotificationSocket {
   constructor() {
@@ -9,11 +14,15 @@ class NotificationSocket {
     this.currentToken = null;
     this.currentUrl = null;
     this.appListeners = new Map(); // event -> Set of callbacks
+    this.authFailed = false;
   }
 
   connect(token) {
     if (!token) {
-      console.error('NotificationSocket: no token provided');
+      // Missing token while app thinks user is logged in → send to login
+      if (localStorage.getItem('user_data') && !isOnLoginPage()) {
+        this.handleAuthFailure('No JWT token for notifications WebSocket');
+      }
       return;
     }
 
@@ -22,6 +31,7 @@ class NotificationSocket {
       return;
     }
 
+    this.authFailed = false;
     this.currentToken = token;
 
     const wsUrl =
@@ -60,27 +70,64 @@ class NotificationSocket {
     this.reattachAppListeners();
   }
 
+  handleAuthFailure(reason) {
+    if (this.authFailed) return;
+    this.authFailed = true;
+    this.disconnect();
+    redirectToLogin(reason || 'Notifications auth failed');
+  }
+
   setupCoreHandlers() {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
       this.isConnected = true;
       this.reconnectAttempts = 0;
+      this.authFailed = false;
       console.log('Notifications WS connected', this.socket.id);
     });
 
     this.socket.on('disconnect', (reason) => {
       this.isConnected = false;
       console.log('Notifications WS disconnected:', reason);
+      // Server drops the socket when JWT is missing/invalid
+      if (
+        reason === 'io server disconnect' &&
+        localStorage.getItem('user_data') &&
+        !isOnLoginPage()
+      ) {
+        this.handleAuthFailure('Notifications socket unauthorized');
+      }
     });
 
     this.socket.on('connect_error', (error) => {
       this.reconnectAttempts += 1;
-      console.error(
+      const message = error?.message || '';
+      if (isAuthFailureMessage(message)) {
+        this.handleAuthFailure(`Notifications WS auth error: ${message}`);
+        return;
+      }
+      // After repeated failures with a stale token, force re-login
+      if (
+        this.reconnectAttempts >= this.maxReconnectAttempts &&
+        localStorage.getItem('user_data') &&
+        !isOnLoginPage()
+      ) {
+        this.handleAuthFailure('Notifications WS reconnect exhausted');
+        return;
+      }
+      console.warn(
         'Notifications WS connect_error:',
-        error.message,
+        message,
         this.currentUrl,
       );
+    });
+
+    this.socket.on('exception', (payload) => {
+      const message = payload?.message || payload?.error || '';
+      if (isAuthFailureMessage(message)) {
+        this.handleAuthFailure(`Notifications WS exception: ${message}`);
+      }
     });
   }
 

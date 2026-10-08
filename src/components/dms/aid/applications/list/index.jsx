@@ -39,8 +39,24 @@ const AidApplicationsList = () => {
   const [pageSize, setPageSize] = useState(20);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [sortField, setSortField] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('DESC');
   const [tempFilters, setTempFilters] = useState({ search: '', status: '' });
   const [appliedFilters, setAppliedFilters] = useState({ search: '', status: '' });
+
+  const handleSortChange = (field, order) => {
+    setSortField(field);
+    setSortOrder(order);
+    setCurrentPage(1);
+  };
+
+  const sortOptions = [
+    { value: 'created_at', label: 'Created Date' },
+    { value: 'updated_at', label: 'Updated Date' },
+    { value: 'status', label: 'Status' },
+    { value: 'application_no', label: 'Application Number' },
+    { value: 'id', label: 'ID' },
+  ];
 
   const fetchRows = async () => {
     if (!canList) {
@@ -57,6 +73,8 @@ const AidApplicationsList = () => {
           status: appliedFilters.status || undefined,
           page: currentPage,
           pageSize,
+          sortField,
+          sortOrder,
         },
       });
       setRows(res.data?.data || []);
@@ -72,7 +90,7 @@ const AidApplicationsList = () => {
   useEffect(() => {
     fetchRows();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, pageSize, appliedFilters]);
+  }, [currentPage, pageSize, sortField, sortOrder, appliedFilters]);
 
   return (
     <>
@@ -201,6 +219,10 @@ const AidApplicationsList = () => {
                 setPageSize(n);
                 setCurrentPage(1);
               }}
+              onSortChange={handleSortChange}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              sortOptions={sortOptions}
             />
           )}
         </div>

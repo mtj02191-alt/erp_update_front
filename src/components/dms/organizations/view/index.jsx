@@ -13,23 +13,16 @@ import {
   FiMinus,
   FiSidebar,
   FiList,
-  FiLayers,
-  FiCalendar,
-  FiRefreshCw,
   FiClock,
-  FiFileText,
-  FiGitBranch,
 } from 'react-icons/fi';
-import { FaWhatsapp } from 'react-icons/fa';
 import { BsFillBuildingsFill } from 'react-icons/bs';
-import { GiPayMoney } from 'react-icons/gi';
+import { FaWhatsapp } from 'react-icons/fa';
 import axiosInstance from '../../../../utils/axios';
 import { useAuth } from '../../../../context/AuthContext';
 import {
   canViewModule,
-  fundRaisingDonorsHas,
+  fundRaisingOrganizationsOrPocsHas,
   hasModuleAccess,
-  hasPermissionByPath,
 } from '../../../../utils/permissions';
 import Navbar from '../../../Navbar';
 import PageHeader from '../../../common/PageHeader';
@@ -38,12 +31,15 @@ import ConfirmationModal from '../../../common/ConfirmationModal';
 import DonorAuditHistory from '../../donors/shared/DonorAuditHistory';
 import DonorPipelinePanel from '../../donors/shared/DonorPipelinePanel';
 import DonorCommunication from '../../donor_relationship/shared/DonorCommunication';
-import ManualRecurringDonorPanel from '../../manual_recurring/ManualRecurringDonorPanel';
-import { formatAuditActor } from '../../../common/audit/auditHistoryLabels';
+import { OnlineDonationsList } from '../../donations/online_donations';
+import AddDonation from '../../../donations/online_donations/add';
+import EditOrganization from '../edit';
+import ViewDonor from '../../donors/view';
+import AddDonorInteraction from '../../donor_relationship/add';
 import {
-  formatPipelineStage,
   resolveDonorPipelineStage,
 } from '../../donors/shared/donorPipelineConstants';
+import { formatAuditActor } from '../../../common/audit/auditHistoryLabels';
 import '../../donor_relationship/donor-relationship.css';
 import '../../donors/view/index.css';
 import './index.css';
@@ -58,22 +54,25 @@ const emptyBranchForm = {
   parent_branch_id: '',
 };
 
-const formatShortDate = (value) => {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+const emptyPocForm = {
+  name: '',
+  email: '',
+  phone: '',
+  cnic: '',
+  role: 'contact',
+  branch_id: '',
+  is_primary: false,
+  notes: '',
 };
 
-const formatMoney = (amount, currency) => {
-  const code = (currency || 'PKR').toUpperCase();
-  const n = Number(amount || 0);
-  return `${code} ${n.toLocaleString('en-US')}`;
-};
+const POC_ROLE_OPTIONS = [
+  { value: 'contact', label: 'Contact' },
+  { value: 'ceo', label: 'CEO' },
+  { value: 'cfo', label: 'CFO' },
+  { value: 'csr_head', label: 'CSR Head' },
+  { value: 'branch_manager', label: 'Branch Manager' },
+  { value: 'other', label: 'Other' },
+];
 
 const getInitials = (name) => {
   if (!name) return '?';
@@ -82,126 +81,229 @@ const getInitials = (name) => {
   return `${parts[0][0] || ''}${parts[parts.length - 1][0] || ''}`.toUpperCase();
 };
 
+const formatPocRole = (role) =>
+  POC_ROLE_OPTIONS.find((o) => o.value === role)?.label ||
+  String(role || 'contact').replace(/_/g, ' ');
+
+const normalizeWhatsAppPhone = (phone) =>
+  String(phone || '').replace(/[^\d]/g, '');
+
 const ViewOrganization = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { permissions, user } = useAuth();
+  const { permissions } = useAuth();
 
   const canUpdate =
-    hasPermissionByPath(permissions, 'fund_raising.organizations.update') ||
+    fundRaisingOrganizationsOrPocsHas(permissions, 'update') ||
     permissions?.super_admin ||
     permissions?.fund_raising_manager;
   const canCreate =
-    hasPermissionByPath(permissions, 'fund_raising.organizations.create') ||
+    fundRaisingOrganizationsOrPocsHas(permissions, 'create') ||
+    fundRaisingOrganizationsOrPocsHas(permissions, 'update') ||
     canUpdate;
   const canDelete =
-    hasPermissionByPath(permissions, 'fund_raising.organizations.delete') ||
+    fundRaisingOrganizationsOrPocsHas(permissions, 'delete') ||
+    fundRaisingOrganizationsOrPocsHas(permissions, 'update') ||
     canUpdate;
-  const canUpdatePipeline =
-    permissions?.super_admin === true ||
-    permissions?.fund_raising_manager === true ||
-    fundRaisingDonorsHas(permissions, 'update');
-
   const [org, setOrg] = useState(null);
   const [people, setPeople] = useState([]);
-  const [peopleSearch, setPeopleSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [peopleLoading, setPeopleLoading] = useState(false);
   const [error, setError] = useState('');
   const [infoExpanded, setInfoExpanded] = useState(false);
   const [asideHidden, setAsideHidden] = useState(false);
+  const [mainTab, setMainTab] = useState('overview'); // overview | poc | donations | edit-org | add-donation | add-poc | edit-poc | legacy | add-note
+  const [legacyTabDonorId, setLegacyTabDonorId] = useState(null);
   const [showBranchForm, setShowBranchForm] = useState(false);
   const [branchForm, setBranchForm] = useState(emptyBranchForm);
   const [savingBranch, setSavingBranch] = useState(false);
   const [branchError, setBranchError] = useState('');
   const [deleteBranch, setDeleteBranch] = useState(null);
+  const [editingPoc, setEditingPoc] = useState(null);
+  const [pocForm, setPocForm] = useState(emptyPocForm);
+  const [savingPoc, setSavingPoc] = useState(false);
+  const [pocError, setPocError] = useState('');
 
-  const selectedDonorId = searchParams.get('person') || '';
-  const [selectedDonor, setSelectedDonor] = useState(null);
-  const [donorLoading, setDonorLoading] = useState(false);
-  const [donorError, setDonorError] = useState('');
+  const selectedPocId = searchParams.get('person') || '';
 
-  const showDonorJourney = useMemo(() => {
-    if (!selectedDonor || !permissions) return false;
+  const getPocRow = (row) => row?.poc || row;
+
+  const selectedPocEntry = useMemo(() => {
+    if (!selectedPocId) return null;
+    return (
+      people.find((row) => String(getPocRow(row).id) === String(selectedPocId)) ||
+      null
+    );
+  }, [people, selectedPocId]);
+
+  const selectedPoc = selectedPocEntry ? getPocRow(selectedPocEntry) : null;
+  const legacyDonorId = selectedPoc?.legacy_donor_id ?? null;
+  const selectedPocBranch =
+    selectedPocEntry?.branch || selectedPoc?.branch || null;
+  const selectedPocRole = selectedPocEntry?.role || selectedPoc?.role || 'contact';
+  const selectedPocIsPrimary =
+    selectedPocEntry?.is_primary ?? selectedPoc?.is_primary ?? false;
+
+  const showOrgJourney = useMemo(() => {
+    if (!org || !permissions) return false;
     if (permissions.super_admin || permissions.fund_raising_manager) return true;
     if (hasModuleAccess(permissions, 'fund_raising', 'donor_relationship')) return true;
     if (canViewModule(permissions, 'fund_raising', 'donor_relationship')) return true;
-    const assigned = selectedDonor.assigned_to;
-    const assignedId = typeof assigned === 'object' ? assigned?.id : assigned;
-    return !!(user?.id && assignedId && Number(assignedId) === Number(user.id));
-  }, [selectedDonor, permissions, user]);
+    return fundRaisingOrganizationsOrPocsHas(permissions, 'view');
+  }, [org, permissions]);
+
+  const canUpdatePipeline =
+    permissions?.super_admin === true ||
+    permissions?.fund_raising_manager === true ||
+    fundRaisingOrganizationsOrPocsHas(permissions, 'update');
+
+  const [loading, setLoading] = useState(true);
+
+  const loadPeople = async () => {
+    try {
+      setPeopleLoading(true);
+      const res = await axiosInstance.get(`/csr-donors/${id}/pocs`, {
+        params: { page: 1, pageSize: 200 },
+      });
+      const list = res.data?.data || [];
+      setPeople(list);
+      return list;
+    } finally {
+      setPeopleLoading(false);
+    }
+  };
 
   const loadOrg = async () => {
     try {
       setLoading(true);
       setError('');
-      const [orgRes, peopleRes] = await Promise.all([
-        axiosInstance.get(`/organizations/${id}`),
-        axiosInstance.get(`/organizations/${id}/people`),
-      ]);
+      const orgRes = await axiosInstance.get(`/csr-donors/${id}`);
       setOrg(orgRes.data?.data || null);
-      const list = peopleRes.data?.data || [];
-      setPeople(list);
-
-      const currentPerson = searchParams.get('person');
-      if (!currentPerson && list.length > 0 && list[0]?.donor?.id) {
-        setSearchParams({ person: String(list[0].donor.id) }, { replace: true });
-      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load organization');
+      setError(err.response?.data?.message || 'Failed to load CSR donor');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadSelectedDonor = async (donorId) => {
-    if (!donorId) {
-      setSelectedDonor(null);
-      return;
-    }
-    try {
-      setDonorLoading(true);
-      setDonorError('');
-      const res = await axiosInstance.get(`/donors/${donorId}`);
-      if (res.data?.success) {
-        setSelectedDonor(res.data.data);
-      } else {
-        setDonorError('Failed to load person details');
-        setSelectedDonor(null);
-      }
-    } catch (err) {
-      setDonorError(err.response?.data?.message || 'Failed to load person details');
-      setSelectedDonor(null);
-    } finally {
-      setDonorLoading(false);
-    }
-  };
-
   useEffect(() => {
+    if (!id) return;
     loadOrg();
+    loadPeople();
+    setMainTab(searchParams.get('person') ? 'poc' : 'overview');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
-    loadSelectedDonor(selectedDonorId);
+    if (searchParams.get('addPoc') === '1' && canCreate) {
+      openAddPocForm();
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('addPoc');
+        return next;
+      }, { replace: true });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDonorId]);
+  }, [searchParams]);
 
-  const filteredPeople = useMemo(() => {
-    const q = peopleSearch.trim().toLowerCase();
-    if (!q) return people;
-    return people.filter((p) => {
-      const d = p.donor || {};
-      const hay = [d.name, d.email, d.phone, p.role, p.branch?.name]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return hay.includes(q);
+  const selectPerson = (pocId) => {
+    if (String(pocId) === String(selectedPocId)) {
+      setSearchParams({});
+      return;
+    }
+    setSearchParams({ person: String(pocId) });
+    setMainTab('poc');
+  };
+
+  const clearPersonSelection = () => {
+    setSearchParams({});
+    setMainTab('poc');
+  };
+
+  const openAddPocForm = () => {
+    setEditingPoc(null);
+    setPocForm(emptyPocForm);
+    setPocError('');
+    setMainTab('add-poc');
+  };
+
+  const openEditPocForm = () => {
+    if (!selectedPoc) return;
+    setEditingPoc(selectedPoc);
+    setPocForm({
+      name: selectedPoc.name || '',
+      email: selectedPoc.email || '',
+      phone: selectedPoc.phone || '',
+      cnic: selectedPoc.cnic || '',
+      role: selectedPoc.role || 'contact',
+      branch_id: selectedPoc.branch_id ? String(selectedPoc.branch_id) : '',
+      is_primary: !!selectedPoc.is_primary,
+      notes: selectedPoc.notes || '',
     });
-  }, [people, peopleSearch]);
+    setPocError('');
+    setMainTab('edit-poc');
+  };
 
-  const selectPerson = (donorId) => {
-    setSearchParams({ person: String(donorId) });
+  const openAddDonationTab = () => {
+    setMainTab('add-donation');
+  };
+
+  const openLegacyTab = (donorId) => {
+    if (!donorId) return;
+    setLegacyTabDonorId(String(donorId));
+    setMainTab('legacy');
+  };
+
+  const handlePocChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setPocForm((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+    if (pocError) setPocError('');
+  };
+
+  const handleSavePoc = async (e) => {
+    e.preventDefault();
+    if (!pocForm.name.trim()) {
+      setPocError('Name is required');
+      return;
+    }
+    if (!pocForm.email.trim() && !pocForm.phone.trim()) {
+      setPocError('Either email or phone is required');
+      return;
+    }
+    setSavingPoc(true);
+    setPocError('');
+    try {
+      const payload = {
+        name: pocForm.name.trim(),
+        email: pocForm.email.trim() || undefined,
+        phone: pocForm.phone.trim() || undefined,
+        cnic: pocForm.cnic.trim() || undefined,
+        role: pocForm.role,
+        branch_id: pocForm.branch_id ? Number(pocForm.branch_id) : undefined,
+        is_primary: pocForm.is_primary,
+        notes: pocForm.notes.trim() || undefined,
+      };
+      if (editingPoc?.id) {
+        await axiosInstance.patch(`/csr-donors/${id}/pocs/${editingPoc.id}`, payload);
+      } else {
+        const res = await axiosInstance.post(`/csr-donors/${id}/pocs`, payload);
+        const newId = res.data?.data?.id;
+        if (newId) {
+          setSearchParams({ person: String(newId) });
+        }
+      }
+      setEditingPoc(null);
+      setPocForm(emptyPocForm);
+      await loadPeople();
+      setMainTab('poc');
+    } catch (err) {
+      setPocError(err.response?.data?.message || 'Failed to save POC');
+    } finally {
+      setSavingPoc(false);
+    }
   };
 
   const handleBranchChange = (e) => {
@@ -218,7 +320,7 @@ const ViewOrganization = () => {
     setSavingBranch(true);
     setBranchError('');
     try {
-      await axiosInstance.post(`/organizations/${id}/branches`, {
+      await axiosInstance.post(`/csr-donors/${id}/branches`, {
         name: branchForm.name.trim(),
         phone: branchForm.phone || undefined,
         email: branchForm.email || undefined,
@@ -242,7 +344,7 @@ const ViewOrganization = () => {
   const handleConfirmDeleteBranch = async () => {
     if (!deleteBranch) return;
     try {
-      await axiosInstance.delete(`/organizations/${id}/branches/${deleteBranch.id}`);
+      await axiosInstance.delete(`/csr-donors/${id}/branches/${deleteBranch.id}`);
       setDeleteBranch(null);
       await loadOrg();
     } catch (err) {
@@ -258,7 +360,7 @@ const ViewOrganization = () => {
         <div className="list-wrapper">
           <div className="loading-container">
             <div className="loading-spinner"></div>
-            <p>Loading organization...</p>
+            <p>Loading CSR donor...</p>
           </div>
         </div>
       </>
@@ -272,8 +374,8 @@ const ViewOrganization = () => {
         <div className="list-wrapper">
           <div className="error-container">
             <div className="status-message status-message--error">{error}</div>
-            <button className="primary_btn" onClick={() => navigate('/dms/organizations/list')}>
-              Back to Organizations
+            <button className="primary_btn" onClick={() => navigate('/dms/csr-donors/list')}>
+              Back to CSR Donors
             </button>
           </div>
         </div>
@@ -287,9 +389,9 @@ const ViewOrganization = () => {
         <Navbar />
         <div className="list-wrapper">
           <div className="error-container">
-            <div className="status-message status-message--error">Organization not found</div>
-            <button className="primary_btn" onClick={() => navigate('/dms/organizations/list')}>
-              Back to Organizations
+            <div className="status-message status-message--error">CSR donor not found</div>
+            <button className="primary_btn" onClick={() => navigate('/dms/csr-donors/list')}>
+              Back to CSR Donors
             </button>
           </div>
         </div>
@@ -299,34 +401,14 @@ const ViewOrganization = () => {
 
   const tree = org.branch_tree || [];
   const addressText = [org.address, org.city, org.country].filter(Boolean).join(', ');
-  const donor = selectedDonor;
-  const stats = donor
-    ? {
-        total_donations:
-          donor.donation_stats?.total_donations ?? donor.donation_count ?? 0,
-        total_donated:
-          donor.donation_stats?.total_donated ?? donor.total_donated ?? 0,
-        currency:
-          donor.donation_stats?.currency ||
-          donor.donation_stats?.last_donation?.currency ||
-          'PKR',
-        first_donation: donor.donation_stats?.first_donation || null,
-        last_donation: donor.donation_stats?.last_donation || null,
-      }
-    : null;
-  const currency = stats?.currency || 'PKR';
-  const recurringActive = !!donor?.recurring;
-  const selectedAffiliation = people.find(
-    (p) => String(p.donor?.id) === String(selectedDonorId),
-  );
 
   return (
     <>
       <Navbar />
       <div className="list-wrapper">
         <PageHeader
-          title="Organization Details"
-          onBack={() => navigate('/dms/organizations/list')}
+          title="CSR Donor Details"
+          backPath="/dms/csr-donors/list"
           showAdd={false}
         />
 
@@ -359,7 +441,7 @@ const ViewOrganization = () => {
             <aside className="donor-crm-aside">
               <section className="donor-crm-card donor-crm-identity">
                 <div className="donor-crm-identity__top">
-                  <span className="donor-crm-identity__eyebrow">Organization Profile</span>
+                  <span className="donor-crm-identity__eyebrow">CSR Donor Profile</span>
                   <div className="donor-crm-identity__top-actions">
                     <button
                       type="button"
@@ -399,7 +481,7 @@ const ViewOrganization = () => {
                     <h2 className="donor-crm-identity__name">{org.name}</h2>
                     <span className="donor-profile-type-badge donor-profile-type-badge--csr">
                       <BsFillBuildingsFill />
-                      Organization
+                      CSR Donor
                     </span>
                   </div>
                 </div>
@@ -424,7 +506,7 @@ const ViewOrganization = () => {
                     <button
                       type="button"
                       className="donor-profile-btn donor-profile-btn--edit"
-                      onClick={() => navigate(`/dms/organizations/edit/${id}`)}
+                      onClick={() => setMainTab('edit-org')}
                     >
                       <FiEdit />
                       Edit Org
@@ -432,19 +514,33 @@ const ViewOrganization = () => {
                   )}
                   <button
                     type="button"
+                    className="donor-profile-btn donor-profile-btn--donations"
+                    onClick={() => setMainTab('donations')}
+                  >
+                    <FiList />
+                    Donations
+                  </button>
+                  <button
+                    type="button"
                     className="donor-profile-btn donor-profile-btn--add-donation"
-                    onClick={() =>
-                      navigate(`/dms/donors/add?organization_id=${id}&donor_type=csr`)
-                    }
+                    onClick={openAddDonationTab}
                   >
                     <FiPlus />
-                    Add Person
+                    Add Donation
+                  </button>
+                  <button
+                    type="button"
+                    className="donor-profile-btn"
+                    onClick={openAddPocForm}
+                  >
+                    <FiPlus />
+                    Add POC
                   </button>
                 </div>
               </section>
 
               <section className="donor-crm-card">
-                <h3 className="donor-crm-card__title">Organization Summary</h3>
+                <h3 className="donor-crm-card__title">CSR Donor Summary</h3>
                 <div className="donor-crm-summary-list">
                   <div className="donor-crm-summary-row">
                     <span>Registration</span>
@@ -480,6 +576,12 @@ const ViewOrganization = () => {
                     <span>Branches</span>
                     <strong>{tree.length}</strong>
                   </div>
+                  <div className="donor-crm-summary-row">
+                    <span>Created by</span>
+                    <strong>
+                      {org.created_by ? formatAuditActor(org.created_by) : '—'}
+                    </strong>
+                  </div>
                   {org.notes && (
                     <div className="donor-crm-summary-row donor-crm-summary-row--block">
                       <span>Notes</span>
@@ -490,41 +592,35 @@ const ViewOrganization = () => {
               </section>
 
               <section className="donor-crm-card org-people-card">
-                <h3 className="donor-crm-card__title">People / Leads</h3>
-                <input
-                  type="search"
-                  className="form-control org-people-search"
-                  placeholder="Search people..."
-                  value={peopleSearch}
-                  onChange={(e) => setPeopleSearch(e.target.value)}
-                />
-                {filteredPeople.length === 0 ? (
-                  <p className="org-people-empty">No people linked to this organization yet.</p>
+                <h3 className="donor-crm-card__title">POCs / Contacts</h3>
+                {peopleLoading ? (
+                  <p className="org-people-empty">Loading POCs...</p>
+                ) : people.length === 0 ? (
+                  <p className="org-people-empty">No POCs linked yet.</p>
                 ) : (
                   <ul className="org-people-list">
-                    {filteredPeople.map((row) => {
-                      const d = row.donor || {};
-                      const active = String(d.id) === String(selectedDonorId);
-                      const stage = formatPipelineStage(
-                        d.effective_pipeline_stage || d.pipeline_stage,
-                      );
+                    {people.map((row) => {
+                      const pocRow = getPocRow(row);
+                      const active = String(pocRow.id) === String(selectedPocId);
                       return (
-                        <li key={row.affiliation_id}>
+                        <li key={row.affiliation_id || pocRow.id}>
                           <button
                             type="button"
                             className={`org-people-item${active ? ' org-people-item--active' : ''}`}
-                            onClick={() => selectPerson(d.id)}
+                            onClick={() => selectPerson(pocRow.id)}
                           >
                             <span className="org-people-item__avatar" aria-hidden="true">
-                              {getInitials(d.name)}
+                              {getInitials(pocRow.name)}
                             </span>
                             <span className="org-people-item__body">
-                              <strong>{d.name || d.email || `Donor #${d.id}`}</strong>
+                              <strong>{pocRow.name || pocRow.email || `POC #${pocRow.id}`}</strong>
                               <span>
-                                {(row.role || 'contact').replace(/_/g, ' ')}
-                                {row.branch?.name ? ` · ${row.branch.name}` : ''}
+                                {(row.role || pocRow.role || 'contact').replace(/_/g, ' ')}
+                                {(row.branch || pocRow.branch)?.name
+                                  ? ` · ${(row.branch || pocRow.branch).name}`
+                                  : ''}
+                                {(row.is_primary || pocRow.is_primary) ? ' · Primary' : ''}
                               </span>
-                              <span className="org-people-item__stage">{stage}</span>
                             </span>
                           </button>
                         </li>
@@ -532,6 +628,58 @@ const ViewOrganization = () => {
                     })}
                   </ul>
                 )}
+                {selectedPoc ? (
+                  <div className="org-poc-sidebar-actions">
+                    <p className="org-poc-sidebar-actions__label">
+                      {selectedPoc.name || selectedPoc.email}
+                    </p>
+                    <div className="org-poc-sidebar-actions__buttons">
+                      {canUpdate && (
+                        <button
+                          type="button"
+                          className="donor-profile-btn donor-profile-btn--edit"
+                          onClick={openEditPocForm}
+                        >
+                          <FiEdit />
+                          Edit
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="donor-profile-btn donor-profile-btn--add-donation"
+                        onClick={openAddDonationTab}
+                      >
+                        <FiPlus />
+                        Donation
+                      </button>
+                      <button
+                        type="button"
+                        className="donor-profile-btn donor-profile-btn--donations"
+                        onClick={() => setMainTab('donations')}
+                      >
+                        <FiList />
+                        Donations
+                      </button>
+                      {legacyDonorId ? (
+                        <button
+                          type="button"
+                          className="donor-profile-btn"
+                          onClick={() => openLegacyTab(legacyDonorId)}
+                        >
+                          <FiUser />
+                          Legacy
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="donor-profile-btn"
+                        onClick={clearPersonSelection}
+                      >
+                        View all POCs
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </section>
 
               <section className="donor-crm-card">
@@ -550,7 +698,7 @@ const ViewOrganization = () => {
                     </button>
                   )}
                 </div>
-                <p className="org-view-hint">Organization → Branch → Sub-branch</p>
+                <p className="org-view-hint">CSR Donor → Branch → Sub-branch</p>
 
                 {tree.length === 0 ? (
                   <p className="org-people-empty">No branches yet.</p>
@@ -659,303 +807,456 @@ const ViewOrganization = () => {
             ) : null}
 
             <div className="donor-crm-main" aria-hidden={infoExpanded}>
-              {!selectedDonorId ? (
-                <section className="donor-crm-card">
-                  <h3 className="donor-crm-card__title">Select a person</h3>
-                  <p className="org-people-empty">
-                    Choose someone from the People / Leads list to view interactions, pipeline,
-                    donations history, and full donor details.
-                  </p>
-                </section>
-              ) : donorLoading ? (
-                <div className="loading-container">
-                  <div className="loading-spinner"></div>
-                  <p>Loading person details...</p>
+              <div className="donor-profile-tabs" role="tablist" aria-label="CSR donor profile sections">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mainTab === 'overview'}
+                  className={`donor-profile-tabs__btn${mainTab === 'overview' ? ' is-active' : ''}`}
+                  onClick={() => setMainTab('overview')}
+                >
+                  Overview
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mainTab === 'poc'}
+                  className={`donor-profile-tabs__btn${mainTab === 'poc' ? ' is-active' : ''}`}
+                  onClick={() => setMainTab('poc')}
+                >
+                  {selectedPoc ? 'POC' : 'POCs'}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mainTab === 'donations'}
+                  className={`donor-profile-tabs__btn${mainTab === 'donations' ? ' is-active' : ''}`}
+                  onClick={() => setMainTab('donations')}
+                >
+                  Donations
+                </button>
+                {mainTab === 'edit-org' && (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected
+                    className="donor-profile-tabs__btn is-active"
+                  >
+                    Edit Org
+                  </button>
+                )}
+                {mainTab === 'add-donation' && (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected
+                    className="donor-profile-tabs__btn is-active"
+                  >
+                    Add Donation
+                  </button>
+                )}
+                {(mainTab === 'add-poc' || mainTab === 'edit-poc') && (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected
+                    className="donor-profile-tabs__btn is-active"
+                  >
+                    {mainTab === 'edit-poc' ? 'Edit POC' : 'Add POC'}
+                  </button>
+                )}
+                {mainTab === 'legacy' && (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected
+                    className="donor-profile-tabs__btn is-active"
+                  >
+                    Legacy
+                  </button>
+                )}
+                {mainTab === 'add-note' && (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected
+                    className="donor-profile-tabs__btn is-active"
+                  >
+                    Add Interaction
+                  </button>
+                )}
+              </div>
+
+              {mainTab === 'donations' ? (
+                <OnlineDonationsList
+                  key={`csr-donations-embed-${id}-${selectedPocId || 'all'}`}
+                  embedded
+                  embeddedCsrDonorId={id}
+                  embeddedCsrPocId={selectedPocId || null}
+                />
+              ) : mainTab === 'edit-org' ? (
+                <EditOrganization
+                  key={`edit-org-${id}`}
+                  embedded
+                  organizationId={id}
+                  onCancel={() => setMainTab('overview')}
+                  onSaved={(updated) => {
+                    if (updated) {
+                      setOrg((prev) => ({ ...prev, ...updated, branch_tree: prev?.branch_tree }));
+                    } else {
+                      loadOrg();
+                    }
+                    setMainTab('overview');
+                  }}
+                />
+              ) : mainTab === 'add-donation' ? (
+                <AddDonation
+                  key={`add-donation-${id}-${selectedPocId || 'none'}`}
+                  embedded
+                  embeddedCsrDonorId={id}
+                  embeddedCsrPocId={selectedPocId || null}
+                  onCancel={() => setMainTab(selectedPocId ? 'poc' : 'donations')}
+                  onSaved={() => setMainTab('donations')}
+                />
+              ) : mainTab === 'add-poc' || mainTab === 'edit-poc' ? (
+                <div className="donor-profile-donations-embed">
+                  <PageHeader
+                    title={mainTab === 'edit-poc' ? 'Edit POC' : 'Add POC'}
+                    showBackButton
+                    onBackClick={() => {
+                      setEditingPoc(null);
+                      setPocForm(emptyPocForm);
+                      setPocError('');
+                      setMainTab('poc');
+                    }}
+                  />
+                  {pocError && (
+                    <div className="status-message status-message--error">{pocError}</div>
+                  )}
+                  <form onSubmit={handleSavePoc} className="form">
+                    <FormInput
+                      label="Name"
+                      name="name"
+                      value={pocForm.name}
+                      onChange={handlePocChange}
+                      required
+                    />
+                    <FormInput
+                      label="Email"
+                      name="email"
+                      type="email"
+                      value={pocForm.email}
+                      onChange={handlePocChange}
+                    />
+                    <FormInput
+                      label="Phone"
+                      name="phone"
+                      value={pocForm.phone}
+                      onChange={handlePocChange}
+                    />
+                    <FormInput
+                      label="CNIC"
+                      name="cnic"
+                      value={pocForm.cnic}
+                      onChange={handlePocChange}
+                    />
+                    <div className="form-group">
+                      <label htmlFor="poc_role">Role</label>
+                      <select
+                        id="poc_role"
+                        name="role"
+                        className="form-control"
+                        value={pocForm.role}
+                        onChange={handlePocChange}
+                      >
+                        {POC_ROLE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="poc_branch_id">Branch</label>
+                      <select
+                        id="poc_branch_id"
+                        name="branch_id"
+                        className="form-control"
+                        value={pocForm.branch_id}
+                        onChange={handlePocChange}
+                      >
+                        <option value="">— No branch —</option>
+                        {tree.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          name="is_primary"
+                          checked={pocForm.is_primary}
+                          onChange={handlePocChange}
+                        />
+                        Primary contact
+                      </label>
+                    </div>
+                    <FormInput
+                      label="Notes"
+                      name="notes"
+                      value={pocForm.notes}
+                      onChange={handlePocChange}
+                    />
+                    <div className="form-actions">
+                      <button
+                        type="button"
+                        className="secondary_btn"
+                        onClick={() => {
+                          setEditingPoc(null);
+                          setPocForm(emptyPocForm);
+                          setPocError('');
+                          setMainTab('poc');
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button type="submit" className="primary_btn" disabled={savingPoc}>
+                        {savingPoc ? 'Saving...' : mainTab === 'edit-poc' ? 'Update POC' : 'Add POC'}
+                      </button>
+                    </div>
+                  </form>
                 </div>
-              ) : donorError || !donor ? (
-                <section className="donor-crm-card">
-                  <div className="status-message status-message--error">
-                    {donorError || 'Person not found'}
-                  </div>
-                </section>
-              ) : (
+              ) : mainTab === 'legacy' && legacyTabDonorId ? (
+                <ViewDonor
+                  key={`legacy-donor-${legacyTabDonorId}`}
+                  embedded
+                  embeddedDonorId={legacyTabDonorId}
+                  onBack={() => {
+                    setLegacyTabDonorId(null);
+                    setMainTab('poc');
+                  }}
+                />
+              ) : mainTab === 'add-note' ? (
+                <AddDonorInteraction
+                  key={`add-note-${id}-${selectedPocId || 'all'}`}
+                  embedded
+                  embeddedCsrDonorId={id}
+                  embeddedCsrPocId={selectedPocId || null}
+                  onCancel={() => setMainTab('poc')}
+                  onSaved={() => setMainTab('poc')}
+                />
+              ) : mainTab === 'poc' ? (
                 <>
-                  <section className="donor-crm-card org-selected-person-banner">
-                    <div className="org-selected-person-banner__left">
-                      <span className="org-people-item__avatar" aria-hidden="true">
-                        {getInitials(donor.name)}
-                      </span>
-                      <div>
-                        <h2>{donor.name || donor.email}</h2>
-                        <p>
-                          {(selectedAffiliation?.role || 'contact').replace(/_/g, ' ')}
-                          {selectedAffiliation?.branch?.name
-                            ? ` · ${selectedAffiliation.branch.name}`
-                            : ''}
-                          {' · '}
-                          {donor.donor_type === 'csr' ? 'CSR' : 'Individual'}
-                          {' · '}
-                          <FiGitBranch style={{ verticalAlign: 'middle' }} />{' '}
-                          {formatPipelineStage(
-                            donor.effective_pipeline_stage || donor.pipeline_stage,
+                  {selectedPoc ? (
+                    <section className="donor-crm-card org-person-summary-card">
+                      <div className="org-person-summary__header">
+                        <span className="org-person-summary__header-icon">
+                          <FiUser />
+                        </span>
+                        <div>
+                          <h3 className="org-person-summary__title">POC Information</h3>
+                          <p className="org-person-summary__subtitle">
+                            {selectedPoc.name || selectedPoc.email || `POC #${selectedPoc.id}`}
+                            {' · '}
+                            {formatPocRole(selectedPocRole)}
+                            {selectedPocIsPrimary ? ' · Primary' : ''}
+                          </p>
+                        </div>
+                        <div className="org-person-summary__header-actions">
+                          {selectedPoc.email ? (
+                            <a
+                              href={`mailto:${selectedPoc.email}`}
+                              className="org-person-summary__icon-btn"
+                              title={`Email ${selectedPoc.email}`}
+                              aria-label={`Email ${selectedPoc.email}`}
+                            >
+                              <FiMail />
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              className="org-person-summary__icon-btn"
+                              disabled
+                              title="No email"
+                              aria-label="No email"
+                            >
+                              <FiMail />
+                            </button>
                           )}
-                        </p>
+                          {selectedPoc.phone ? (
+                            <a
+                              href={`https://wa.me/${normalizeWhatsAppPhone(selectedPoc.phone)}`}
+                              className="org-person-summary__icon-btn org-person-summary__icon-btn--whatsapp"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={`WhatsApp ${selectedPoc.phone}`}
+                              aria-label={`WhatsApp ${selectedPoc.phone}`}
+                            >
+                              <FaWhatsapp />
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              className="org-person-summary__icon-btn org-person-summary__icon-btn--whatsapp"
+                              disabled
+                              title="No phone"
+                              aria-label="No phone"
+                            >
+                              <FaWhatsapp />
+                            </button>
+                          )}
+                          {canUpdate ? (
+                            <button
+                              type="button"
+                              className="org-person-summary__icon-btn"
+                              onClick={openEditPocForm}
+                              title="Edit POC"
+                              aria-label="Edit POC"
+                            >
+                              <FiEdit />
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
-                    </div>
-                    <div className="org-selected-person-banner__actions">
-                      <button
-                        type="button"
-                        className="donor-profile-btn donor-profile-btn--edit"
-                        onClick={() => navigate(`/dms/donors/edit/${donor.id}`)}
-                      >
-                        <FiEdit />
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="donor-profile-btn donor-profile-btn--donations"
-                        onClick={() => navigate(`/dms/donors/${donor.id}/donations`)}
-                      >
-                        <FiList />
-                        Donations
-                      </button>
-                      <button
-                        type="button"
-                        className="donor-profile-btn donor-profile-btn--add-donation"
-                        onClick={() =>
-                          navigate(`/donations/online_donations/add?donor_id=${donor.id}`)
-                        }
-                      >
-                        <FiPlus />
-                        Add Donation
-                      </button>
-                      <button
-                        type="button"
-                        className="donor-profile-btn donor-profile-btn--email"
-                        onClick={() =>
-                          navigate(`/dms/donor-relationship/add?donor_id=${donor.id}`)
-                        }
-                        disabled={!showDonorJourney}
-                      >
-                        <FiFileText />
-                        Log Interaction
-                      </button>
-                      <button
-                        type="button"
-                        className="donor-profile-btn"
-                        onClick={() => navigate(`/dms/donors/view/${donor.id}`)}
-                      >
-                        <FiUser />
-                        Full Donor View
-                      </button>
-                    </div>
-                  </section>
 
-                  <section className="donor-crm-stats-bar" aria-label="Donation summary">
-                    <div className="donor-crm-stat">
-                      <span className="donor-crm-stat__icon donor-crm-stat__icon--blue">
-                        <FiLayers />
-                      </span>
-                      <div className="donor-crm-stat__body">
-                        <span className="donor-crm-stat__label">Total Donations</span>
-                        <span className="donor-crm-stat__value">
-                          {Number(stats.total_donations || 0).toLocaleString('en-US')}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="donor-crm-stat">
-                      <span className="donor-crm-stat__icon donor-crm-stat__icon--green">
-                        <GiPayMoney />
-                      </span>
-                      <div className="donor-crm-stat__body">
-                        <span className="donor-crm-stat__label">Total Donated</span>
-                        <span className="donor-crm-stat__value">
-                          {formatMoney(stats.total_donated, currency)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="donor-crm-stat">
-                      <span className="donor-crm-stat__icon donor-crm-stat__icon--mint">
-                        <FiCalendar />
-                      </span>
-                      <div className="donor-crm-stat__body">
-                        <span className="donor-crm-stat__label">Last Donation</span>
-                        <span className="donor-crm-stat__value donor-crm-stat__value--sm">
-                          {stats.last_donation
-                            ? `${formatShortDate(stats.last_donation.date)}, ${formatMoney(
-                                stats.last_donation.amount,
-                                stats.last_donation.currency || currency,
-                              )}`
-                            : '—'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="donor-crm-stat">
-                      <span className="donor-crm-stat__icon donor-crm-stat__icon--purple">
-                        <FiCalendar />
-                      </span>
-                      <div className="donor-crm-stat__body">
-                        <span className="donor-crm-stat__label">First Donation</span>
-                        <span className="donor-crm-stat__value donor-crm-stat__value--sm">
-                          {stats.first_donation?.date
-                            ? formatShortDate(stats.first_donation.date)
-                            : '—'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="donor-crm-stat">
-                      <span
-                        className={`donor-crm-stat__icon ${
-                          recurringActive
-                            ? 'donor-crm-stat__icon--green'
-                            : 'donor-crm-stat__icon--muted'
-                        }`}
-                      >
-                        <FiRefreshCw />
-                      </span>
-                      <div className="donor-crm-stat__body">
-                        <span className="donor-crm-stat__label">Recurring Status</span>
-                        <span
-                          className={`donor-crm-stat__value ${
-                            recurringActive
-                              ? 'donor-profile-stat__value--active'
-                              : 'donor-profile-stat__value--inactive'
-                          }`}
-                        >
-                          {recurringActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                    </div>
-                  </section>
-
-                  <section className="donor-crm-card org-person-summary">
-                    <div className="org-person-summary__header">
-                      <span className="org-person-summary__header-icon" aria-hidden="true">
-                        <FiUser />
-                      </span>
-                      <h3 className="org-person-summary__title">Person Summary</h3>
-                      <div className="org-person-summary__header-actions">
-                        <button
-                          type="button"
-                          className="org-person-summary__icon-btn"
-                          title="Call"
-                          aria-label="Call"
-                          onClick={() => {
-                            if (donor.phone) {
-                              window.location.href = `tel:${String(donor.phone).replace(/\s+/g, '')}`;
-                            }
-                          }}
-                          disabled={!donor.phone}
-                        >
-                          <FiPhone />
-                        </button>
-                        <button
-                          type="button"
-                          className="org-person-summary__icon-btn"
-                          title="Email"
-                          aria-label="Email"
-                          onClick={() => {
-                            if (donor.email) window.location.href = `mailto:${donor.email}`;
-                          }}
-                          disabled={!donor.email}
-                        >
-                          <FiMail />
-                        </button>
-                        <button
-                          type="button"
-                          className="org-person-summary__icon-btn org-person-summary__icon-btn--whatsapp"
-                          title="WhatsApp"
-                          aria-label="WhatsApp"
-                          onClick={() => {
-                            const digits = String(donor.phone || '').replace(/\D/g, '');
-                            if (digits) {
-                              window.open(`https://wa.me/${digits}`, '_blank', 'noopener,noreferrer');
-                            }
-                          }}
-                          disabled={!donor.phone}
-                        >
-                          <FaWhatsapp />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="org-person-summary__grid">
-                      <div className="org-person-summary__tile">
-                        <span className="org-person-summary__tile-label">Email</span>
-                        <strong className="org-person-summary__tile-value" title={donor.email || ''}>
-                          {donor.email || '—'}
-                        </strong>
-                      </div>
-                      <div className="org-person-summary__tile">
-                        <span className="org-person-summary__tile-label">Phone</span>
-                        <strong className="org-person-summary__tile-value">
-                          {donor.phone || '—'}
-                        </strong>
-                      </div>
-                      <div className="org-person-summary__tile">
-                        <span className="org-person-summary__tile-label">Assigned To</span>
-                        <strong className="org-person-summary__tile-value">
-                          {donor.assigned_to ? formatAuditActor(donor.assigned_to) : 'Unassigned'}
-                        </strong>
-                      </div>
-                      <div className="org-person-summary__tile">
-                        <span className="org-person-summary__tile-label">Status</span>
-                        <strong className="org-person-summary__tile-value">
+                      <div className="org-person-summary__grid">
+                        <div className="org-person-summary__tile">
+                          <span className="org-person-summary__tile-label">Email</span>
+                          <span className="org-person-summary__tile-value">
+                            {selectedPoc.email || '—'}
+                          </span>
+                        </div>
+                        <div className="org-person-summary__tile">
+                          <span className="org-person-summary__tile-label">Phone</span>
+                          <span className="org-person-summary__tile-value">
+                            {selectedPoc.phone || '—'}
+                          </span>
+                        </div>
+                        <div className="org-person-summary__tile">
+                          <span className="org-person-summary__tile-label">Role</span>
+                          <span className="org-person-summary__tile-value">
+                            {formatPocRole(selectedPocRole)}
+                          </span>
+                        </div>
+                        <div className="org-person-summary__tile">
+                          <span className="org-person-summary__tile-label">Branch</span>
+                          <span className="org-person-summary__tile-value">
+                            {selectedPocBranch?.name || '—'}
+                          </span>
+                        </div>
+                        <div className="org-person-summary__tile">
+                          <span className="org-person-summary__tile-label">CNIC</span>
+                          <span className="org-person-summary__tile-value">
+                            {selectedPoc.cnic || '—'}
+                          </span>
+                        </div>
+                        <div className="org-person-summary__tile">
+                          <span className="org-person-summary__tile-label">Status</span>
                           <span
                             className={`org-person-summary__status-pill ${
-                              donor.is_active === false
+                              selectedPoc.is_active === false
                                 ? 'org-person-summary__status-pill--inactive'
                                 : 'org-person-summary__status-pill--active'
                             }`}
                           >
-                            <span className="org-person-summary__status-pill-dot" />
-                            {donor.is_active === false ? 'Inactive' : 'Active'}
+                            <span className="org-person-summary__status-pill-dot" aria-hidden="true" />
+                            {selectedPoc.is_active === false ? 'Inactive' : 'Active'}
                           </span>
-                        </strong>
+                        </div>
+                        <div className="org-person-summary__tile">
+                          <span className="org-person-summary__tile-label">Primary contact</span>
+                          <span className="org-person-summary__tile-value">
+                            {selectedPocIsPrimary ? 'Yes' : 'No'}
+                          </span>
+                        </div>
+                        {selectedPoc.notes ? (
+                          <div className="org-person-summary__tile org-person-summary__tile--notes">
+                            <span className="org-person-summary__tile-label">Notes</span>
+                            <span className="org-person-summary__tile-value">{selectedPoc.notes}</span>
+                          </div>
+                        ) : null}
                       </div>
-                      <div className="org-person-summary__tile org-person-summary__tile--notes">
-                        <span className="org-person-summary__tile-label">Notes</span>
-                        <strong
-                          className="org-person-summary__tile-value"
-                          title={donor.notes || ''}
-                        >
-                          {donor.notes || '—'}
-                        </strong>
+                    </section>
+                  ) : (
+                    <section className="donor-crm-card org-person-summary-card">
+                      <div className="org-person-summary__header">
+                        <span className="org-person-summary__header-icon">
+                          <FiUser />
+                        </span>
+                        <div>
+                          <h3 className="org-person-summary__title">All POCs</h3>
+                          <p className="org-person-summary__subtitle">
+                            Showing interactions across every contact for {org.name}. Select a POC
+                            in the sidebar to focus on one person.
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </section>
+                      <div className="org-person-summary__grid">
+                        <div className="org-person-summary__tile">
+                          <span className="org-person-summary__tile-label">Total POCs</span>
+                          <span className="org-person-summary__tile-value">{people.length}</span>
+                        </div>
+                        <div className="org-person-summary__tile">
+                          <span className="org-person-summary__tile-label">Primary contacts</span>
+                          <span className="org-person-summary__tile-value">
+                            {people.filter((row) => {
+                              const poc = getPocRow(row);
+                              return row.is_primary || poc.is_primary;
+                            }).length}
+                          </span>
+                        </div>
+                      </div>
+                    </section>
+                  )}
 
-                  {/* <ManualRecurringDonorPanel
-                    donorId={donor.id}
-                    onUpdated={() => loadSelectedDonor(donor.id)}
-                  /> */}
-
-                  <DonorPipelinePanel
-                    donorId={donor.id}
-                    currentStage={
-                      donor.effective_pipeline_stage ||
-                      resolveDonorPipelineStage(donor.pipeline_stage)
-                    }
-                    askAmount={donor.pipeline_ask_amount}
-                    pledgeAmount={donor.pipeline_pledge_amount}
-                    amountCurrency={donor.pipeline_amount_currency || 'PKR'}
-                    canUpdate={canUpdatePipeline}
-                    onStageChanged={(updated) => {
-                      if (updated) setSelectedDonor(updated);
-                      else loadSelectedDonor(donor.id);
-                    }}
-                  />
-
-                  {showDonorJourney ? (
-                    <DonorCommunication donorId={donor.id} donor={donor} />
+                  {showOrgJourney ? (
+                    <DonorCommunication
+                      key={`csr-journey-${id}-${selectedPocId || 'all'}`}
+                      csrDonorId={Number(id)}
+                      csrPocId={selectedPocId ? Number(selectedPocId) : undefined}
+                      donor={org}
+                      showPocBadges={!selectedPocId}
+                      onAddInteraction={() => setMainTab('add-note')}
+                      journeyTitle={
+                        selectedPoc
+                          ? `${selectedPoc.name || 'POC'} — Activities`
+                          : 'All CSR Donor Activities'
+                      }
+                      journeySubtitle={
+                        selectedPoc
+                          ? `Interactions and follow-ups for ${selectedPoc.name || 'this contact'}. Click View all POCs to show everyone again.`
+                          : `Every interaction and follow-up across all POCs for ${org.name}. Select a POC in the sidebar to filter.`
+                      }
+                    />
                   ) : (
                     <div className="donor-journey-panel">
                       <h3 className="donor-journey-panel__title">Donor Relationship Journey</h3>
                       <p className="donor-journey-empty">
-                        You do not have access to view relationship interactions for this person.
+                        You do not have access to view relationship interactions for this CSR donor.
                       </p>
                     </div>
                   )}
+                </>
+              ) : (
+                <>
+                  <DonorPipelinePanel
+                    csrDonorId={Number(id)}
+                    currentStage={
+                      org.effective_pipeline_stage ||
+                      resolveDonorPipelineStage(org.pipeline_stage)
+                    }
+                    askAmount={org.pipeline_ask_amount}
+                    pledgeAmount={org.pipeline_pledge_amount}
+                    amountCurrency={org.pipeline_amount_currency || 'PKR'}
+                    canUpdate={canUpdatePipeline}
+                    onStageChanged={(updated) => {
+                      if (updated) setOrg((prev) => ({ ...prev, ...updated, branch_tree: prev?.branch_tree }));
+                      else loadOrg();
+                    }}
+                  />
 
                   <section className="donor-crm-card donor-crm-history donor-profile-history">
                     <div className="donor-crm-history__header">
@@ -966,7 +1267,7 @@ const ViewOrganization = () => {
                         Change History
                       </h3>
                     </div>
-                    <DonorAuditHistory donorId={donor.id} />
+                    <DonorAuditHistory csrDonorId={Number(id)} />
                   </section>
                 </>
               )}

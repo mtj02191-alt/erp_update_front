@@ -13,6 +13,10 @@ import DonorAuditHistory from '../shared/DonorAuditHistory';
 import DonorPipelinePanel from '../shared/DonorPipelinePanel';
 import DonorCommunication from '../../donor_relationship/shared/DonorCommunication';
 import ManualRecurringDonorPanel from '../../manual_recurring/ManualRecurringDonorPanel';
+import { OnlineDonationsList } from '../../donations/online_donations';
+import AddDonation from '../../../donations/online_donations/add';
+import EditDonor from '../edit';
+import AddDonorInteraction from '../../donor_relationship/add';
 import { formatAuditActor } from '../../../common/audit/auditHistoryLabels';
 import { formatPipelineStage, resolveDonorPipelineStage } from '../shared/donorPipelineConstants';
 import {
@@ -43,9 +47,14 @@ import {
 import { GiPayMoney } from 'react-icons/gi';
 import { BsFillBuildingsFill } from 'react-icons/bs';
 
-const ViewDonor = () => {
+const ViewDonor = ({
+  embedded = false,
+  embeddedDonorId = null,
+  onBack = null,
+} = {}) => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id: routeId } = useParams();
+  const id = embeddedDonorId != null && embeddedDonorId !== '' ? String(embeddedDonorId) : routeId;
   const location = useLocation();
   const donorsBasePath = location.pathname.includes('/dms/offline_donors')
     ? '/dms/offline_donors'
@@ -65,6 +74,7 @@ const ViewDonor = () => {
   const [copiedField, setCopiedField] = useState('');
   const [infoExpanded, setInfoExpanded] = useState(false);
   const [asideHidden, setAsideHidden] = useState(false);
+  const [mainTab, setMainTab] = useState('overview'); // overview | donations | edit | add-donation | add-note
 
   const showDonorJourney = useMemo(() => {
     if (!donor || !permissions) return false;
@@ -78,6 +88,10 @@ const ViewDonor = () => {
 
   useEffect(() => {
     fetchDonor();
+  }, [id]);
+
+  useEffect(() => {
+    setMainTab('overview');
   }, [id]);
 
   const fetchDonor = async () => {
@@ -98,27 +112,27 @@ const ViewDonor = () => {
   };
 
   const handleBack = () => {
+    if (embedded && typeof onBack === 'function') {
+      onBack();
+      return;
+    }
     navigate(`${donorsBasePath}/list`);
   };
 
   const handleEdit = () => {
-    navigate(`${donorsBasePath}/edit/${id}`);
+    setMainTab('edit');
   };
 
   const handleViewDonations = () => {
-    navigate(`${donorsBasePath}/${id}/donations`);
+    setMainTab('donations');
   };
 
   const handleAddDonation = () => {
-    navigate(
-      isOfflineRoute
-        ? `/donations/offline_donations/add?donor_id=${id}`
-        : `/donations/online_donations/add?donor_id=${id}`,
-    );
+    setMainTab('add-donation');
   };
 
   const handleLogInteraction = () => {
-    navigate(`/dms/donor-relationship/add?donor_id=${id}`);
+    setMainTab('add-note');
   };
 
   const handleSendEmail = () => {
@@ -210,7 +224,7 @@ const ViewDonor = () => {
   };
 
   const getDonorTypeLabel = (type) =>
-    type === 'csr' ? 'CSR Donor (Corporate)' : 'Individual Donor';
+    type === 'csr' ? 'POC (Point of Contact)' : 'Individual Donor';
 
   const getInitials = (name) => {
     if (!name) return '?';
@@ -239,8 +253,8 @@ const ViewDonor = () => {
   if (loading) {
     return (
       <>
-        <Navbar />
-        <div className="list-wrapper">
+        {!embedded && <Navbar />}
+        <div className={embedded ? 'donor-profile-donations-embed' : 'list-wrapper'}>
           <div className="loading-container">
             <div className="loading-spinner"></div>
             <p>Loading donor details...</p>
@@ -253,12 +267,12 @@ const ViewDonor = () => {
   if (error) {
     return (
       <>
-        <Navbar />
-        <div className="list-wrapper">
+        {!embedded && <Navbar />}
+        <div className={embedded ? 'donor-profile-donations-embed' : 'list-wrapper'}>
           <div className="error-container">
             <div className="status-message status-message--error">{error}</div>
             <button className="primary_btn" onClick={handleBack}>
-              Back to Donors List
+              {embedded ? 'Back' : 'Back to Donors List'}
             </button>
           </div>
         </div>
@@ -269,12 +283,12 @@ const ViewDonor = () => {
   if (!donor) {
     return (
       <>
-        <Navbar />
-        <div className="list-wrapper">
+        {!embedded && <Navbar />}
+        <div className={embedded ? 'donor-profile-donations-embed' : 'list-wrapper'}>
           <div className="error-container">
             <div className="status-message status-message--error">Donor not found</div>
             <button className="primary_btn" onClick={handleBack}>
-              Back to Donors List
+              {embedded ? 'Back' : 'Back to Donors List'}
             </button>
           </div>
         </div>
@@ -305,11 +319,15 @@ const ViewDonor = () => {
 
   return (
     <>
-      <Navbar />
-      <div className="list-wrapper">
-        <PageHeader title="Donor Details" onBack={handleBack} showAdd={false} />
+      {!embedded && <Navbar />}
+      <div className={embedded ? 'donor-profile-donations-embed' : 'list-wrapper'}>
+        <PageHeader
+          title={embedded ? 'Legacy Donor' : 'Donor Details'}
+          onBackClick={handleBack}
+          showAdd={false}
+        />
 
-        <div className="list-content donor-profile-page">
+        <div className={embedded ? 'list-content donor-profile-page donor-profile-page--embedded' : 'list-content donor-profile-page'}>
           {flashMessage && (
             <div className="reconciliation-summary" style={{ marginBottom: 16 }}>
               {flashMessage}
@@ -521,7 +539,7 @@ const ViewDonor = () => {
                   )}
                   {(donor.organization_affiliations || []).length > 0 && (
                     <div className="donor-crm-summary-row donor-crm-summary-row--block">
-                      <span>Organizations</span>
+                      <span>CSR Donors</span>
                       <strong>
                         {(donor.organization_affiliations || []).map((aff) => (
                           <div key={aff.id} style={{ marginBottom: 6 }}>
@@ -759,6 +777,96 @@ const ViewDonor = () => {
             ) : null}
 
             <div className="donor-crm-main" aria-hidden={infoExpanded}>
+              <div className="donor-profile-tabs" role="tablist" aria-label="Donor profile sections">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mainTab === 'overview'}
+                  className={`donor-profile-tabs__btn${mainTab === 'overview' ? ' is-active' : ''}`}
+                  onClick={() => setMainTab('overview')}
+                >
+                  Overview
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mainTab === 'donations'}
+                  className={`donor-profile-tabs__btn${mainTab === 'donations' ? ' is-active' : ''}`}
+                  onClick={() => setMainTab('donations')}
+                >
+                  Donations
+                </button>
+                {mainTab === 'edit' && (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected
+                    className="donor-profile-tabs__btn is-active"
+                  >
+                    Edit
+                  </button>
+                )}
+                {mainTab === 'add-donation' && (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected
+                    className="donor-profile-tabs__btn is-active"
+                  >
+                    Add Donation
+                  </button>
+                )}
+                {mainTab === 'add-note' && (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected
+                    className="donor-profile-tabs__btn is-active"
+                  >
+                    Add Note
+                  </button>
+                )}
+              </div>
+
+              {mainTab === 'donations' ? (
+                <OnlineDonationsList
+                  key={`donor-donations-embed-${id}`}
+                  embedded
+                  embeddedDonorId={id}
+                  embeddedChannel={isOfflineRoute ? 'offline' : 'online'}
+                />
+              ) : mainTab === 'edit' ? (
+                <EditDonor
+                  key={`edit-donor-${id}`}
+                  embedded
+                  embeddedDonorId={id}
+                  embeddedBasePath={donorsBasePath}
+                  onCancel={() => setMainTab('overview')}
+                  onSaved={(updated) => {
+                    if (updated) setDonor(updated);
+                    else fetchDonor();
+                    setMainTab('overview');
+                  }}
+                />
+              ) : mainTab === 'add-donation' ? (
+                <AddDonation
+                  key={`add-donation-${id}`}
+                  embedded
+                  embeddedDonorId={id}
+                  embeddedChannel={isOfflineRoute ? 'offline' : 'online'}
+                  onCancel={() => setMainTab('donations')}
+                  onSaved={() => setMainTab('donations')}
+                />
+              ) : mainTab === 'add-note' ? (
+                <AddDonorInteraction
+                  key={`add-note-${id}`}
+                  embedded
+                  embeddedDonorId={id}
+                  onCancel={() => setMainTab('overview')}
+                  onSaved={() => setMainTab('overview')}
+                />
+              ) : (
+                <>
               <section className="donor-crm-stats-bar" aria-label="Donation summary">
                 <div className="donor-crm-stat">
                   <span className="donor-crm-stat__icon donor-crm-stat__icon--blue">
@@ -855,7 +963,11 @@ const ViewDonor = () => {
               />
 
               {showDonorJourney ? (
-                <DonorCommunication donorId={id} donor={donor} />
+                <DonorCommunication
+                  donorId={id}
+                  donor={donor}
+                  onAddInteraction={() => setMainTab('add-note')}
+                />
               ) : (
                 <div className="donor-journey-panel">
                   <h3 className="donor-journey-panel__title">Donor Relationship Journey</h3>
@@ -876,6 +988,8 @@ const ViewDonor = () => {
                 </div>
                 <DonorAuditHistory donorId={id} />
               </section>
+                </>
+              )}
             </div>
           </div>
         </div>

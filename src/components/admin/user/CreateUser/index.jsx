@@ -266,8 +266,39 @@ const CreateUser = () => {
           ]}
         />
         
-        <form onSubmit={handleSubmit} className="user-form">
+        <form
+          onSubmit={handleSubmit}
+          className="user-form"
+          autoComplete="off"
+        >
             {error && <div className="status-message status-message--error">{error}</div>}
+
+            {/* Absorb browser password-manager autofill for the logged-in session */}
+            <div
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                left: '-9999px',
+                width: 1,
+                height: 1,
+                overflow: 'hidden',
+              }}
+            >
+              <input
+                type="text"
+                name="prevent_autofill_username"
+                autoComplete="username"
+                tabIndex={-1}
+                defaultValue=""
+              />
+              <input
+                type="password"
+                name="prevent_autofill_password"
+                autoComplete="current-password"
+                tabIndex={-1}
+                defaultValue=""
+              />
+            </div>
             
             <div className="form-grid">
               <FormInput
@@ -276,6 +307,7 @@ const CreateUser = () => {
                 value={form.first_name}
                 onChange={handleChange}
                 required
+                autoComplete="off"
               />
 
               <FormInput
@@ -283,14 +315,19 @@ const CreateUser = () => {
                 label="Last Name"
                 value={form.last_name}
                 onChange={handleChange}
+                autoComplete="off"
               />
 
               <FormInput
                 name="user_code"
-                label="User Code"
+                label="Employee Code"
                 value={form.user_code}
                 onChange={handleChange}
                 placeholder="Optional — permanent record id"
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-form-type="other"
               />
 
               <FormInput
@@ -299,22 +336,28 @@ const CreateUser = () => {
                 type="email"
                 value={form.email}
                 onChange={handleChange}
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
               />
 
               <div className="form-group">
-                <label htmlFor="password" className="form-label">
+                <label htmlFor="new_user_password" className="form-label">
                   Password <span className="required">*</span>
                 </label>
                 <div className="password-input-container">
                   <input
                     type={showPassword ? "text" : "password"}
-                    id="password"
+                    id="new_user_password"
                     name="password"
                     value={form.password}
                     onChange={handleChange}
                     className="form-input"
                     placeholder="Enter password"
                     required
+                    autoComplete="new-password"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                   />
                   <button
                     type="button"

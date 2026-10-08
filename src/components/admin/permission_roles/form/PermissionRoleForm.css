@@ -1,0 +1,54 @@
+.permission-role-form-container {
+  max-width: 900px;
+  margin: 0 auto 3rem;
+  padding: 2.5rem;
+  background: var(--color-bg-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.permission-role-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.permission-role-active-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.95rem;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.permission-role-acl-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  background: var(--card-bg, #fafbfc);
+}
+
+.permission-role-acl-panel h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.permission-role-acl-panel p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+}
+
+@media (max-width: 640px) {
+  .permission-role-acl-panel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

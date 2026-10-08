@@ -6,3 +6,4 @@ export * from './surveys';
 export * from './events';
 export * from './campaigns';
 export * from './appeals';
+export * from './event_pledges';

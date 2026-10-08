@@ -7,6 +7,7 @@ import ActionMenu from '../../../common/ActionMenu';
 import ConfirmationModal from '../../../common/ConfirmationModal';
 
 import { FiRepeat, FiRefreshCw, FiTrash2, FiImage, FiFileText } from 'react-icons/fi';
+import { formatAuditActor } from '../../../common/audit/auditHistoryLabels';
 
 const SocialPostView = () => {
   const { id } = useParams();
@@ -205,6 +206,10 @@ const SocialPostView = () => {
               <div>
                 <strong>Appeal ID</strong>
                 <p>{data.appeal_id || '-'}</p>
+              </div>
+              <div>
+                <strong>Created by</strong>
+                <p>{data.created_by ? formatAuditActor(data.created_by) : '—'}</p>
               </div>
             </div>
 

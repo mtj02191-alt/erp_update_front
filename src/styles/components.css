@@ -316,6 +316,7 @@
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
+  align-items: flex-end;
   margin-bottom: 20px;
   padding: 20px;
   background-color: var(--color-bg-secondary);
@@ -687,26 +688,43 @@
   gap: var(--spacing-md);
 }
 
+.view-grid > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .view-grid-dynamic {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--spacing-md);
 }
 
+.view-grid-dynamic > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .view-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   padding: var(--spacing-md);
   background: var(--color-background-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
   gap: var(--spacing-md);
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .view-item-label {
+  flex: 0 0 auto;
+  max-width: 45%;
   font-weight: 500;
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
+  line-height: 1.4;
 }
 
 .view-item-label::after {
@@ -714,9 +732,27 @@
 }
 
 .view-item-value {
+  flex: 1 1 auto;
+  min-width: 0;
   font-weight: 600;
   color: var(--color-text);
   font-size: var(--font-size-md);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* Strong/p pattern used by some view screens inside .view-grid */
+.view-grid > div > strong,
+.view-grid > div > p {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.view-grid > div > p {
+  margin: 0.25rem 0 0;
+  max-width: 100%;
 }
 
 /* Responsive Design */
@@ -913,6 +949,11 @@
 /* View Item Full Width */
 .view-item--full {
   grid-column: 1 / -1;
+}
+
+.view-item--full .view-item-value {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Job Department Badge Styles */

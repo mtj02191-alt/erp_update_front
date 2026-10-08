@@ -3,6 +3,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
 import PageHeader from '../../../common/PageHeader';
+import { formatAuditActor } from '../../../common/audit/auditHistoryLabels';
 import '../reconciliation.css';
 
 const formatDate = (value) => {
@@ -74,12 +75,11 @@ const ReconciliationView = () => {
                   <div>{formatDate(record.created_at)}</div>
                 </div>
                 <div>
-                  <strong>By</strong>
+                  <strong>Created by</strong>
                   <div>
-                    {record.created_by?.name ||
-                      record.created_by?.email ||
-                      record.created_by?.id ||
-                      '—'}
+                    {record.created_by
+                      ? formatAuditActor(record.created_by)
+                      : '—'}
                   </div>
                 </div>
                 <div>

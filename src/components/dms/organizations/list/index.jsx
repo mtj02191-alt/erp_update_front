@@ -1,31 +1,39 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { FiEye, FiEdit, FiTrash2 } from 'react-icons/fi';
 import axiosInstance from '../../../../utils/axios';
 import { useAuth } from '../../../../context/AuthContext';
-import { canViewModule, hasPermissionByPath } from '../../../../utils/permissions';
+import { canViewModule, fundRaisingOrganizationsOrPocsHas } from '../../../../utils/permissions';
 import Navbar from '../../../Navbar';
 import PageHeader from '../../../common/PageHeader';
+import ActionMenu from '../../../common/ActionMenu';
 import Pagination from '../../../common/Pagination';
 import ConfirmationModal from '../../../common/ConfirmationModal';
-import { SearchFilter, SearchButton, ClearButton, CollapsibleFilters } from '../../../common/filters';
+import {
+  SearchFilter,
+  SearchButton,
+  ClearButton,
+  CollapsibleFilters,
+  DropdownFilter,
+} from '../../../common/filters';
 import useFiltersPanel from '../../../../hooks/useFiltersPanel';
 
+const emptyFilters = { search: '', city: '', is_active: '' };
+
 const OrganizationsList = () => {
-  const navigate = useNavigate();
   const { permissions } = useAuth();
   const { filtersOpen, toggleFilters } = useFiltersPanel();
 
   const canCreate =
-    hasPermissionByPath(permissions, 'fund_raising.organizations.create') ||
+    fundRaisingOrganizationsOrPocsHas(permissions, 'create') ||
     permissions?.super_admin ||
     permissions?.fund_raising_manager;
   const canUpdate =
-    hasPermissionByPath(permissions, 'fund_raising.organizations.update') ||
+    fundRaisingOrganizationsOrPocsHas(permissions, 'update') ||
     permissions?.super_admin ||
     permissions?.fund_raising_manager;
   const canDelete =
-    hasPermissionByPath(permissions, 'fund_raising.organizations.delete') ||
+    fundRaisingOrganizationsOrPocsHas(permissions, 'delete') ||
     permissions?.super_admin ||
     permissions?.fund_raising_manager;
   const canList =
@@ -37,31 +45,52 @@ const OrganizationsList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [tempFilters, setTempFilters] = useState({ search: '' });
-  const [appliedFilters, setAppliedFilters] = useState({ search: '' });
+  const [sortField, setSortField] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('DESC');
+  const [tempFilters, setTempFilters] = useState(emptyFilters);
+  const [appliedFilters, setAppliedFilters] = useState(emptyFilters);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const handleFilterChange = (key, value) => {
     setTempFilters((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleSortChange = (field, order) => {
+    setSortField(field);
+    setSortOrder(order);
+    setCurrentPage(1);
+  };
+
+  const sortOptions = [
+    { value: 'created_at', label: 'Created Date' },
+    { value: 'updated_at', label: 'Updated Date' },
+    { value: 'name', label: 'Name' },
+    { value: 'city', label: 'City' },
+    { value: 'is_active', label: 'Active' },
+    { value: 'id', label: 'ID' },
+  ];
+
   const fetchRows = async () => {
     if (!canList) {
-      setError('You do not have permission to view organizations.');
+      setError('You do not have permission to view CSR donors.');
       setLoading(false);
       return;
     }
     try {
       setLoading(true);
       setError('');
-      const res = await axiosInstance.get('/organizations', {
+      const res = await axiosInstance.get('/csr-donors', {
         params: {
           search: appliedFilters.search || undefined,
+          city: appliedFilters.city || undefined,
+          is_active: appliedFilters.is_active !== '' ? appliedFilters.is_active : undefined,
           page: currentPage,
           pageSize,
+          sortField,
+          sortOrder,
         },
       });
       setRows(res.data?.data || []);
@@ -71,7 +100,7 @@ const OrganizationsList = () => {
         setTotalPages(p.totalPages || 1);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load organizations');
+      setError(err.response?.data?.message || 'Failed to load CSR donors');
     } finally {
       setLoading(false);
     }
@@ -80,141 +109,215 @@ const OrganizationsList = () => {
   useEffect(() => {
     fetchRows();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, pageSize, appliedFilters]);
+  }, [currentPage, pageSize, sortField, sortOrder, appliedFilters]);
+
+  const handleApplyFilters = () => {
+    setAppliedFilters(tempFilters);
+    setCurrentPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setTempFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    setCurrentPage(1);
+  };
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await axiosInstance.delete(`/organizations/${deleteTarget.id}`);
+      await axiosInstance.delete(`/csr-donors/${deleteTarget.id}`);
       setDeleteTarget(null);
       fetchRows();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to archive organization');
+      setError(err.response?.data?.message || 'Failed to archive CSR donor');
       setDeleteTarget(null);
     }
   };
+
+  const getRowActions = (row) => [
+    {
+      icon: <FiEye />,
+      label: 'View',
+      color: '#2196f3',
+      to: `/dms/csr-donors/view/${row.id}`,
+      visible: true,
+    },
+    {
+      icon: <FiEdit />,
+      label: 'Edit',
+      color: '#ff9800',
+      to: `/dms/csr-donors/edit/${row.id}`,
+      visible: canUpdate,
+    },
+    {
+      icon: <FiTrash2 />,
+      label: 'Archive',
+      color: '#f44336',
+      onClick: () => setDeleteTarget(row),
+      visible: canDelete,
+    },
+  ];
+
+  if (!canList && !loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="list-wrapper">
+          <PageHeader title="CSR Donors" backPath="/dms" showBackButton />
+          <div className="list-content">
+            <div className="status-message status-message--error">
+              You do not have permission to view CSR donors.
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
       <Navbar />
       <div className="list-wrapper">
+        <PageHeader
+          title="CSR Donors"
+          backPath="/dms"
+          showBackButton
+          showAdd={!!canCreate}
+          addPath="/dms/csr-donors/add"
+          showFilterToggle
+          filtersOpen={filtersOpen}
+          onFilterToggle={toggleFilters}
+          onRefresh={fetchRows}
+          refreshing={loading}
+        />
+
         <div className="list-content">
-          <PageHeader
-            title="Organizations"
-            onBack={() => navigate('/dms')}
-            showAdd={!!canCreate}
-            addPath="/dms/organizations/add"
-          />
-
           {error && <div className="status-message status-message--error">{error}</div>}
+          {loading && <div className="loading">Loading...</div>}
 
-          <CollapsibleFilters open={filtersOpen} onToggle={toggleFilters}>
-            <SearchFilter
-              filterKey="search"
-              label="Search"
-              filters={tempFilters}
-              onFilterChange={handleFilterChange}
-              placeholder="Search by name, registration, city..."
-            />
-            <SearchButton
-              onClick={() => {
-                setAppliedFilters(tempFilters);
-                setCurrentPage(1);
-              }}
-            />
-            <ClearButton
-              onClick={() => {
-                const empty = { search: '' };
-                setTempFilters(empty);
-                setAppliedFilters(empty);
-                setCurrentPage(1);
-              }}
-            />
+          <CollapsibleFilters open={filtersOpen}>
+            <div className="filters-section">
+              <SearchFilter
+                filterKey="search"
+                label="Search"
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
+                placeholder="Search by name, registration, city, email, phone..."
+              />
+              <SearchFilter
+                filterKey="city"
+                label="City"
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
+                placeholder="Exact city name"
+              />
+              <DropdownFilter
+                filterKey="is_active"
+                label="Active"
+                filters={tempFilters}
+                onFilterChange={handleFilterChange}
+                placeholder="All statuses"
+                data={[
+                  { value: 'true', label: 'Active' },
+                  { value: 'false', label: 'Inactive' },
+                ]}
+              />
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '10px',
+                  alignItems: 'flex-end',
+                  marginTop: '20px',
+                  width: '100%',
+                }}
+              >
+                <SearchButton
+                  onClick={handleApplyFilters}
+                  text="Search"
+                  loading={loading}
+                />
+                <ClearButton onClick={handleClearFilters} text="Clear" />
+              </div>
+            </div>
           </CollapsibleFilters>
 
-          {loading ? (
-            <p>Loading...</p>
-          ) : (
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Registration</th>
+                  <th>City</th>
+                  <th>Phone</th>
+                  <th>Active</th>
+                  <th className="table-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.length === 0 ? (
                   <tr>
-                    <th>Name</th>
-                    <th>Registration</th>
-                    <th>City</th>
-                    <th>Phone</th>
-                    <th>Active</th>
-                    <th>Actions</th>
+                    <td colSpan={6} className="no-data">
+                      No CSR donors found
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {rows.length === 0 ? (
-                    <tr>
-                      <td colSpan={6}>No organizations found.</td>
+                ) : (
+                  rows.map((row) => (
+                    <tr key={row.id}>
+                      <td>
+                        <Link
+                          to={`/dms/csr-donors/view/${row.id}`}
+                          className="donor-name"
+                          style={{ color: 'inherit', textDecoration: 'inherit' }}
+                        >
+                          {row.name}
+                        </Link>
+                      </td>
+                      <td>{row.registration_number || '—'}</td>
+                      <td>{row.city || '—'}</td>
+                      <td>{row.phone || '—'}</td>
+                      <td>{row.is_active ? 'Yes' : 'No'}</td>
+                      <td className="table-actions">
+                        <ActionMenu actions={getRowActions(row)} />
+                      </td>
                     </tr>
-                  ) : (
-                    rows.map((row) => (
-                      <tr key={row.id}>
-                        <td>{row.name}</td>
-                        <td>{row.registration_number || '—'}</td>
-                        <td>{row.city || '—'}</td>
-                        <td>{row.phone || '—'}</td>
-                        <td>{row.is_active ? 'Yes' : 'No'}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className="icon-btn"
-                            title="View"
-                            onClick={() => navigate(`/dms/organizations/view/${row.id}`)}
-                          >
-                            <FiEye />
-                          </button>
-                          {canUpdate && (
-                            <button
-                              type="button"
-                              className="icon-btn"
-                              title="Edit"
-                              onClick={() => navigate(`/dms/organizations/edit/${row.id}`)}
-                            >
-                              <FiEdit />
-                            </button>
-                          )}
-                          {canDelete && (
-                            <button
-                              type="button"
-                              className="icon-btn danger"
-                              title="Archive"
-                              onClick={() => setDeleteTarget(row)}
-                            >
-                              <FiTrash2 />
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {totalItems > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+              onSortChange={handleSortChange}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              sortOptions={sortOptions}
+            />
           )}
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={(size) => {
-              setPageSize(size);
-              setCurrentPage(1);
-            }}
-          />
+          {rows.length === 0 && totalItems === 0 && !loading && (
+            <div className="empty-state">
+              <div className="empty-state-text">No CSR donors found</div>
+              <div className="empty-state-subtext">
+                CSR donor companies will appear here once registered
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       <ConfirmationModal
         isOpen={!!deleteTarget}
-        text={`Archive "${deleteTarget?.name || ''}"? Donors and donations stay linked; the organization is hidden from lists.`}
+        text={`Archive "${deleteTarget?.name || ''}"? POCs and donations stay linked; the CSR donor is hidden from lists.`}
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteTarget(null)}
       />

@@ -71,18 +71,24 @@ const RegisterDonor = () => {
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const isOfflineRoute = location.pathname.includes('/dms/offline_donors');
   const isOnlineRoute = location.pathname.includes('/dms/online_donors');
-  const donorsBasePath = isOfflineRoute
-    ? '/dms/offline_donors'
-    : isOnlineRoute
-      ? '/dms/online_donors'
-      : '/dms/donors';
-  const [searchParams] = useSearchParams();
+  const isRecurringRoute =
+    location.pathname.includes('/dms/recurring-donors') ||
+    searchParams.get('recurring') === '1' ||
+    searchParams.get('recurring') === 'true';
+  const donorsBasePath = isRecurringRoute
+    ? '/dms/recurring-donors'
+    : isOfflineRoute
+      ? '/dms/offline_donors'
+      : isOnlineRoute
+        ? '/dms/online_donors'
+        : '/dms/donors';
   const presetOrgId = searchParams.get('organization_id');
   const presetDonorType = searchParams.get('donor_type');
   const [form, setForm] = useState({
-    donor_type: presetDonorType === 'csr' ? 'csr' : 'individual',
+    donor_type: 'individual',
     name: '',
     email: '',
     password: '',
@@ -117,11 +123,17 @@ const RegisterDonor = () => {
   const [donorSearchMessage, setDonorSearchMessage] = useState('');
 
   useEffect(() => {
+    if (presetDonorType === 'csr' && presetOrgId) {
+      navigate(`/dms/csr-donors/view/${presetOrgId}?addPoc=1`, { replace: true });
+    }
+  }, [presetDonorType, presetOrgId, navigate]);
+
+  useEffect(() => {
     if (!presetOrgId) return;
     let cancelled = false;
     (async () => {
       try {
-        const res = await axiosInstance.get(`/organizations/${presetOrgId}`);
+        const res = await axiosInstance.get(`/csr-donors/${presetOrgId}`);
         if (!cancelled && res.data?.data) {
           setSelectedOrganization(res.data.data);
         }
@@ -156,7 +168,7 @@ const RegisterDonor = () => {
       return;
     }
     try {
-      const res = await axiosInstance.post('/organizations', {
+      const res = await axiosInstance.post('/csr-donors', {
         name,
         registration_number: form.org_registration || undefined,
         email: form.org_email || undefined,
@@ -187,19 +199,10 @@ const RegisterDonor = () => {
         return;
       }
 
-      if (form.donor_type === 'csr' && !selectedOrganization?.id) {
-        setError('Please select or create an organization for CSR donors.');
-        setIsSubmitting(false);
-        return;
-      }
-
-      const fullName =
-        form.donor_type === 'individual'
-          ? `${form.first_name} ${form.last_name}`.trim()
-          : form.name.trim() || `${form.first_name} ${form.last_name}`.trim();
+      const fullName = `${form.first_name} ${form.last_name}`.trim() || form.name.trim();
 
       const donorData = {
-        donor_type: form.donor_type,
+        donor_type: 'individual',
         email: email || undefined,
         password: form.password,
         phone: phone || undefined,
@@ -216,13 +219,8 @@ const RegisterDonor = () => {
         referrer_user_id: referrerUser?.id || null,
         source: form.source,
         pipeline_stage: form.pipeline_stage || 'lead',
+        ...(isRecurringRoute ? { recurring: true } : {}),
       };
-
-      if (form.donor_type === 'csr') {
-        donorData.business_type = form.business_type || null;
-        donorData.business_type_other =
-          form.business_type === 'Other' ? form.business_type_other || null : null;
-      }
 
       donorData.area_of_interest = form.area_of_interest || null;
 
@@ -236,13 +234,13 @@ const RegisterDonor = () => {
         donorData.affiliation_is_primary = true;
       }
 
-      const res = await axiosInstance.post('/donors/register', donorData);
-      const newId = res.data?.data?.id;
-      if (presetOrgId && newId) {
-        navigate(`/dms/organizations/view/${presetOrgId}?person=${newId}`);
-      } else {
-        navigate(`${donorsBasePath}/list`);
-      }
+      await axiosInstance.post('/donors/register', donorData);
+      // After registering a recurring donor, go add their subscription
+      navigate(
+        isRecurringRoute
+          ? '/dms/recurring-donations/add'
+          : `${donorsBasePath}/list`,
+      );
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to register donor. Please try again.');
       console.error('Error registering donor:', err);
@@ -252,7 +250,7 @@ const RegisterDonor = () => {
   };
 
   const handleBack = () => {
-    navigate('/dms');
+    navigate(isRecurringRoute ? '/dms/recurring-donors/list' : '/dms');
   };
 
   const handleCheckDonorExists = async () => {
@@ -270,7 +268,8 @@ const RegisterDonor = () => {
       if (phone) params.phone = phone;
       const res = await axiosInstance.get('/donors/lookup', { params });
       if (res.data.success && res.data.data) {
-        navigate(`${donorsBasePath}/view/${res.data.data.id}`);
+        // Always open main donor profile — not scoped to online/offline/recurring add route
+        navigate(`/dms/donors/view/${res.data.data.id}`);
       } else {
         setDonorSearchMessage('No existing donor found for this email/phone.');
       }
@@ -281,10 +280,7 @@ const RegisterDonor = () => {
     }
   };
 
-  const donorTypeOptions = [
-    { value: 'individual', label: 'Individual Donor' },
-    { value: 'csr', label: 'CSR Donor (Corporate)' },
-  ];
+  const donorTypeOptions = [{ value: 'individual', label: 'Individual Donor' }];
 
   const renderUserOption = (user, index, onSelect) => (
     <div
@@ -322,7 +318,7 @@ const RegisterDonor = () => {
     >
       <div style={{ fontWeight: '500', marginBottom: '4px' }}>{org.name}</div>
       <div style={{ fontSize: '12px', color: '#666' }}>
-        {[org.city, org.registration_number].filter(Boolean).join(' · ') || 'Organization'}
+        {[org.city, org.registration_number].filter(Boolean).join(' · ') || 'CSR Donor'}
       </div>
     </div>
   );
@@ -332,7 +328,10 @@ const RegisterDonor = () => {
       <Navbar />
       <div className="list-wrapper">
         <div className="list-content donor-register-page">
-          <PageHeader title="Register Donor" onBack={handleBack} />
+          <PageHeader
+            title={isRecurringRoute ? 'Register Recurring Donor' : 'Register Donor'}
+            onBack={handleBack}
+          />
 
           {error && (
             <div className="status-message status-message--error">{error}</div>
@@ -386,39 +385,24 @@ const RegisterDonor = () => {
             </section>
 
             <section className="donor-register-card">
-              <h3 className="donor-register-card__title">
-                2. {form.donor_type === 'csr' ? 'Contact Person' : 'Personal Details'}
-              </h3>
+              <h3 className="donor-register-card__title">2. Personal Details</h3>
               <div className="form-grid-3">
-                {form.donor_type === 'individual' ? (
-                  <>
-                    <FormInput
-                      label="First Name"
-                      type="text"
-                      name="first_name"
-                      value={form.first_name}
-                      onChange={handleChange}
-                      required
-                    />
-                    <FormInput
-                      label="Last Name"
-                      type="text"
-                      name="last_name"
-                      value={form.last_name}
-                      onChange={handleChange}
-                      required
-                    />
-                  </>
-                ) : (
-                  <FormInput
-                    label="Contact Person Name"
-                    type="text"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    required
-                  />
-                )}
+                <FormInput
+                  label="First Name"
+                  type="text"
+                  name="first_name"
+                  value={form.first_name}
+                  onChange={handleChange}
+                  required
+                />
+                <FormInput
+                  label="Last Name"
+                  type="text"
+                  name="last_name"
+                  value={form.last_name}
+                  onChange={handleChange}
+                  required
+                />
                 <FormInput
                   label="CNIC"
                   type="text"
@@ -444,42 +428,13 @@ const RegisterDonor = () => {
               </div>
             </section>
 
-            {form.donor_type === 'csr' && (
-              <section className="donor-register-card">
-                <h3 className="donor-register-card__title">2c. Business Type (CSR)</h3>
-                <div className="form-grid-2">
-                  <FormSelect
-                    label="Business Type"
-                    name="business_type"
-                    value={form.business_type}
-                    onChange={handleChange}
-                    options={BUSINESS_TYPE_OPTIONS}
-                    showDefaultOption
-                    defaultOptionText="Select Business Type (optional)"
-                  />
-                  {form.business_type === 'Other' && (
-                    <FormInput
-                      label="Other business type (optional)"
-                      type="text"
-                      name="business_type_other"
-                      value={form.business_type_other}
-                      onChange={handleChange}
-                      placeholder="Type business type..."
-                    />
-                  )}
-                </div>
-              </section>
-            )}
-
             <section className="donor-register-card">
-              <h3 className="donor-register-card__title">
-                2b. Organization {form.donor_type === 'csr' ? '(required)' : '(optional)'}
-              </h3>
+              <h3 className="donor-register-card__title">2b. CSR Donor (optional)</h3>
               <div className="form-grid-2">
                 <SearchableDropdown
                   label="Search organization"
                   placeholder="Search by company name..."
-                  apiEndpoint="/organizations"
+                  apiEndpoint="/csr-donors"
                   apiParams={{ pageSize: 20 }}
                   onSelect={handleOrganizationSelect}
                   onClear={handleOrganizationClear}
@@ -509,7 +464,7 @@ const RegisterDonor = () => {
                       name="org_name"
                       value={form.org_name}
                       onChange={handleChange}
-                      required={form.donor_type === 'csr'}
+                      required={false}
                     />
                     <FormInput
                       label="Registration number"
@@ -562,7 +517,7 @@ const RegisterDonor = () => {
                   name="address"
                   value={form.address}
                   onChange={handleChange}
-                  required={form.donor_type === 'individual'}
+                  required
                 />
                 <FormInput
                   label="City"

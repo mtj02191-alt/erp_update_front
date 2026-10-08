@@ -6,6 +6,7 @@ import PageHeader from '../../../common/PageHeader';
 import Card from '../../../common/Card';
 import { FiEdit, FiBarChart2, FiRepeat } from 'react-icons/fi';
 import { formatTargetFrequency, CAMPAIGN_TEMPLATE_SLOTS, formatCommunicationSlot } from '../campaignConstants';
+import { formatAuditActor } from '../../../common/audit/auditHistoryLabels';
 
 const ViewCampaign = () => {
   const navigate = useNavigate();
@@ -184,6 +185,9 @@ const ViewCampaign = () => {
 
   campaignInfo.Program = campaign.program?.label || '—';
   campaignInfo.Subprogram = campaign.sub_program?.label || '—';
+  campaignInfo['Created by'] = campaign.created_by
+    ? formatAuditActor(campaign.created_by)
+    : '—';
 
   return (
     <>

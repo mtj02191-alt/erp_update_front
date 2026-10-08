@@ -24,6 +24,7 @@ import {
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import '../donor-relationship.css';
+import { resolveCrmApiPaths } from '../../donors/shared/crmApiPaths';
 
 const getActivityTone = (type) => {
   const t = String(type || '').toLowerCase();
@@ -73,9 +74,22 @@ const formatResponseType = (value) =>
   RESPONSE_TYPE_OPTIONS.find((o) => o.value === value)?.label ||
   String(value || '').replace(/_/g, ' ');
 
-const DonorCommunication = ({ donorId, donor }) => {
+const DonorCommunication = ({
+  donorId,
+  csrDonorId,
+  csrPocId,
+  donor,
+  journeyTitle,
+  journeySubtitle,
+  showPocBadges = false,
+  onAddInteraction = null,
+}) => {
   const navigate = useNavigate();
   const { permissions } = useAuth();
+  const apiPaths = useMemo(
+    () => resolveCrmApiPaths({ donorId, csrDonorId, csrPocId }),
+    [donorId, csrDonorId, csrPocId],
+  );
   const canCreate = useMemo(
     () =>
       permissions?.super_admin === true ||
@@ -83,6 +97,7 @@ const DonorCommunication = ({ donorId, donor }) => {
     [permissions],
   );
   const [interactions, setInteractions] = useState([]);
+  const [followups, setFollowups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editingInteraction, setEditingInteraction] = useState(null);
@@ -91,22 +106,39 @@ const DonorCommunication = ({ donorId, donor }) => {
   const [statusFilter, setStatusFilter] = useState('all');
 
   const loadInteractions = useCallback(async () => {
-    if (!donorId) return;
+    if (!apiPaths?.interactionsParams) return;
     try {
       setLoading(true);
       setError('');
-      const [interactionsRes, logsRes] = await Promise.all([
+      const requests = [
         axiosInstance.get('/donor-relationship/interactions', {
-          params: { donor_id: donorId },
+          params: apiPaths.interactionsParams,
         }),
-        axiosInstance.get('/email-templates/communication-logs', {
-          params: { donor_id: donorId, pageSize: 100 },
-        }),
-      ]);
+      ];
+      if (donorId) {
+        requests.push(
+          axiosInstance.get('/email-templates/communication-logs', {
+            params: { donor_id: donorId, pageSize: 100 },
+          }),
+        );
+      }
+      if (apiPaths.followupsParams) {
+        requests.push(
+          axiosInstance.get('/donor-relationship/follow-ups/by-csr', {
+            params: apiPaths.followupsParams,
+          }),
+        );
+      }
+      const results = await Promise.all(requests);
+      const interactionsRes = results[0];
+      const logsRes = donorId ? results[1] : null;
+      const followupsRes = apiPaths.followupsParams
+        ? results[donorId ? 2 : 1]
+        : null;
       const manual = interactionsRes.data.success
         ? interactionsRes.data.data || []
         : [];
-      const automated = (logsRes.data?.data || []).map((log) => ({
+      const automated = (logsRes?.data?.data || []).map((log) => ({
         id: `comm-log-${log.id}`,
         activity_type: log.channel,
         activity_datetime: log.sent_at || log.scheduled_at || log.created_at,
@@ -122,15 +154,19 @@ const DonorCommunication = ({ donorId, donor }) => {
           const bTime = new Date(b.activity_datetime || b.created_at).getTime();
           return bTime - aTime;
         }));
+        setFollowups(
+          followupsRes?.data?.success ? followupsRes.data.data || [] : [],
+        );
       } else {
         setError(interactionsRes.data.message || 'Failed to load relationship journey');
+        setFollowups([]);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load relationship journey');
     } finally {
       setLoading(false);
     }
-  }, [donorId]);
+  }, [apiPaths, donorId]);
 
   useEffect(() => {
     loadInteractions();
@@ -151,6 +187,7 @@ const DonorCommunication = ({ donorId, donor }) => {
         item.created_by?.email,
         item.status,
         item.donor_response_type,
+        item.csr_poc?.name,
       ]
         .filter(Boolean)
         .join(' ')
@@ -199,14 +236,31 @@ const DonorCommunication = ({ donorId, donor }) => {
     return Array.from(set);
   }, [interactions]);
 
+  const panelTitle =
+    journeyTitle ||
+    (csrPocId ? 'POC Relationship Journey' : 'Donor Relationship Journey');
+  const panelSubtitle =
+    journeySubtitle ||
+    (csrDonorId && csrPocId
+      ? 'Interactions and follow-ups for this point of contact.'
+      : csrDonorId
+        ? 'All interactions and follow-ups across every POC for this CSR donor.'
+        : 'All interactions, follow-ups and responses.');
+
+  const openFollowups = useMemo(
+    () =>
+      followups.filter((f) =>
+        ['pending', 'rescheduled', 'overdue'].includes(String(f.status || '')),
+      ),
+    [followups],
+  );
+
   return (
     <div className="donor-journey-panel">
       <div className="donor-journey-panel__toolbar">
         <div className="donor-journey-panel__heading">
-          <h3 className="donor-journey-panel__title">Donor Relationship Journey</h3>
-          <p className="donor-journey-panel__subtitle">
-            All interactions, follow-ups and responses.
-          </p>
+          <h3 className="donor-journey-panel__title">{panelTitle}</h3>
+          <p className="donor-journey-panel__subtitle">{panelSubtitle}</p>
         </div>
         <div className="donor-journey-panel__tools">
           <div className="donor-journey-search">
@@ -261,7 +315,15 @@ const DonorCommunication = ({ donorId, donor }) => {
             <button
               type="button"
               className="donor-journey-add-btn"
-              onClick={() => navigate(`/dms/donor-relationship/add?donor_id=${donorId}`)}
+              onClick={() => {
+                if (typeof onAddInteraction === 'function') {
+                  onAddInteraction();
+                  return;
+                }
+                navigate(
+                  `/dms/donor-relationship/add?${apiPaths?.interactionAddQuery || ''}`,
+                );
+              }}
             >
               <FiPlus />
               Add Interaction
@@ -272,6 +334,25 @@ const DonorCommunication = ({ donorId, donor }) => {
 
       {error && <div className="error-message">{error}</div>}
       {loading && <p className="donor-journey-empty">Loading relationship journey…</p>}
+
+      {!loading && openFollowups.length > 0 && (
+        <div className="donor-journey-followups-strip">
+          <h4 className="donor-journey-followups-strip__title">Open follow-ups</h4>
+          <ul className="donor-journey-followups-strip__list">
+            {openFollowups.slice(0, 5).map((f) => (
+              <li key={f.id}>
+                <strong>{f.followup_title}</strong>
+                <span>
+                  {formatDateTime(f.due_datetime)}
+                  {f.csr_poc?.name ? ` · ${f.csr_poc.name}` : ''}
+                  {' · '}
+                  {String(f.status || '').replace(/_/g, ' ')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {!loading && filteredInteractions.length === 0 && !error && (
         <p className="donor-journey-empty">
@@ -314,6 +395,12 @@ const DonorCommunication = ({ donorId, donor }) => {
                           </span>
                           <span className="donor-journey-card__meta">
                             {formatTime(item.activity_datetime)} by {staffName}
+                            {showPocBadges && item.csr_poc?.name
+                              ? ` · POC: ${item.csr_poc.name}`
+                              : ''}
+                            {!showPocBadges && !item.csr_poc_id && csrDonorId
+                              ? ' · Company-wide'
+                              : ''}
                             {locked && !permissions?.super_admin ? ' · Locked' : ''}
                           </span>
                         </div>

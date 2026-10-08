@@ -14,6 +14,7 @@ import {
   aidStatusTone,
   formatAidStatus,
 } from '../../aidConstants';
+import { formatAuditActor } from '../../../../common/audit/auditHistoryLabels';
 import '../../aid.css';
 
 const emptyChecklist = () =>
@@ -641,6 +642,10 @@ const AidApplicationView = () => {
             <p style={{ textTransform: 'capitalize' }}>Aid type: {app.requested_aid_type}</p>
             <p>CEO: {app.ceo_approval_status}</p>
             <p>Delivery: {app.delivery_status}</p>
+            <p>
+              Created by:{' '}
+              {app.created_by ? formatAuditActor(app.created_by) : '—'}
+            </p>
             {app.rejection_reason && (
               <p style={{ color: '#b91c1c' }}>Rejection: {app.rejection_reason}</p>
             )}

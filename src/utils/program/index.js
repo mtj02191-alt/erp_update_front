@@ -308,4 +308,23 @@ export const projectCards = [
       },
     ]
   },
+  { 
+    id: 'seasonal-support-initiative', 
+    title: "Seasonal Support Initiative",
+    initiatives: [
+      { id: 'drinking-water-and-heatwave-related-support', title: 'Drinking Water and Heatwave-Related Support', subtitle: 'Per Family', price: 8500,
+        description: 'This initiative provides essential drinking water and heatwave-related support to vulnerable communities, ensuring their well-being during challenging weather conditions.',
+        duration: '1-Year' 
+      },
+      { id: 'blankets-and-warm-clothing', title: 'Blankets and Warm Clothing', subtitle: 'Per Family', price: 8500,
+        description: 'This initiative provides essential blankets and warm clothing to vulnerable communities, ensuring their well-being during challenging weather conditions.',
+        duration: '1-Year' 
+      },
+      { id: 'ramadan-ration-food-packages', title: 'Ramadan Ration/Food Packages', subtitle: 'Per Family', price: 8500,
+        description: 'This initiative provides essential Ramadan ration/food packages to vulnerable communities, ensuring their well-being during challenging weather conditions.',
+        duration: '1-Year' 
+      },
+
+    ]
+  },
 ]

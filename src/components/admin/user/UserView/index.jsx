@@ -4,7 +4,7 @@ import axiosInstance from '../../../../utils/axios';
 import { useAuth } from '../../../../context/AuthContext';
 import { hasPermission } from '../../../../utils/permissions';
 import Modal from '../../../common/Modal';
-import { FiKey, FiBarChart2 } from 'react-icons/fi';
+import { FiKey, FiBarChart2, FiCopy, FiCheck } from 'react-icons/fi';
 import '../../../../styles/variables.css';
 import '../../../../styles/components.css';
 import Navbar from '../../../Navbar';
@@ -12,6 +12,9 @@ import PageHeader from '../../../common/PageHeader';
 import { GEO_TYPE_LABELS } from '../../../../utils/geographicAssignment';
 import '../GeographicAssignmentPicker/GeographicAssignmentPicker.css';
 import './UserView.css';
+
+const WEBSITE_DONATE_BASE =
+  import.meta.env.VITE_PUBLIC_WEBSITE_URL || 'https://www.mtjfoundation.org';
 
 const formatLabel = (value) => {
   if (!value) return '—';
@@ -60,6 +63,7 @@ const UserView = () => {
   const [revealedPassword, setRevealedPassword] = useState('');
   const [revealError, setRevealError] = useState('');
   const [revealLoading, setRevealLoading] = useState(false);
+  const [referralCopied, setReferralCopied] = useState(false);
 
   const isOwnProfile = authUser?.id && Number(authUser.id) === Number(id);
   const backPath = isOwnProfile ? '/welcome' : '/admin/users';
@@ -105,6 +109,21 @@ const UserView = () => {
       setRevealError(err.response?.data?.message || 'Failed to reveal password');
     } finally {
       setRevealLoading(false);
+    }
+  };
+
+  const referralLink = user?.referral_code
+    ? `${WEBSITE_DONATE_BASE.replace(/\/$/, '')}/donate?referral_code=${encodeURIComponent(user.referral_code)}`
+    : '';
+
+  const handleCopyReferralLink = async () => {
+    if (!referralLink) return;
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setReferralCopied(true);
+      setTimeout(() => setReferralCopied(false), 2000);
+    } catch {
+      window.prompt('Copy referral link:', referralLink);
     }
   };
 
@@ -195,6 +214,39 @@ const UserView = () => {
               <InfoItem label="Emergency Contact" value={user.emergency_contact} />
               <InfoItem label="Address" value={user.address} />
             </div>
+          </section>
+
+          <section className="view-section">
+            <h3 className="view-section-title">Referral Link</h3>
+            <div className="view-grid">
+              <InfoItem label="Referral Code" value={user.referral_code || '—'} />
+              <div className="view-item view-item--full">
+                <span className="view-item-label">Donate Link</span>
+                <span className="view-item-value" style={{ wordBreak: 'break-all' }}>
+                  {referralLink || '—'}
+                </span>
+              </div>
+            </div>
+            {referralLink ? (
+              <button
+                type="button"
+                className="secondary_btn"
+                onClick={handleCopyReferralLink}
+                style={{ marginTop: 12 }}
+              >
+                {referralCopied ? (
+                  <>
+                    <FiCheck style={{ marginRight: 8 }} />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <FiCopy style={{ marginRight: 8 }} />
+                    Copy Referral Link
+                  </>
+                )}
+              </button>
+            ) : null}
           </section>
 
           <section className="view-section">

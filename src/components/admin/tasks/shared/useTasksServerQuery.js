@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import axiosInstance from '../../../../utils/axios';
 import usePersistedFilters from '../../../../hooks/usePersistedFilters';
 import { buildTasksSearchPayload, EMPTY_TASK_FILTERS } from './taskListQuery';
@@ -40,6 +40,7 @@ export default function useTasksServerQuery({
     other_tasks: 0,
   });
   const [localRefreshNonce, setLocalRefreshNonce] = useState(0);
+  const requestIdRef = useRef(0);
 
   const { currentPage, pageSize, sortField, sortOrder } = paginationState;
 
@@ -100,6 +101,7 @@ export default function useTasksServerQuery({
   }, []);
 
   const fetchTasks = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError('');
     try {
@@ -114,6 +116,7 @@ export default function useTasksServerQuery({
         activeTab,
       });
       const res = await axiosInstance.post('/tasks/search', payload);
+      if (requestId !== requestIdRef.current) return;
       setTasks(Array.isArray(res.data?.data) ? res.data.data : []);
       setTotalItems(res.data?.pagination?.total || 0);
       setTotalPages(res.data?.pagination?.totalPages || 1);
@@ -121,9 +124,13 @@ export default function useTasksServerQuery({
         setCategoryCounts(res.data.categoryCounts);
       }
     } catch (e) {
-      setError(e.response?.data?.message || 'Failed to fetch tasks.');
+      if (requestId === requestIdRef.current) {
+        setError(e.response?.data?.message || 'Failed to fetch tasks.');
+      }
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [
     currentPage,
@@ -137,6 +144,9 @@ export default function useTasksServerQuery({
 
   useEffect(() => {
     fetchTasks();
+    return () => {
+      requestIdRef.current += 1;
+    };
   }, [fetchTasks, refreshNonce, localRefreshNonce]);
 
   useEffect(() => {

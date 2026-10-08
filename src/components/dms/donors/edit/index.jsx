@@ -10,15 +10,24 @@ import Modal from '../../../common/Modal';
 import { FiKey } from 'react-icons/fi';
 import '../register/index.css';
 
-const EditDonor = () => {
+const EditDonor = ({
+  embedded = false,
+  embeddedDonorId = null,
+  embeddedBasePath = null,
+  onSaved = null,
+  onCancel = null,
+} = {}) => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id: routeId } = useParams();
+  const id = embeddedDonorId != null && embeddedDonorId !== '' ? String(embeddedDonorId) : routeId;
   const location = useLocation();
-  const donorsBasePath = location.pathname.includes('/dms/offline_donors')
-    ? '/dms/offline_donors'
-    : location.pathname.includes('/dms/online_donors')
-      ? '/dms/online_donors'
-      : '/dms/donors';
+  const donorsBasePath =
+    embeddedBasePath ||
+    (location.pathname.includes('/dms/offline_donors')
+      ? '/dms/offline_donors'
+      : location.pathname.includes('/dms/online_donors')
+        ? '/dms/online_donors'
+        : '/dms/donors');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -45,6 +54,8 @@ const EditDonor = () => {
     business_type: '',
     business_type_other: '',
     area_of_interest: '',
+    recurring: false,
+    recurring_consent: false,
   });
 
   const [pwModalOpen, setPwModalOpen] = useState(false);
@@ -95,6 +106,8 @@ const EditDonor = () => {
         business_type: d.business_type || '',
         business_type_other: d.business_type_other || '',
         area_of_interest: d.area_of_interest || '',
+        recurring: d.recurring === true,
+        recurring_consent: d.recurring_consent === true,
       });
       setAssignedUser(d.assigned_to || null);
       setReferrerUser(d.referred_by || null);
@@ -106,10 +119,20 @@ const EditDonor = () => {
     }
   };
 
-  const handleBack = () => navigate(`${donorsBasePath}/view/${id}`);
+  const handleBack = () => {
+    if (embedded && typeof onCancel === 'function') {
+      onCancel();
+      return;
+    }
+    navigate(`${donorsBasePath}/view/${id}`);
+  };
 
   const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, type, checked, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
     if (error) setError('');
   };
 
@@ -171,6 +194,8 @@ const EditDonor = () => {
         postal_code: form.postal_code,
         notes: form.notes,
         is_active: form.is_active,
+        recurring: !!form.recurring,
+        recurring_consent: !!form.recurring_consent,
       };
 
       if (form.donor_type === 'individual') {
@@ -180,7 +205,7 @@ const EditDonor = () => {
       } else {
         payload.name = form.name?.trim() || payload.name;
         if (form.donor_type === 'csr' && !selectedOrganization?.id) {
-          throw new Error('Please select an organization for CSR donors.');
+          throw new Error('Please select a CSR donor for this POC.');
         }
       }
 
@@ -204,6 +229,10 @@ const EditDonor = () => {
 
       const res = await axiosInstance.patch(`/donors/${id}`, payload);
       if (!res.data?.success) throw new Error(res.data?.message || 'Failed to update donor');
+      if (embedded && typeof onSaved === 'function') {
+        onSaved(res.data?.data || null);
+        return;
+      }
       navigate(`${donorsBasePath}/view/${id}`);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to update donor');
@@ -239,7 +268,9 @@ const EditDonor = () => {
 
   const donorTypeOptions = [
     { value: 'individual', label: 'Individual Donor' },
-    { value: 'csr', label: 'CSR Donor (Corporate)' },
+    ...(form.donor_type === 'csr'
+      ? [{ value: 'csr', label: 'POC (legacy — use CSR Donor view)' }]
+      : []),
   ];
 
   const affiliationRoleOptions = [
@@ -307,7 +338,7 @@ const EditDonor = () => {
     >
       <div style={{ fontWeight: '500', marginBottom: '4px' }}>{org.name}</div>
       <div style={{ fontSize: '12px', color: '#666' }}>
-        {[org.city, org.registration_number].filter(Boolean).join(' · ') || 'Organization'}
+        {[org.city, org.registration_number].filter(Boolean).join(' · ') || 'CSR Donor'}
       </div>
     </div>
   );
@@ -315,8 +346,8 @@ const EditDonor = () => {
   if (loading) {
     return (
       <>
-        <Navbar />
-        <div className="list-wrapper">
+        {!embedded && <Navbar />}
+        <div className={embedded ? 'donor-profile-donations-embed' : 'list-wrapper'}>
           <div className="loading-container">
             <div className="loading-spinner"></div>
             <p>Loading donor...</p>
@@ -328,10 +359,10 @@ const EditDonor = () => {
 
   return (
     <>
-      <Navbar />
-      <div className="list-wrapper">
-        <div className="list-content donor-register-page">
-          <PageHeader title="Edit Donor" onBack={handleBack} />
+      {!embedded && <Navbar />}
+      <div className={embedded ? 'donor-profile-donations-embed' : 'list-wrapper'}>
+        <div className={embedded ? 'list-content donor-register-page' : 'list-content donor-register-page'}>
+          <PageHeader title="Edit Donor" onBackClick={handleBack} />
 
           {error && <div className="status-message status-message--error">{error}</div>}
 
@@ -476,13 +507,13 @@ const EditDonor = () => {
 
             <section className="donor-register-card">
               <h3 className="donor-register-card__title">
-                2b. Organization Link {form.donor_type === 'csr' ? '(required)' : '(optional)'}
+                2b. CSR Donor Link {form.donor_type === 'csr' ? '(required)' : '(optional)'}
               </h3>
               <div className="form-grid-2">
                 <SearchableDropdown
                   label="Search organization"
                   placeholder="Search by company name..."
-                  apiEndpoint="/organizations"
+                  apiEndpoint="/csr-donors"
                   apiParams={{ pageSize: 20 }}
                   onSelect={handleOrganizationSelect}
                   onClear={handleOrganizationClear}
@@ -585,6 +616,29 @@ const EditDonor = () => {
                   allowResearch={true}
                   renderOption={(user) => renderUserOption(user, handleReferrerSelect)}
                 />
+              </div>
+              <div
+                className="form-grid-2"
+                style={{ marginTop: 12, alignItems: 'center' }}
+              >
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="checkbox"
+                    name="recurring"
+                    checked={!!form.recurring}
+                    onChange={handleChange}
+                  />
+                  Recurring donor
+                </label>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="checkbox"
+                    name="recurring_consent"
+                    checked={!!form.recurring_consent}
+                    onChange={handleChange}
+                  />
+                  Recurring consent
+                </label>
               </div>
               <div className="donor-register-lookup">
                 <button

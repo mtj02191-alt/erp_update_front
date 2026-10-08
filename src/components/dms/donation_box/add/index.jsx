@@ -41,7 +41,6 @@ const AddDonationBox = () => {
     active_since: new Date().toISOString().split('T')[0],
     status: 'active',
     collection_frequency: 'weekly',
-    require_collection_location: true,
     location_radius_value: '100',
     location_radius_unit: 'm',
   });
@@ -164,13 +163,8 @@ const AddDonationBox = () => {
     setIsSubmitting(true);
     
     try {
-      if (form.require_collection_location && !deviceLocation) {
-        setError('Please select the exact box location on the map.');
-        setIsSubmitting(false);
-        return;
-      }
-
       const location = deviceLocation;
+      const hasCoords = !!(location?.latitude != null && location?.longitude != null);
 
       // Prepare donation box data
       const assignedIds = form.assigned_user_ids?.length
@@ -193,10 +187,11 @@ const AddDonationBox = () => {
         active_since: form.active_since,
         status: form.status,
         collection_frequency: form.collection_frequency,
-        require_collection_location: form.require_collection_location,
+        // GPS check only applies when coordinates are actually saved
+        require_collection_location: hasCoords,
       };
 
-      if (form.require_collection_location && location) {
+      if (hasCoords) {
         const locationRadiusMeters = radiusFormToMeters(
           form.location_radius_value,
           form.location_radius_unit,
@@ -251,11 +246,10 @@ const AddDonationBox = () => {
 
   const statusOptions = [
     { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
-    { value: 'maintenance', label: 'Maintenance' },
-    { value: 'damaged', label: 'Damaged' },
-    { value: 'retired', label: 'Retired' },
-    { value: 'pending', label: 'Pending' }
+    { value: 'inactive', label: 'In Active' },
+    { value: 'removed', label: 'Removed' },
+    { value: 'broken', label: 'Broken' },
+    { value: 'snr', label: 'SNR' },
   ];
 
   const collectionFrequencyOptions = [
@@ -455,66 +449,39 @@ const AddDonationBox = () => {
           </div>
 
           <div className="form-section">
-            <h3 className="form-section-heading">Box GPS coordinates</h3>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '12px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                name="require_collection_location"
-                checked={form.require_collection_location}
-                onChange={(e) => {
-                  handleChange(e);
-                  if (!e.target.checked) {
-                    setDeviceLocation(null);
-                  }
-                }}
-                style={{ marginTop: '3px' }}
+            <h3 className="form-section-heading">Box GPS coordinates (optional)</h3>
+            <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#64748b' }}>
+              Optional. If you save a pin, collections must be within the margin (default {DEFAULT_COLLECTION_RADIUS_METERS}m). Skip to allow collection from anywhere.
+            </p>
+            <div className="form-grid-2" style={{ marginBottom: '16px' }}>
+              <FormInput
+                label="Collection margin"
+                type="number"
+                name="location_radius_value"
+                value={form.location_radius_value}
+                onChange={handleChange}
+                min={form.location_radius_unit === 'km' ? '0.01' : '10'}
+                max={form.location_radius_unit === 'km' ? '10' : '10000'}
+                step={form.location_radius_unit === 'km' ? '0.1' : '1'}
+                placeholder={form.location_radius_unit === 'km' ? 'e.g. 0.1' : 'e.g. 100'}
               />
-              <span>
-                <strong>Require on-site collection</strong>
-                <span style={{ display: 'block', fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
-                  When enabled, save exact GPS from Google Maps. Collections must be within the margin you set below (default {DEFAULT_COLLECTION_RADIUS_METERS}m — good for shops or large offices).
-                  Uncheck for boxes that can be collected from anywhere.
-                </span>
-              </span>
-            </label>
-            {form.require_collection_location && (
-              <>
-              <div className="form-grid-2" style={{ marginBottom: '16px' }}>
-                <FormInput
-                  label="Collection margin"
-                  type="number"
-                  name="location_radius_value"
-                  value={form.location_radius_value}
-                  onChange={handleChange}
-                  required
-                  min={form.location_radius_unit === 'km' ? '0.01' : '10'}
-                  max={form.location_radius_unit === 'km' ? '10' : '10000'}
-                  step={form.location_radius_unit === 'km' ? '0.1' : '1'}
-                  placeholder={form.location_radius_unit === 'km' ? 'e.g. 0.1' : 'e.g. 100'}
-                />
-                <FormSelect
-                  label="Margin unit"
-                  name="location_radius_unit"
-                  value={form.location_radius_unit}
-                  onChange={handleChange}
-                  options={[
-                    { value: 'm', label: 'Meters (m)' },
-                    { value: 'km', label: 'Kilometers (km)' },
-                  ]}
-                  required
-                />
-              </div>
-              <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#64748b' }}>
-                Example: set <strong>100 m</strong> for a large office or plaza around the registered pin.
-              </p>
-              <LocationMapPicker
-                value={deviceLocation}
-                onChange={setDeviceLocation}
-                axiosInstance={axiosInstance}
-                disabled={isSubmitting}
+              <FormSelect
+                label="Margin unit"
+                name="location_radius_unit"
+                value={form.location_radius_unit}
+                onChange={handleChange}
+                options={[
+                  { value: 'm', label: 'Meters (m)' },
+                  { value: 'km', label: 'Kilometers (km)' },
+                ]}
               />
-              </>
-            )}
+            </div>
+            <LocationMapPicker
+              value={deviceLocation}
+              onChange={setDeviceLocation}
+              axiosInstance={axiosInstance}
+              disabled={isSubmitting}
+            />
           </div>
 
           <div className="form-actions">

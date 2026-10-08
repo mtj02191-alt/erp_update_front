@@ -132,15 +132,17 @@ import ResumeCollectionAdd from './components/admin/hr/resume_collection/add';
 import ResumeCollectionView from './components/admin/hr/resume_collection/view';
 import { OnlineDonationsList, ViewOnlineDonation, UpdateOnlineDonation } from './components/dms/donations/online_donations/index';
 import PendingAllotmentsList from './components/dms/donations/allotments/pending';
-import { DonorsList, RegisterDonor, ViewDonor, EditDonor, OrganizationsList, AddOrganization, ViewOrganization, EditOrganization, VolunteersList, RegisterVolunteer, ViewVolunteer, EditVolunteer, SurveysList, AddSurvey, ViewSurvey, EditSurvey, SurveyReport, FillSurvey, EventsList, AddEvent, EditEvent, ViewEvent, CampaignsList, AddCampaign, EditCampaign, ViewCampaign, AppealsList, AddAppeal, EditAppeal, ViewAppeal } from './components/dms';
+import { DonorsList, RegisterDonor, ViewDonor, EditDonor, OrganizationsList, AddOrganization, ViewOrganization, EditOrganization, CsrPocsList, VolunteersList, RegisterVolunteer, ViewVolunteer, EditVolunteer, SurveysList, AddSurvey, ViewSurvey, EditSurvey, SurveyReport, FillSurvey, EventsList, AddEvent, EditEvent, ViewEvent, CampaignsList, AddCampaign, EditCampaign, ViewCampaign, AppealsList, AddAppeal, EditAppeal, ViewAppeal } from './components/dms';
 import AidApplicationsList from './components/dms/aid/applications/list';
 import AidApplicationAdd from './components/dms/aid/applications/add';
 import AidApplicationView from './components/dms/aid/applications/view';
 import AidPeopleList from './components/dms/aid/people/list';
 import AidPersonView from './components/dms/aid/people/view';
-import { RecurringDonationsList, RecurringDonationView } from './components/dms/recurring_donations';
+import { RecurringDonationsList, RecurringDonationView, AddRecurringDonation, UpdateRecurringDonation } from './components/dms/recurring_donations';
 import RecurringDonorsList from './components/dms/recurring_donors/list';
 import ManualRecurringList from './components/dms/manual_recurring/list';
+import RecurringReminderLogsList from './components/dms/recurring_reminder_logs/list';
+import RecurringReminderLogView from './components/dms/recurring_reminder_logs/view';
 import { SocialPostsList, SocialPostAdd, SocialPostView, SocialPostEdit } from './components/dms/social_posts';
 import AddDonation from './components/donations/online_donations/add';
 import AddDonationBox from './components/dms/donation_box/add';
@@ -160,6 +162,8 @@ import InteractionsList from './components/dms/donor_relationship/interactions';
 import AddDonorInteraction from './components/dms/donor_relationship/add';
 import ManagementOverview from './components/dms/donor_relationship/overview';
 import FundRaisingDashboardPage from './components/dms/fund_raising_dashboard';
+import RecurringPerformanceDashboardPage from './components/dms/recurring_performance_dashboard';
+import { EventPledgesList, AddEventPledge, EditEventPledge, ViewEventPledge } from './components/dms/event_pledges';
 import EmailTemplateList from './components/dms/email_templates/list';
 import EmailTemplateForm from './components/dms/email_templates/form';
 import CommunicationSend from './components/dms/email_templates/send';
@@ -182,6 +186,8 @@ import CountriesList from './components/dms/geographic/countries/list';
 import AddCountry from './components/dms/geographic/countries/add';
 import RegionsList from './components/dms/geographic/regions/list';
 import AddRegion from './components/dms/geographic/regions/add';
+import SubRegionsList from './components/dms/geographic/sub_regions/list';
+import AddSubRegion from './components/dms/geographic/sub_regions/add';
 import DistrictsList from './components/dms/geographic/districts/list';
 import AddDistrict from './components/dms/geographic/districts/add';
 import TehsilsList from './components/dms/geographic/tehsils/list';
@@ -196,6 +202,16 @@ import UpdateTask from './components/admin/tasks/update';
 import ViewTask from './components/admin/tasks/view';
 import TaskReports from './components/admin/tasks/reports';
 import TaskReceipt from './components/admin/tasks/taskrecipt';
+import ComplaintsPage from './components/admin/complaints';
+import AddComplaint from './components/admin/complaints/add';
+import UpdateComplaint from './components/admin/complaints/update';
+import ViewComplaint from './components/admin/complaints/view';
+import ComplaintReports from './components/admin/complaints/reports';
+import ComplaintReceipt from './components/admin/complaints/taskrecipt';
+import ComplaintsCasePage from './components/admin/complaints-case';
+import AddComplaintCase from './components/admin/complaints-case/add';
+import ViewComplaintCase from './components/admin/complaints-case/view';
+import TrackComplaintCase from './components/admin/complaints-case/track';
 import PublicTrackingPage from './components/progress_tracking/public';
 import TemplatesList from './components/progress_tracking/admin/templates/list';
 import TemplateAdd from './components/progress_tracking/admin/templates/add';
@@ -211,6 +227,9 @@ import CeoDashboard from './components/ceo-office/dashboard';
 import QuickNote from './components/ceo-office/note/quick-note';
 import InstructionRegister from './components/ceo-office/instruction-register';
 import CeoNoteView from './components/ceo-office/note/note-view';
+import CeoComplaintsList from './components/admin/ceo_complaints/list';
+import CeoComplaintAdd from './components/admin/ceo_complaints/add';
+import CeoComplaintView from './components/admin/ceo_complaints/view';
 // import Reports from './components/ceo-office/reports';
 import './styles/screen-theme.css';
 
@@ -414,6 +433,7 @@ const App = () => {
                                 {/* Fund Raising Welcome */}
                                 <Route path="/fund_raising" element={<FundRaising />} />
                                 <Route path="/fund_raising/dashboard" element={<FundRaisingDashboardPage />} />
+                                <Route path="/fund_raising/recurring-performance" element={<RecurringPerformanceDashboardPage />} />
                                 {/* DMS Section Routes */}
                                 <Route path="/dms/donation_box/add" element={<AddDonationBox />} />
                                 <Route path="/dms/donation_box/list" element={<DonationBoxList />} />
@@ -440,9 +460,18 @@ const App = () => {
 
                                 {/* Recurring Donations (Stripe / ledger subscriptions) */}
                                 <Route path="/dms/recurring-donations/list" element={<RecurringDonationsList />} />
+                                <Route path="/dms/recurring-donations/add" element={<AddRecurringDonation />} />
+                                <Route path="/dms/recurring-donations/update/:id" element={<UpdateRecurringDonation />} />
                                 <Route path="/dms/recurring-donations/view/:id" element={<RecurringDonationView />} />
                                 <Route path="/dms/recurring-donors/list" element={<RecurringDonorsList />} />
+                                <Route path="/dms/recurring-donors/add" element={<RegisterDonor />} />
+                                <Route path="/dms/event-pledges/list" element={<EventPledgesList />} />
+                                <Route path="/dms/event-pledges/add" element={<AddEventPledge />} />
+                                <Route path="/dms/event-pledges/edit/:id" element={<EditEventPledge />} />
+                                <Route path="/dms/event-pledges/view/:id" element={<ViewEventPledge />} />
                                 <Route path="/dms/manual-recurring/list" element={<ManualRecurringList />} />
+                                <Route path="/dms/recurring-reminder-logs/list" element={<RecurringReminderLogsList />} />
+                                <Route path="/dms/recurring-reminder-logs/view/:id" element={<RecurringReminderLogView />} />
 
                                 {/* Social Posts (Buffer) */}
                                 <Route path="/dms/social-posts/list" element={<SocialPostsList />} />
@@ -467,7 +496,23 @@ const App = () => {
                                 <Route path="/dms/online_donors/edit/:id" element={<EditDonor />} />
                                 <Route path="/dms/offline_donors/edit/:id" element={<EditDonor />} />
 
-                                {/* Organizations (Organization → Branch → Sub-branch) */}
+                                {/* CSR Donors (Organization → Branch → Sub-branch) */}
+                                <Route path="/dms/csr-donations/list" element={<OnlineDonationsList key="csr-donations-hub-list" />} />
+                                <Route path="/dms/csr-donations/add" element={<AddDonation />} />
+                                <Route path="/dms/csr-donations/view/:id" element={<ViewOnlineDonation />} />
+                                <Route path="/dms/csr-donations/update/:id" element={<UpdateOnlineDonation />} />
+                                <Route path="/dms/in-kind-donations/list" element={<OnlineDonationsList key="in-kind-donations-hub-list" />} />
+                                <Route path="/dms/in-kind-donations/add" element={<AddDonation />} />
+                                <Route path="/dms/in-kind-donations/view/:id" element={<ViewOnlineDonation />} />
+                                <Route path="/dms/in-kind-donations/update/:id" element={<UpdateOnlineDonation />} />
+                                <Route path="/dms/csr-donors/:csrDonorId/donations" element={<OnlineDonationsList key="csr-donor-donations-list" />} />
+                                <Route path="/dms/csr-donors/:csrDonorId/donations/view/:id" element={<ViewOnlineDonation />} />
+                                <Route path="/dms/csr-donors/:csrDonorId/donations/update/:id" element={<UpdateOnlineDonation />} />
+                                <Route path="/dms/csr-donors/list" element={<OrganizationsList />} />
+                                <Route path="/dms/csr-donors/add" element={<AddOrganization />} />
+                                <Route path="/dms/csr-donors/view/:id" element={<ViewOrganization />} />
+                                <Route path="/dms/csr-donors/edit/:id" element={<EditOrganization />} />
+                                <Route path="/dms/csr-pocs/list" element={<CsrPocsList />} />
                                 <Route path="/dms/organizations/list" element={<OrganizationsList />} />
                                 <Route path="/dms/organizations/add" element={<AddOrganization />} />
                                 <Route path="/dms/organizations/view/:id" element={<ViewOrganization />} />
@@ -500,6 +545,8 @@ const App = () => {
                                 <Route path="/dms/geographic/countries/add" element={<AddCountry />} />
                                 <Route path="/dms/geographic/regions/list" element={<RegionsList />} />
                                 <Route path="/dms/geographic/regions/add" element={<AddRegion />} />
+                                <Route path="/dms/geographic/sub-regions/list" element={<SubRegionsList />} />
+                                <Route path="/dms/geographic/sub-regions/add" element={<AddSubRegion />} />
                                 <Route path="/dms/geographic/districts/list" element={<DistrictsList />} />
                                 <Route path="/dms/geographic/districts/add" element={<AddDistrict />} />
                                 <Route path="/dms/geographic/tehsils/list" element={<TehsilsList />} />
@@ -550,6 +597,9 @@ const App = () => {
                                 <Route path="/ceo-notes" element={<QuickNote />} />
                                 <Route path="/ceo-office/instruction-register" element={<InstructionRegister />} />
                                 <Route path="/ceo-office/notes/:id" element={<CeoNoteView />} />
+                                <Route path="/ceo-office/ceo-complaints/list" element={<CeoComplaintsList />} />
+                                <Route path="/ceo-office/ceo-complaints/add" element={<CeoComplaintAdd />} />
+                                <Route path="/ceo-office/ceo-complaints/view/:id" element={<CeoComplaintView />} />
                                 {/* <Route path="/ceo-office/reports" element={<Reports />} /> */}
                                 <Route path="/ceo-office" element={<Navigate to="/ceo-office/dashboard" replace />} />
 
@@ -584,6 +634,21 @@ const App = () => {
                                 <Route path="/tasks/dashboard" element={<TaskReports />} />
                                 <Route path="/tasks/reports" element={<Navigate to="/tasks/dashboard" replace />} />
                                 <Route path="/tasks/receipt/:id" element={<TaskReceipt />} />
+
+                                {/* Complaints — flat routes for all users */}
+                                <Route path="/tickets/list" element={<ComplaintsPage />} />
+                                <Route path="/tickets/add" element={<AddComplaint />} />
+                                <Route path="/tickets/update/:id" element={<UpdateComplaint />} />
+                                <Route path="/tickets/view/:id" element={<ViewComplaint />} />
+                                <Route path="/tickets/dashboard" element={<ComplaintReports />} />
+                                <Route path="/tickets/reports" element={<Navigate to="/tickets/dashboard" replace />} />
+                                <Route path="/tickets/receipt/:id" element={<ComplaintReceipt />} />
+
+                                {/* Grievance complaints — separate from issues/tickets flow */}
+                                <Route path="/complaints/list" element={<ComplaintsCasePage />} />
+                                <Route path="/complaints/add" element={<AddComplaintCase />} />
+                                <Route path="/complaints/view/:id" element={<ViewComplaintCase />} />
+                                <Route path="/complaints/track" element={<TrackComplaintCase />} />
                               </Routes>
                             </main>
                           </div>

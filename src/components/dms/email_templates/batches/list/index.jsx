@@ -37,6 +37,8 @@ const CommunicationBatchList = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [sortField, setSortField] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('DESC');
   const [tempFilters, setTempFilters] = useState({
     channels: [],
     batch_statuses: [],
@@ -48,7 +50,22 @@ const CommunicationBatchList = () => {
 
   useEffect(() => {
     fetchBatches();
-  }, [currentPage, pageSize, appliedFilters, sendSource]);
+  }, [currentPage, pageSize, sortField, sortOrder, appliedFilters, sendSource]);
+
+  const handleSortChange = (field, order) => {
+    setSortField(field);
+    setSortOrder(order);
+    setCurrentPage(1);
+  };
+
+  const sortOptions = [
+    { value: 'created_at', label: 'Created Date' },
+    { value: 'updated_at', label: 'Updated Date' },
+    { value: 'id', label: 'ID' },
+    { value: 'batch_status', label: 'Status' },
+    { value: 'channel', label: 'Channel' },
+    { value: 'template_name', label: 'Template Name' },
+  ];
 
   const fetchBatches = async () => {
     try {
@@ -61,6 +78,8 @@ const CommunicationBatchList = () => {
           channel: appliedFilters.channels[0] || undefined,
           batch_status: appliedFilters.batch_statuses[0] || undefined,
           send_source: sendSource,
+          sortField,
+          sortOrder,
         },
       });
       if (res.data.success) {
@@ -241,6 +260,10 @@ const CommunicationBatchList = () => {
               setPageSize(size);
               setCurrentPage(1);
             }}
+            onSortChange={handleSortChange}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            sortOptions={sortOptions}
           />
         </div>
         </div>

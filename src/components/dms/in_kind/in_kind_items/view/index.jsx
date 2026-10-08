@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../../../../utils/axios';
 import Navbar from '../../../../Navbar';
 import PageHeader from '../../../../common/PageHeader';
+import { getInKindCategoryLabel } from '../../../../../utils/inKindCategories';
+import { formatAuditActor } from '../../../../common/audit/auditHistoryLabels';
+import '../inKindItems.css';
 
 const ViewInKindItem = () => {
   const { id } = useParams();
@@ -44,22 +47,19 @@ const ViewInKindItem = () => {
   };
 
   const getCategoryBadge = (category) => {
-    const categoryLabels = {
-      clothing: 'Clothing',
-      food: 'Food',
-      medical: 'Medical',
-      educational: 'Educational',
-      electronics: 'Electronics',
-      furniture: 'Furniture',
-      books: 'Books',
-      toys: 'Toys',
-      household: 'Household',
-      other: 'Other'
-    };
-
+    const key = String(category || 'other').toLowerCase();
     return (
-      <span className="status-badge status-badge--info">
-        {categoryLabels[category] || category}
+      <span className={`inkind-category-badge inkind-category-badge--${key}`}>
+        {getInKindCategoryLabel(category)}
+      </span>
+    );
+  };
+
+  const getStatusBadge = (row) => {
+    const archived = row?.is_archived === true;
+    return (
+      <span className={`status-badge ${archived ? 'status-cancelled' : 'status-completed'}`}>
+        {archived ? 'Archived' : 'Active'}
       </span>
     );
   };
@@ -164,14 +164,18 @@ const ViewInKindItem = () => {
                   <span className="view-item-value">{formatDate(item.created_at)}</span>
                 </div>
                 <div className="view-item">
+                  <span className="view-item-label">Created by</span>
+                  <span className="view-item-value">
+                    {item.created_by ? formatAuditActor(item.created_by) : '—'}
+                  </span>
+                </div>
+                <div className="view-item">
                   <span className="view-item-label">Last Updated</span>
                   <span className="view-item-value">{formatDate(item.updated_at)}</span>
                 </div>
                 <div className="view-item">
                   <span className="view-item-label">Status</span>
-                  <span className="view-item-value">
-                    <span className="status-badge status-badge--success">Active</span>
-                  </span>
+                  <span className="view-item-value">{getStatusBadge(item)}</span>
                 </div>
               </div>
             </div>

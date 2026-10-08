@@ -11,9 +11,17 @@
   grid-template-rows: 1fr;
   margin-bottom: var(--spacing-md, 16px);
   opacity: 1;
+  /* Allow filter dropdowns (Referred by, MultiSelect, etc.) to paint over the table */
+  overflow: visible;
+  position: relative;
+  z-index: 20;
 }
 
 .collapsible-filters__inner {
   min-height: 0;
   overflow: hidden;
+}
+
+.collapsible-filters--open .collapsible-filters__inner {
+  overflow: visible;
 }

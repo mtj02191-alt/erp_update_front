@@ -9,7 +9,7 @@ import ActionMenu from '../../../common/ActionMenu';
 import ConfirmationModal from '../../../common/ConfirmationModal';
 import Modal from '../../../common/Modal';
 import Pagination from '../../../common/Pagination';
-import { SearchFilter, DropdownFilter, DateFilter, DateRangeFilter, CollapsibleFilters, TeamFilter, defaultTeamFilterState, appendTeamFilterParams } from '../../../common/filters';
+import { SearchFilter, DropdownFilter, DateFilter, DateRangeFilter, CollapsibleFilters, TeamFilter, defaultTeamFilterState, appendTeamFilterParams, ReferredByFilter } from '../../../common/filters';
 import { SearchButton, ClearButton } from '../../../common/filters';
 import SearchableDropdown from '../../../common/SearchableDropdown';
 import HybridDropdown from '../../../common/HybridDropdown';
@@ -90,7 +90,6 @@ const DonorsList = () => {
   // Filter state - Temporary filters (not applied until search button is clicked)
   const [tempFilters, setTempFilters] = useState({
     search: '',
-    donor_type: '',
     city: '',
     date: '',
     start_date: '',
@@ -100,6 +99,8 @@ const DonorsList = () => {
     recurring: null,
     is_mature_donor: null,
     assigned_to_user_id: '',
+    referrer_user_ids: [],
+    referrer_any: '',
     donated_amount: '',
     donated_amount_operator: '',
     pipeline_stage: '',
@@ -109,7 +110,6 @@ const DonorsList = () => {
   // Applied filters - Actually sent to API
   const [appliedFilters, setAppliedFilters] = useState({
     search: '',
-    donor_type: '',
     city: '',
     date: '',
     start_date: '',
@@ -119,6 +119,8 @@ const DonorsList = () => {
     recurring: null,
     is_mature_donor: null,
     assigned_to_user_id: '',
+    referrer_user_ids: [],
+    referrer_any: '',
     donated_amount: '',
     donated_amount_operator: '',
     pipeline_stage: '',
@@ -143,7 +145,6 @@ const DonorsList = () => {
   const hasActiveFilters = useMemo(() => {
     const empty = {
       search: '',
-      donor_type: '',
       donation_type: '',
       city: '',
       date: '',
@@ -157,6 +158,8 @@ const DonorsList = () => {
       donated_amount: '',
       donated_amount_operator: '',
       pipeline_stage: '',
+      referrer_user_ids: [],
+      referrer_any: '',
       ...defaultTeamFilterState(),
     };
     return JSON.stringify(appliedFilters) !== JSON.stringify(empty);
@@ -416,7 +419,6 @@ const DonorsList = () => {
   const handleClearFilters = () => {
     const emptyFilters = {
       search: '',
-      donor_type: '',
       city: '',
       date: '',
       start_date: '',
@@ -429,6 +431,8 @@ const DonorsList = () => {
       donated_amount: '',
       donated_amount_operator: '',
       pipeline_stage: '',
+      referrer_user_ids: [],
+      referrer_any: '',
       ...defaultTeamFilterState(),
     };
     
@@ -495,10 +499,28 @@ const DonorsList = () => {
       ) {
         delete params.assigned_to_user_id;
       }
+      if (
+        !params.referrer_any ||
+        String(params.referrer_any).toLowerCase() !== 'true'
+      ) {
+        delete params.referrer_any;
+      }
+      if (
+        Array.isArray(params.referrer_user_ids) &&
+        params.referrer_user_ids.length > 0
+      ) {
+        params.referrer_user_ids = params.referrer_user_ids.join(',');
+      } else {
+        delete params.referrer_user_ids;
+      }
+      delete params.referrer_user_id;
       if (!params.donated_amount || !params.donated_amount_operator) {
         delete params.donated_amount;
         delete params.donated_amount_operator;
       }
+
+      // Donors module is individuals only; legacy POC rows live under CSR Donors.
+      params.donor_type = 'individual';
       
       const response = await axiosInstance.get('/donors', { params });
       if (response.data.success) {
@@ -630,12 +652,6 @@ const DonorsList = () => {
   ];
 
   // Filter options
-  const donorTypeOptions = [
-    { value: 'individual', label: 'Individual' },
-    { value: 'csr', label: 'CSR (Corporate)' },
-  ];
-
-  // 
   const donationTypeOptions = [
     { value: 'one_time_donor', label: 'One Time Donor' },
     { value: 'recurring_donor', label: 'Recurring Donor' }
@@ -683,7 +699,7 @@ const DonorsList = () => {
   };
 
   const getDonorTypeLabel = (type) => {
-    return type === 'csr' ? 'CSR' : 'Individual';
+    return type === 'csr' ? 'Legacy POC' : 'Individual';
   };
 
   const getDonorTypeClass = (type) => {
@@ -738,15 +754,6 @@ const DonorsList = () => {
               filters={tempFilters}
               onFilterChange={handleFilterChange}
               placeholder="Search by name, email, phone..."
-            />
-            
-            <DropdownFilter
-              filterKey="donor_type"
-              label="Donor Type"
-              data={donorTypeOptions}
-              filters={tempFilters}
-              onFilterChange={handleFilterChange}
-              placeholder="All Types"
             />
 
             {!lockedSource && donorSourceFilterOptions.length > 0 && (
@@ -860,6 +867,11 @@ const DonorsList = () => {
             />
 
             <TeamFilter
+              filters={tempFilters}
+              onFilterChange={handleFilterChange}
+            />
+
+            <ReferredByFilter
               filters={tempFilters}
               onFilterChange={handleFilterChange}
             />
@@ -1029,7 +1041,7 @@ const DonorsList = () => {
                             )}
                           </Link>
                           {donor.donor_type === 'csr' && (
-                            <div className="company-name">CSR contact</div>
+                            <div className="company-name">Legacy POC — use CSR Donors</div>
                           )}
                         </div>
                       </td>

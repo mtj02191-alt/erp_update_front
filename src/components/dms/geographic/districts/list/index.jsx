@@ -13,12 +13,14 @@ const DistrictsList = () => {
   const [districts, setDistricts] = useState([]);
   const [countries, setCountries] = useState([]);
   const [regions, setRegions] = useState([]);
+  const [subRegions, setSubRegions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [districtToDelete, setDistrictToDelete] = useState(null);
   const [countryFilter, setCountryFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
+  const [subRegionFilter, setSubRegionFilter] = useState('');
 
   const fetchCountries = async () => {
     try {
@@ -42,12 +44,26 @@ const DistrictsList = () => {
     }
   };
 
+  const fetchSubRegions = async (regionId) => {
+    if (!regionId) {
+      setSubRegions([]);
+      return;
+    }
+    try {
+      const res = await axiosInstance.get(`/sub-regions?region_id=${regionId}`);
+      if (res.data.success) setSubRegions(res.data.data || []);
+    } catch (err) {
+      setSubRegions([]);
+    }
+  };
+
   const fetchDistricts = async () => {
     try {
       setLoading(true);
       let url = '/districts';
       const params = [];
-      if (regionFilter) params.push(`region_id=${regionFilter}`);
+      if (subRegionFilter) params.push(`sub_region_id=${subRegionFilter}`);
+      else if (regionFilter) params.push(`region_id=${regionFilter}`);
       else if (countryFilter) params.push(`country_id=${countryFilter}`);
       if (params.length) url += '?' + params.join('&');
       const res = await axiosInstance.get(url);
@@ -64,9 +80,13 @@ const DistrictsList = () => {
     if (countryFilter) fetchRegions(countryFilter);
     else setRegions([]);
   }, [countryFilter]);
-  useEffect(() => { fetchDistricts(); }, [regionFilter, countryFilter]);
+  useEffect(() => {
+    if (regionFilter) fetchSubRegions(regionFilter);
+    else setSubRegions([]);
+  }, [regionFilter]);
+  useEffect(() => { fetchDistricts(); }, [subRegionFilter, regionFilter, countryFilter]);
 
-  const handleBack = () => navigate('/dms/geographic/regions/list');
+  const handleBack = () => navigate('/dms/geographic/sub-regions/list');
   const handleAdd = () => navigate('/dms/geographic/districts/add');
 
   const countryOptions = [
@@ -76,6 +96,10 @@ const DistrictsList = () => {
   const regionOptions = [
     { value: '', label: 'All regions' },
     ...(regions.map((r) => ({ value: String(r.id), label: r.name })))
+  ];
+  const subRegionOptions = [
+    { value: '', label: 'All sub regions' },
+    ...(subRegions.map((sr) => ({ value: String(sr.id), label: sr.name })))
   ];
 
   const handleDeleteClick = (row) => {
@@ -95,6 +119,7 @@ const DistrictsList = () => {
     }
   };
 
+  const getSubRegionName = (row) => row.sub_region ? row.sub_region.name : '—';
   const getRegionName = (row) => row.region ? row.region.name : '—';
   const getCountryName = (row) => row.country ? row.country.name : '—';
 
@@ -105,8 +130,9 @@ const DistrictsList = () => {
         <PageHeader title="Districts" onBack={handleBack} showAdd addPath="/dms/geographic/districts/add" />
         {error && <div className="status-message status-message--error">{error}</div>}
         <div className="form-section form-grid-2">
-          <FormSelect label="Filter by country" name="countryFilter" value={countryFilter} onChange={(e) => { setCountryFilter(e.target.value); setRegionFilter(''); }} options={countryOptions} showDefaultOption defaultOptionText="All countries" />
-          <FormSelect label="Filter by region" name="regionFilter" value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)} options={regionOptions} showDefaultOption defaultOptionText="All regions" />
+          <FormSelect label="Filter by country" name="countryFilter" value={countryFilter} onChange={(e) => { setCountryFilter(e.target.value); setRegionFilter(''); setSubRegionFilter(''); }} options={countryOptions} showDefaultOption defaultOptionText="All countries" />
+          <FormSelect label="Filter by region" name="regionFilter" value={regionFilter} onChange={(e) => { setRegionFilter(e.target.value); setSubRegionFilter(''); }} options={regionOptions} showDefaultOption defaultOptionText="All regions" />
+          <FormSelect label="Filter by sub region" name="subRegionFilter" value={subRegionFilter} onChange={(e) => setSubRegionFilter(e.target.value)} options={subRegionOptions} showDefaultOption defaultOptionText="All sub regions" />
         </div>
         {loading ? (
           <p>Loading...</p>
@@ -122,6 +148,7 @@ const DistrictsList = () => {
                 <tr>
                   <th>Name</th>
                   <th>Code</th>
+                  <th>Sub Region</th>
                   <th>Region</th>
                   <th>Country</th>
                   <th>Active</th>
@@ -133,6 +160,7 @@ const DistrictsList = () => {
                   <tr key={row.id}>
                     <td>{row.name}</td>
                     <td>{row.code || '—'}</td>
+                    <td>{getSubRegionName(row)}</td>
                     <td>{getRegionName(row)}</td>
                     <td>{getCountryName(row)}</td>
                     <td>{row.is_active ? 'Yes' : 'No'}</td>

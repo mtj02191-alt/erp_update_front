@@ -171,12 +171,13 @@ const DonationPendingAttachments = forwardRef(function DonationPendingAttachment
 export default DonationPendingAttachments;
 
 /** Upload pending named attachments after donation create/update. */
-export async function uploadPendingDonationAttachments({
+export async function uploadPendingEntityAttachments({
   axiosInstance,
-  donationId,
+  entityId,
   items,
+  uploadPath,
 }) {
-  if (!donationId || !items?.length) return { uploaded: 0, failed: 0 };
+  if (!entityId || !items?.length) return { uploaded: 0, failed: 0 };
 
   let uploaded = 0;
   let failed = 0;
@@ -189,17 +190,41 @@ export async function uploadPendingDonationAttachments({
         formData.append('description', item.name);
         formData.append('name', item.name);
       }
-      await axiosInstance.post(
-        `/donations/${donationId}/attachments/upload`,
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } },
-      );
+      await axiosInstance.post(uploadPath(entityId), formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       uploaded += 1;
     } catch (err) {
-      console.error('Donation attachment upload error:', err);
+      console.error('Attachment upload error:', err);
       failed += 1;
     }
   }
 
   return { uploaded, failed };
+}
+
+export async function uploadPendingDonationAttachments({
+  axiosInstance,
+  donationId,
+  items,
+}) {
+  return uploadPendingEntityAttachments({
+    axiosInstance,
+    entityId: donationId,
+    items,
+    uploadPath: (id) => `/donations/${id}/attachments/upload`,
+  });
+}
+
+export async function uploadPendingRecurringDonationAttachments({
+  axiosInstance,
+  recurringDonationId,
+  items,
+}) {
+  return uploadPendingEntityAttachments({
+    axiosInstance,
+    entityId: recurringDonationId,
+    items,
+    uploadPath: (id) => `/recurring-donations/${id}/attachments/upload`,
+  });
 }

@@ -19,12 +19,29 @@ const WebsiteHomeHeroList = () => {
   const [pageSize, setPageSize] = useState(20);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [sortField, setSortField] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('DESC');
   const [tempFilters, setTempFilters] = useState({ search: '' });
   const [appliedFilters, setAppliedFilters] = useState({ search: '' });
 
   useEffect(() => {
     fetchRows();
-  }, [currentPage, pageSize, appliedFilters]);
+  }, [currentPage, pageSize, sortField, sortOrder, appliedFilters]);
+
+  const handleSortChange = (field, order) => {
+    setSortField(field);
+    setSortOrder(order);
+    setCurrentPage(1);
+  };
+
+  const sortOptions = [
+    { value: 'created_at', label: 'Created Date' },
+    { value: 'updated_at', label: 'Updated Date' },
+    { value: 'sort_order', label: 'Display Order' },
+    { value: 'title', label: 'Title' },
+    { value: 'is_active', label: 'Status' },
+    { value: 'id', label: 'ID' },
+  ];
 
   const fetchRows = async () => {
     try {
@@ -34,6 +51,8 @@ const WebsiteHomeHeroList = () => {
           page: currentPage,
           pageSize,
           search: appliedFilters.search || undefined,
+          sortField,
+          sortOrder,
         },
       });
       if (response.data.success) {
@@ -190,6 +209,10 @@ const WebsiteHomeHeroList = () => {
                 setPageSize(size);
                 setCurrentPage(1);
               }}
+              onSortChange={handleSortChange}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              sortOptions={sortOptions}
             />
           </div>
         </div>

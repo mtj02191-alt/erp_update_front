@@ -26,6 +26,9 @@
   margin: 0;
   color: var(--color-text-secondary, #64748b);
   font-size: 0.95rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .user-view-summary-badges {

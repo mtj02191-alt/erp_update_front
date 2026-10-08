@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
 import PageHeader from '../../../common/PageHeader';
+import { formatAuditActor } from '../../../common/audit/auditHistoryLabels';
 
 const ViewReceiptTemplate = () => {
   const { id } = useParams();
@@ -94,6 +95,12 @@ const ViewReceiptTemplate = () => {
               <div className="view-item">
                 <span className="view-item-label">Created</span>
                 <span className="view-item-value">{formatDate(template.created_at)}</span>
+              </div>
+              <div className="view-item">
+                <span className="view-item-label">Created by</span>
+                <span className="view-item-value">
+                  {template.created_by ? formatAuditActor(template.created_by) : '—'}
+                </span>
               </div>
               <div className="view-item">
                 <span className="view-item-label">Last updated</span>

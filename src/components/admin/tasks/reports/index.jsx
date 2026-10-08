@@ -1416,6 +1416,8 @@ const TaskReports = () => {
       let statsDepartment;
       if (isGeneralAdminDashboard) {
         statsDepartment = selectedDepartment || undefined;
+      } else if (showTeamPerformance) {
+        statsDepartment = selectedDepartment || undefined;
       } else if (tasksDepartmentFromUser) {
         statsDepartment = tasksDepartmentFromUser;
       } else if (rolePerms.scope === 'org') {
@@ -1448,6 +1450,7 @@ const TaskReports = () => {
         end_date: range.to,
         department: statsDepartment,
         view_type: effectiveViewType,
+        team_performance: showTeamPerformance ? true : undefined,
       };
       const statsRes = await axiosInstance.get('/tasks/dashboard/stats', { params: statsParams });
       const statsData = statsRes.data?.data || statsRes.data;
@@ -1458,6 +1461,7 @@ const TaskReports = () => {
         end_date: range.to,
         department: statsDepartment,
         view_type: effectiveViewType,
+        team_performance: showTeamPerformance ? true : undefined,
       };
 
       const reportsRes = await axiosInstance.get('/tasks/reports', { params: reportsParams });

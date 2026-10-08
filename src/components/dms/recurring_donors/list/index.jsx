@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../../../utils/axios';
 import Navbar from '../../../Navbar';
 import PageHeader from '../../../common/PageHeader';
 import ActionMenu from '../../../common/ActionMenu';
+import ConfirmationModal from '../../../common/ConfirmationModal';
 import Pagination from '../../../common/Pagination';
 import {
   SearchFilter,
@@ -16,8 +17,8 @@ import {
 } from '../../../common/filters';
 import useFiltersPanel from '../../../../hooks/useFiltersPanel';
 import { useAuth } from '../../../../context/AuthContext';
-import { hasPermission } from '../../../../utils/permissions';
-import { FiEye, FiFlag, FiRepeat, FiSend } from 'react-icons/fi';
+import { hasPermission, isSuperAdmin } from '../../../../utils/permissions';
+import { FiEye, FiRepeat, FiSend, FiEdit2, FiTrash2 } from 'react-icons/fi';
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
@@ -39,11 +40,9 @@ const INSTALLMENT_STATUS_OPTIONS = [
   { value: 'completed', label: 'Has paid installments' },
 ];
 
-const PAYMENT_QUICK_FILTERS = [
-  { value: '', label: 'All' },
-  { value: 'pending', label: 'Pending installments' },
-  { value: 'pending_initial', label: 'Pending initial' },
-  { value: 'completed', label: 'Paid' },
+const SOURCE_OPTIONS = [
+  { value: 'online', label: 'Online' },
+  { value: 'offline', label: 'Offline' },
 ];
 
 const EMPTY_FILTERS = {
@@ -51,6 +50,7 @@ const EMPTY_FILTERS = {
   status: '',
   billing_interval: '',
   installment_status: '',
+  source: '',
   date: '',
   start_date: '',
   end_date: '',
@@ -58,10 +58,10 @@ const EMPTY_FILTERS = {
 
 /**
  * Recurring Donors = people with a recurring_donations subscription (ledger).
- * Campaign pledges stay on a separate page, linked via the Pledges button.
  */
 const RecurringDonorsList = () => {
-  const { permissions } = useAuth();
+  const navigate = useNavigate();
+  const { permissions, user } = useAuth();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -75,18 +75,54 @@ const RecurringDonorsList = () => {
   const [tempFilters, setTempFilters] = useState({ ...EMPTY_FILTERS });
   const [appliedFilters, setAppliedFilters] = useState({ ...EMPTY_FILTERS });
   const [sendingLinkId, setSendingLinkId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const isFrAdmin = useMemo(() => {
+    const role = String(user?.role || '').toLowerCase();
+    return (
+      isSuperAdmin(permissions) ||
+      role === 'super_admin' ||
+      permissions?.fund_raising_manager === true ||
+      role === 'fund_raising_manager'
+    );
+  }, [permissions, user]);
 
   const canList = useMemo(() => {
-    if (!permissions) return null;
+    if (!permissions && !user) return null;
     return (
-      permissions.super_admin === true ||
-      permissions.fund_raising_manager === true ||
+      isFrAdmin ||
+      hasPermission(permissions, 'fund_raising', 'recurring_donors', 'list_view') ||
+      hasPermission(permissions, 'fund_raising', 'recurring_donors', 'view') ||
       hasPermission(permissions, 'fund_raising', 'recurring_donations', 'list_view') ||
-      hasPermission(permissions, 'fund_raising', 'recurring_donations', 'view') ||
-      hasPermission(permissions, 'fund_raising', 'donors', 'list_view') ||
-      hasPermission(permissions, 'fund_raising', 'donors', 'view')
+      hasPermission(permissions, 'fund_raising', 'recurring_donations', 'view')
     );
-  }, [permissions]);
+  }, [permissions, user, isFrAdmin]);
+
+  const canCreate = useMemo(
+    () =>
+      isFrAdmin ||
+      hasPermission(permissions, 'fund_raising', 'recurring_donors', 'create') ||
+      hasPermission(permissions, 'fund_raising', 'donors', 'create') ||
+      hasPermission(permissions, 'fund_raising', 'offline_donors', 'create'),
+    [permissions, isFrAdmin],
+  );
+
+  const canUpdate = useMemo(
+    () =>
+      isFrAdmin ||
+      hasPermission(permissions, 'fund_raising', 'recurring_donors', 'update') ||
+      hasPermission(permissions, 'fund_raising', 'recurring_donations', 'update'),
+    [permissions, isFrAdmin],
+  );
+
+  const canDelete = useMemo(
+    () =>
+      isFrAdmin ||
+      hasPermission(permissions, 'fund_raising', 'recurring_donors', 'delete') ||
+      hasPermission(permissions, 'fund_raising', 'recurring_donations', 'delete'),
+    [permissions, isFrAdmin],
+  );
 
   const handleFilterChange = (key, value) => {
     setTempFilters((prev) => ({ ...prev, [key]: value }));
@@ -142,6 +178,22 @@ const RecurringDonorsList = () => {
     fetchRows();
   }, [currentPage, pageSize, sortField, sortOrder, appliedFilters]);
 
+  const handleSortChange = (field, order) => {
+    setSortField(field);
+    setSortOrder(order);
+    setCurrentPage(1);
+  };
+
+  const sortOptions = [
+    { value: 'created_at', label: 'Created Date' },
+    { value: 'updated_at', label: 'Updated Date' },
+    { value: 'id', label: 'ID' },
+    { value: 'status', label: 'Status' },
+    { value: 'amount', label: 'Amount' },
+    { value: 'paid_at', label: 'Paid At' },
+    { value: 'billing_interval', label: 'Billing Interval' },
+  ];
+
   const formatAmount = (amount, currency = 'PKR') => {
     if (amount == null) return '-';
     return `${currency || 'PKR'} ${Number(amount).toLocaleString('en-PK', { minimumFractionDigits: 0 })}`;
@@ -188,18 +240,13 @@ const RecurringDonorsList = () => {
     return { label: 'Pending installment', color: '#ef4444' };
   };
 
-  const applyPaymentQuickFilter = (value) => {
-    const next = { ...appliedFilters, installment_status: value };
-    setTempFilters(next);
-    setAppliedFilters(next);
-    setCurrentPage(1);
-  };
-
   const sendInstallmentLink = async (rowId) => {
     setSendingLinkId(rowId);
     setError('');
     try {
-      const response = await axiosInstance.post(`/recurring-donations/${rowId}/send-installment-link`);
+      const response = await axiosInstance.post(
+        `/recurring-donations/${rowId}/send-installment-link`,
+      );
       if (!response.data.success) {
         setError(response.data.message || 'Failed to send installment link');
       }
@@ -210,6 +257,29 @@ const RecurringDonorsList = () => {
     }
   };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setError('');
+    try {
+      const response = await axiosInstance.delete(
+        `/recurring-donations/${deleteTarget.id}`,
+      );
+      if (response.data.success) {
+        setDeleteTarget(null);
+        await fetchRows();
+      } else {
+        setError(response.data.message || 'Failed to delete recurring donation');
+      }
+    } catch (err) {
+      setError(
+        err.response?.data?.message || 'Failed to delete recurring donation',
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const getActions = (row) => [
     {
       icon: <FiEye />,
@@ -217,6 +287,20 @@ const RecurringDonorsList = () => {
       color: '#2196f3',
       to: `/dms/recurring-donations/view/${row.id}`,
       visible: true,
+    },
+    {
+      icon: <FiEdit2 />,
+      label: 'Edit',
+      color: '#f59e0b',
+      onClick: () => navigate(`/dms/recurring-donations/update/${row.id}`),
+      visible: canUpdate,
+    },
+    {
+      icon: <FiTrash2 />,
+      label: 'Delete',
+      color: '#ef4444',
+      onClick: () => setDeleteTarget(row),
+      visible: canDelete,
     },
     ...(row.donor_id
       ? [
@@ -248,7 +332,14 @@ const RecurringDonorsList = () => {
       <>
         <Navbar />
         <div className="list-wrapper">
-          <PageHeader title="Recurring Donors" onRefresh={fetchRows} refreshing={loading} />
+          <PageHeader
+            title="Recurring Donors"
+            onRefresh={fetchRows}
+            refreshing={loading}
+            showAdd={canCreate}
+            addPath="/dms/recurring-donors/add"
+            addTitle="Add Recurring Donor"
+          />
           <div className="loading">Loading...</div>
         </div>
       </>
@@ -282,60 +373,12 @@ const RecurringDonorsList = () => {
           showFilterToggle
           filtersOpen={filtersOpen}
           onFilterToggle={toggleFilters}
+          showAdd={canCreate}
+          addPath="/dms/recurring-donors/add"
+          addTitle="Add Recurring Donor"
         />
 
-        <div
-          style={{
-            display: 'flex',
-            gap: '10px',
-            flexWrap: 'wrap',
-            marginBottom: '16px',
-            alignItems: 'center',
-          }}
-        >
-          <Link to="/dms/manual-recurring/list" className="secondary_btn" style={{ textDecoration: 'none' }}>
-            <FiFlag style={{ marginRight: '6px' }} />
-            Campaign Pledges
-          </Link>
-          <span style={{ fontSize: '13px', color: '#6b7280' }}>
-            Campaign pledge enrollments and reminder jobs
-          </span>
-        </div>
-
         {error && <div className="error-message">{error}</div>}
-
-        {/* <div
-          style={{
-            display: 'flex',
-            gap: 8,
-            flexWrap: 'wrap',
-            marginBottom: 12,
-            alignItems: 'center',
-          }}
-        >
-          <span style={{ fontSize: 13, color: '#6b7280', marginRight: 4 }}>Payment:</span>
-          {PAYMENT_QUICK_FILTERS.map((opt) => {
-            const active = (appliedFilters.installment_status || '') === opt.value;
-            return (
-              <button
-                key={opt.value || 'all'}
-                type="button"
-                onClick={() => applyPaymentQuickFilter(opt.value)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: 6,
-                  border: active ? '1px solid #2563eb' : '1px solid #d1d5db',
-                  background: active ? '#eff6ff' : '#fff',
-                  color: active ? '#1d4ed8' : '#374151',
-                  fontSize: 13,
-                  cursor: 'pointer',
-                }}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div> */}
 
         <CollapsibleFilters open={filtersOpen}>
           <div className="filters-section">
@@ -369,6 +412,14 @@ const RecurringDonorsList = () => {
               filters={tempFilters}
               onFilterChange={handleFilterChange}
               placeholder="All payments"
+            />
+            <DropdownFilter
+              filterKey="source"
+              label="Source"
+              data={SOURCE_OPTIONS}
+              filters={tempFilters}
+              onFilterChange={handleFilterChange}
+              placeholder="Online / Offline"
             />
             <DateFilter
               filterKey="date"
@@ -420,42 +471,44 @@ const RecurringDonorsList = () => {
                 rows.map((row) => {
                   const collection = getCollectionBadge(row);
                   return (
-                  <tr key={row.id}>
-                    <td>
-                      <div>{row.donor_name || '-'}</div>
-                      <small style={{ color: '#6b7280' }}>{row.donor_email || ''}</small>
-                    </td>
-                    <td>{formatAmount(row.amount, row.currency)}</td>
-                    <td>{formatBilling(row.billing_interval, row.billing_interval_count)}</td>
-                    <td>{getStatusBadge(row.status)}</td>
-                    <td>
-                      <span
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          backgroundColor: collection.color,
-                          color: 'white',
-                          fontSize: '12px',
-                        }}
-                      >
-                        {collection.label}
-                      </span>
-                    </td>
-                    <td>{row.completed_installment_count ?? row.installment_count ?? 0}</td>
-                    <td>
-                      {row.stripe_subscription_id
-                        ? 'Stripe'
-                        : row.donation_method || 'Manual'}
-                    </td>
-                    <td>
-                      {row.created_at
-                        ? new Date(row.created_at).toLocaleDateString()
-                        : '-'}
-                    </td>
-                    <td>
-                      <ActionMenu actions={getActions(row)} />
-                    </td>
-                  </tr>
+                    <tr key={row.id}>
+                      <td>
+                        <div>{row.donor_name || '-'}</div>
+                        <small style={{ color: '#6b7280' }}>{row.donor_email || ''}</small>
+                      </td>
+                      <td>{formatAmount(row.amount, row.currency)}</td>
+                      <td>
+                        {formatBilling(row.billing_interval, row.billing_interval_count)}
+                      </td>
+                      <td>{getStatusBadge(row.status)}</td>
+                      <td>
+                        <span
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            backgroundColor: collection.color,
+                            color: 'white',
+                            fontSize: '12px',
+                          }}
+                        >
+                          {collection.label}
+                        </span>
+                      </td>
+                      <td>{row.completed_installment_count ?? row.installment_count ?? 0}</td>
+                      <td>
+                        {row.stripe_subscription_id
+                          ? 'Stripe'
+                          : row.donation_method || 'Manual'}
+                      </td>
+                      <td>
+                        {row.created_at
+                          ? new Date(row.created_at).toLocaleDateString()
+                          : '-'}
+                      </td>
+                      <td>
+                        <ActionMenu actions={getActions(row)} />
+                      </td>
+                    </tr>
                   );
                 })
               )}
@@ -473,8 +526,26 @@ const RecurringDonorsList = () => {
             setPageSize(size);
             setCurrentPage(1);
           }}
+          onSortChange={handleSortChange}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          sortOptions={sortOptions}
         />
       </div>
+
+      <ConfirmationModal
+        isOpen={!!deleteTarget}
+        text={
+          deleteTarget
+            ? `Delete subscription #${deleteTarget.id}${
+                deleteTarget.donor_name ? ` (${deleteTarget.donor_name})` : ''
+              }? Installments will be archived. Donors and donations are not deleted.`
+            : ''
+        }
+        delete
+        onConfirm={confirmDelete}
+        onCancel={() => !deleting && setDeleteTarget(null)}
+      />
     </>
   );
 };

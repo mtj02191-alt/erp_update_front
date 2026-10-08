@@ -13,6 +13,7 @@ import {
   formatPipelineStage,
   resolveDonorPipelineStage,
 } from './donorPipelineConstants';
+import { resolveCrmApiPaths, extractCrmStageChangeEntity } from './crmApiPaths';
 import './DonorPipelinePanel.css';
 
 function formatActor(user) {
@@ -41,6 +42,7 @@ function formatAmount(amount, currency = 'PKR') {
  */
 const DonorPipelinePanel = ({
   donorId,
+  csrDonorId,
   currentStage,
   askAmount = null,
   pledgeAmount = null,
@@ -48,6 +50,11 @@ const DonorPipelinePanel = ({
   canUpdate = false,
   onStageChanged,
 }) => {
+  const apiPaths = useMemo(
+    () => resolveCrmApiPaths({ donorId, csrDonorId }),
+    [donorId, csrDonorId],
+  );
+
   const effectiveStage = resolveDonorPipelineStage(currentStage);
   const [stage, setStage] = useState(effectiveStage);
   const [reason, setReason] = useState('');
@@ -81,11 +88,11 @@ const DonorPipelinePanel = ({
   }, [stage, askAmount, pledgeAmount]);
 
   const fetchHistory = useCallback(async () => {
-    if (!donorId) return;
+    if (!apiPaths?.pipelineHistory) return;
     try {
       setLoadingHistory(true);
       setError('');
-      const res = await axiosInstance.get(`/donors/${donorId}/pipeline-history`);
+      const res = await axiosInstance.get(apiPaths.pipelineHistory);
       if (res.data?.success) {
         setHistory(res.data.data || []);
       } else {
@@ -96,7 +103,7 @@ const DonorPipelinePanel = ({
     } finally {
       setLoadingHistory(false);
     }
-  }, [donorId]);
+  }, [apiPaths]);
 
   useEffect(() => {
     fetchHistory();
@@ -141,7 +148,7 @@ const DonorPipelinePanel = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!canUpdate) return;
+    if (!canUpdate || !apiPaths?.pipelineStage) return;
     const trimmed = reason.trim();
     if (trimmed.length < 3) {
       toast.error('Reason must be at least 3 characters');
@@ -171,13 +178,15 @@ const DonorPipelinePanel = ({
         payload.currency = currency || 'PKR';
       }
 
-      const res = await axiosInstance.post(`/donors/${donorId}/pipeline-stage`, payload);
+      const res = await axiosInstance.post(apiPaths.pipelineStage, payload);
       if (res.data?.success) {
         toast.success(res.data.message || 'Pipeline stage updated');
         setReason('');
         await fetchHistory();
         if (typeof onStageChanged === 'function') {
-          onStageChanged(res.data.data?.donor || null);
+          onStageChanged(
+            extractCrmStageChangeEntity(res.data.data, apiPaths.responseEntityKey),
+          );
         }
       } else {
         toast.error(res.data?.message || 'Failed to update stage');
@@ -311,24 +320,29 @@ const DonorPipelinePanel = ({
             </div>
           )}
 
-          <FormTextarea
-            label="Reason (why moved / why not)"
-            name="pipeline_reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={3}
-            required
-            placeholder="e.g. Interested after event visit — or: Not ready, asked to follow up next month"
-          />
+          <div className="donor-pipeline-form__action-row">
+            <FormTextarea
+              className="donor-pipeline-form__reason"
+              label="Reason (why moved / why not)"
+              name="pipeline_reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={2}
+              required
+              placeholder="e.g. Interested after event visit — or: Not ready, asked to follow up next month"
+            />
 
-          <PrimaryButton
-            type="submit"
-            loading={saving}
-            loadingText="Saving…"
-            disabled={saving}
-          >
-            {mode === 'noted' ? 'Save note' : 'Update stage'}
-          </PrimaryButton>
+            <div className="donor-pipeline-form__submit">
+              <PrimaryButton
+                type="submit"
+                loading={saving}
+                loadingText="Saving…"
+                disabled={saving}
+              >
+                {mode === 'noted' ? 'Save note' : 'Update stage'}
+              </PrimaryButton>
+            </div>
+          </div>
         </form>
       )}
 

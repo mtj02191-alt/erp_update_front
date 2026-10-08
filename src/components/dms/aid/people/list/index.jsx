@@ -41,6 +41,8 @@ const AidPeopleList = () => {
   const [pageSize, setPageSize] = useState(20);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [sortField, setSortField] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('DESC');
   const [tempFilters, setTempFilters] = useState({ search: '' });
   const [appliedFilters, setAppliedFilters] = useState({ search: '' });
   const [showCreate, setShowCreate] = useState(false);
@@ -56,6 +58,21 @@ const AidPeopleList = () => {
   });
   const [saving, setSaving] = useState(false);
 
+  const handleSortChange = (field, order) => {
+    setSortField(field);
+    setSortOrder(order);
+    setCurrentPage(1);
+  };
+
+  const sortOptions = [
+    { value: 'created_at', label: 'Created Date' },
+    { value: 'updated_at', label: 'Updated Date' },
+    { value: 'full_name', label: 'Full Name' },
+    { value: 'city', label: 'City' },
+    { value: 'cnic', label: 'CNIC' },
+    { value: 'id', label: 'ID' },
+  ];
+
   const fetchRows = async () => {
     if (!canList) {
       setError('You do not have permission to view aid people.');
@@ -69,6 +86,8 @@ const AidPeopleList = () => {
           search: appliedFilters.search || undefined,
           page: currentPage,
           pageSize,
+          sortField,
+          sortOrder,
         },
       });
       setRows(res.data?.data || []);
@@ -84,7 +103,7 @@ const AidPeopleList = () => {
   useEffect(() => {
     fetchRows();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, pageSize, appliedFilters]);
+  }, [currentPage, pageSize, sortField, sortOrder, appliedFilters]);
 
   const createPerson = async (e) => {
     e.preventDefault();
@@ -274,6 +293,10 @@ const AidPeopleList = () => {
                 setPageSize(n);
                 setCurrentPage(1);
               }}
+              onSortChange={handleSortChange}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              sortOptions={sortOptions}
             />
           )}
         </div>

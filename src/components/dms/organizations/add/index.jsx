@@ -30,12 +30,12 @@ const AddOrganization = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) {
-      setError('Organization name is required');
+      setError('CSR donor name is required');
       return;
     }
     setSaving(true);
     try {
-      const res = await axiosInstance.post('/organizations', {
+      const res = await axiosInstance.post('/csr-donors', {
         name: form.name.trim(),
         registration_number: form.registration_number || undefined,
         email: form.email || undefined,
@@ -46,9 +46,9 @@ const AddOrganization = () => {
         notes: form.notes || undefined,
       });
       const id = res.data?.data?.id;
-      navigate(id ? `/dms/organizations/view/${id}` : '/dms/organizations/list');
+      navigate(id ? `/dms/csr-donors/view/${id}` : '/dms/csr-donors/list');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create organization');
+      setError(err.response?.data?.message || 'Failed to create CSR donor');
     } finally {
       setSaving(false);
     }
@@ -57,10 +57,9 @@ const AddOrganization = () => {
   return (
     <>
       <Navbar />
-      <div className="list-wrapper">
-        <div className="list-content">
-          <PageHeader title="Add Organization" onBack={() => navigate('/dms/organizations/list')} />
-          {error && <div className="status-message status-message--error">{error}</div>}
+      <div className="form-content">
+        <PageHeader title="Add CSR Donor" backPath="/dms/csr-donors/list" />
+        {error && <div className="status-message status-message--error">{error}</div>}
           <form onSubmit={handleSubmit} className="form">
             <div className="form-grid-2">
               <FormInput label="Name" name="name" value={form.name} onChange={handleChange} required />
@@ -85,15 +84,14 @@ const AddOrganization = () => {
               rows="3"
             />
             <div className="form-actions">
-              <button type="button" className="secondary_btn" onClick={() => navigate('/dms/organizations/list')}>
+              <button type="button" className="secondary_btn" onClick={() => navigate('/dms/csr-donors/list')}>
                 Cancel
               </button>
               <button type="submit" className="primary_btn" disabled={saving}>
-                {saving ? 'Saving...' : 'Create Organization'}
+                {saving ? 'Saving...' : 'Create CSR Donor'}
               </button>
             </div>
           </form>
-        </div>
       </div>
     </>
   );

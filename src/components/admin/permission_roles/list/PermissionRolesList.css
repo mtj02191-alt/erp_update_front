@@ -1,0 +1,88 @@
+.permission-roles-list-container {
+  max-width: 1100px;
+  margin: 0 auto 3rem;
+  padding: 2.5rem;
+  background: var(--color-bg-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.permission-roles-hint {
+  margin: 0 0 1.25rem;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary, #666);
+}
+
+.permission-roles-loading,
+.permission-roles-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-text-secondary, #666);
+}
+
+.permission-roles-table-wrap {
+  overflow-x: auto;
+}
+
+.permission-roles-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.permission-roles-table th {
+  background: var(--color-bg-secondary);
+  padding: var(--spacing-sm);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.permission-roles-table td {
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  vertical-align: middle;
+}
+
+.permission-roles-table tr:hover {
+  background: var(--color-bg-secondary);
+}
+
+.permission-roles-name-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary, #2563eb);
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.permission-roles-name-link:hover {
+  text-decoration: underline;
+}
+
+.permission-roles-desc {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.permission-roles-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.permission-roles-badge--active {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.permission-roles-badge--inactive {
+  background: #f5f5f5;
+  color: #757575;
+}

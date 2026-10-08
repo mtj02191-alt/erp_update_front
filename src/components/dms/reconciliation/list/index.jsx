@@ -46,6 +46,8 @@ const ReconciliationList = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [sortField, setSortField] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('DESC');
 
   const [tempFilters, setTempFilters] = useState({
     bank: '',
@@ -60,7 +62,22 @@ const ReconciliationList = () => {
 
   useEffect(() => {
     fetchRecords();
-  }, [currentPage, pageSize, appliedFilters]);
+  }, [currentPage, pageSize, sortField, sortOrder, appliedFilters]);
+
+  const handleSortChange = (field, order) => {
+    setSortField(field);
+    setSortOrder(order);
+    setCurrentPage(1);
+  };
+
+  const sortOptions = [
+    { value: 'created_at', label: 'Created Date' },
+    { value: 'updated_at', label: 'Updated Date' },
+    { value: 'bank_name', label: 'Bank' },
+    { value: 'statement_from', label: 'Statement From' },
+    { value: 'statement_to', label: 'Statement To' },
+    { value: 'id', label: 'ID' },
+  ];
 
   const fetchRecords = async () => {
     try {
@@ -69,6 +86,8 @@ const ReconciliationList = () => {
       const params = {
         page: currentPage,
         pageSize,
+        sortField,
+        sortOrder,
         bank: appliedFilters.bank || undefined,
         fromDate: appliedFilters.fromDate || undefined,
         toDate: appliedFilters.toDate || undefined,
@@ -242,6 +261,10 @@ const ReconciliationList = () => {
             setPageSize(size);
             setCurrentPage(1);
           }}
+          onSortChange={handleSortChange}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          sortOptions={sortOptions}
         />
       </div>
     </>

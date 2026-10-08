@@ -11,7 +11,7 @@ export const EMPTY_TASK_FILTERS = {
 export function mapActiveTabToViewType(activeTab) {
   const map = {
     assigned_to_me: 'assigned',
-    assigned_to_team: 'assigned_to_team',
+    assigned_to_team: 'direct_reports',
     other_tasks: 'other_tasks',
     approval_tasks: 'approval_tasks',
   };

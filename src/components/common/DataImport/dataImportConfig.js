@@ -7,7 +7,7 @@ export const ENTITY_IMPORT_CONFIG = {
     label: 'Donors',
     templateFilename: 'donors-import-template',
     description:
-      'Import individual or CSR donors. Required: donor_type, email, phone, name. For csr also include organization_name (or organization_id).',
+      'Import individual donors only. Required: donor_type (individual), email, phone, name.',
     headers: [
       'donor_type',
       'email',
@@ -53,11 +53,42 @@ export const ENTITY_IMPORT_CONFIG = {
       multi_time_donor: 'false',
     },
   },
+  csr_pocs: {
+    label: 'CSR POCs',
+    templateFilename: 'csr-pocs-import-template',
+    description:
+      'Import point-of-contact people for CSR donors. Required: name and either email or phone. Use csr_donor_id or csr_donor_name to link the company.',
+    headers: [
+      'csr_donor_id',
+      'csr_donor_name',
+      'name',
+      'email',
+      'phone',
+      'cnic',
+      'role',
+      'branch_id',
+      'is_primary',
+      'business_type',
+      'business_type_other',
+      'area_of_interest',
+      'notes',
+      'is_active',
+    ],
+    sampleRow: {
+      csr_donor_name: 'Sample Corp Ltd',
+      name: 'Jane POC',
+      email: 'jane.poc@samplecorp.com',
+      phone: '03001234567',
+      role: 'contact',
+      is_primary: 'true',
+      is_active: 'true',
+    },
+  },
   donation_box: {
     label: 'Donation Boxes',
     templateFilename: 'donation-box-import-template',
     description:
-      'Import physical donation boxes. Required: shop_name and city (city_id or city_name). Route, key_no, and box_id_no are optional. Duplicates = same shop_name + shopkeeper + phone (same shop name alone is allowed).',
+      'Import physical donation boxes. Required: shop_name and city (city_id or city_name). Route, key_no, and box_id_no are optional. status: active, inactive (or "in active"), removed, broken, snr. Multiple boxes may share the same shop_name. Duplicates are skipped only when the same box_id_no already exists.',
     headers: [
       'shop_name',
       'route_id',
@@ -97,7 +128,7 @@ export const ENTITY_IMPORT_CONFIG = {
     label: 'Donation Box Collections',
     templateFilename: 'donation-box-collections-import-template',
     description:
-      'Import collection records. Required: collection_amount, collection_date. Identify the box with donation_box_id, key_no, or shop_name.',
+      'Import collection records. Required: collection_amount, collection_date. Identify the box with donation_box_id or key_no (preferred). shop_name works only when it matches a single box — multiple boxes can share the same shop name.',
     headers: [
       'donation_box_id',
       'key_no',

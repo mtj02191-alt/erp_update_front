@@ -10,11 +10,13 @@ const AddDistrict = () => {
   const navigate = useNavigate();
   const [countries, setCountries] = useState([]);
   const [regions, setRegions] = useState([]);
+  const [subRegions, setSubRegions] = useState([]);
   const [form, setForm] = useState({
     name: '',
     code: '',
     country_id: '',
     region_id: '',
+    sub_region_id: '',
     is_active: true,
     description: ''
   });
@@ -43,22 +45,47 @@ const AddDistrict = () => {
     }
   };
 
+  const fetchSubRegions = async (regionId) => {
+    if (!regionId) {
+      setSubRegions([]);
+      return;
+    }
+    try {
+      const res = await axiosInstance.get(`/sub-regions?region_id=${regionId}`);
+      if (res.data.success) setSubRegions(res.data.data || []);
+    } catch (err) {
+      setSubRegions([]);
+    }
+  };
+
   useEffect(() => { fetchCountries(); }, []);
 
   useEffect(() => {
     if (form.country_id) fetchRegions(form.country_id);
     else {
       setRegions([]);
-      setForm((prev) => ({ ...prev, region_id: '' }));
+      setForm((prev) => ({ ...prev, region_id: '', sub_region_id: '' }));
     }
   }, [form.country_id]);
+
+  useEffect(() => {
+    if (form.region_id) fetchSubRegions(form.region_id);
+    else {
+      setSubRegions([]);
+      setForm((prev) => ({ ...prev, sub_region_id: '' }));
+    }
+  }, [form.region_id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     const val = name === 'is_active' ? e.target.checked : value;
     setForm((prev) => {
       const next = { ...prev, [name]: val };
-      if (name === 'country_id') next.region_id = '';
+      if (name === 'country_id') {
+        next.region_id = '';
+        next.sub_region_id = '';
+      }
+      if (name === 'region_id') next.sub_region_id = '';
       return next;
     });
     if (error) setError('');
@@ -77,6 +104,7 @@ const AddDistrict = () => {
         code: form.code?.trim() || undefined,
         country_id: Number(form.country_id),
         region_id: Number(form.region_id),
+        sub_region_id: form.sub_region_id ? Number(form.sub_region_id) : undefined,
         is_active: form.is_active,
         description: form.description?.trim() || undefined
       };
@@ -93,6 +121,7 @@ const AddDistrict = () => {
 
   const countryOptions = countries.map((c) => ({ value: String(c.id), label: c.name }));
   const regionOptions = regions.map((r) => ({ value: String(r.id), label: r.name }));
+  const subRegionOptions = subRegions.map((sr) => ({ value: String(sr.id), label: sr.name }));
 
   return (
     <>
@@ -124,6 +153,15 @@ const AddDistrict = () => {
                 required
                 showDefaultOption
                 defaultOptionText="Select region"
+              />
+              <FormSelect
+                label="Sub Region"
+                name="sub_region_id"
+                value={form.sub_region_id}
+                onChange={handleChange}
+                options={subRegionOptions}
+                showDefaultOption
+                defaultOptionText="Optional"
               />
             </div>
           </div>

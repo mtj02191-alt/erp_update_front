@@ -44,8 +44,10 @@ const AddDonationBoxDonation = () => {
   }, [permissions]);
 
   const activeBox = form.donation_box || donationBox;
-  const boxRequiresGps = activeBox?.require_collection_location !== false;
-  const needsDeviceGps = boxRequiresGps && !canBypassLocation;
+  const boxHasCoords =
+    activeBox?.registration_latitude != null &&
+    activeBox?.registration_longitude != null;
+  const needsDeviceGps = boxHasCoords && !canBypassLocation;
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -85,13 +87,24 @@ const AddDonationBoxDonation = () => {
   const renderDonationBoxOption = (box) => (
     <>
       <div style={{ fontWeight: '600', color: '#333' }}>
-        Key: {box?.key_no}
+        {box?.box_id_no
+          ? `Box ID: ${box.box_id_no}`
+          : box?.key_no
+            ? `Key: ${box.key_no}`
+            : `ID: ${box?.id}`}
       </div>
       <div style={{ fontSize: '0.9em', color: '#666' }}>
         {box?.shop_name} - {box?.shopkeeper || 'N/A'}
       </div>
       <div style={{ fontSize: '0.85em', color: '#999' }}>
-        {box?.route?.cities?.find(city => city.id === box.city_id)?.name}, {box?.route?.region?.name} • {box?.box_type}
+        {[
+          box?.route?.cities?.find((city) => city.id === box.city_id)?.name ||
+            box?.city?.name,
+          box?.route?.region?.name,
+          box?.box_type,
+        ]
+          .filter(Boolean)
+          .join(' • ')}
       </div>
     </>
   );
@@ -273,12 +286,12 @@ const AddDonationBoxDonation = () => {
                 Your device GPS (Google Maps) will be checked against this box&apos;s registered shop location when you submit.
               </p>
             )}
-            {!boxRequiresGps && (
+            {!boxHasCoords && (
               <p style={{ margin: '12px 0 0', fontSize: '13px', color: '#0369a1' }}>
-                This box allows collection from anywhere — no device GPS check.
+                This box has no saved GPS coordinates — no device GPS check.
               </p>
             )}
-            {boxRequiresGps && canBypassLocation && (
+            {boxHasCoords && canBypassLocation && (
               <p style={{ margin: '12px 0 0', fontSize: '13px', color: '#0369a1' }}>
                 GPS check bypass is enabled for your account.
               </p>

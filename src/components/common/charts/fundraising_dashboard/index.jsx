@@ -5,7 +5,8 @@ import FundraisingCards from '../fundraising_cards';
 import CumulativeChart from '../cumulative_chart';
 import OverviewComparisonChart from '../overview_comparison_chart';
 import RaisedEachMonthChart from '../raised_each_month_chart';
-import { DateFilter, DateRangeFilter } from '../../filters';
+import DoughnutChart from '../doughnut_chart';
+import { DateFilter, DateRangeFilter, CollapsibleFilters } from '../../filters';
 import { SearchButton, ClearButton } from '../../filters/index';
 import './styles.css';
 
@@ -16,6 +17,9 @@ const EMPTY_FILTERS = {
   start_date: '',
   end_date: '',
 };
+
+const DONOR_DOUGHNUT_COLORS = ['#22c55e', '#f59e0b'];
+const DONATION_DOUGHNUT_COLORS = ['#2563eb', '#f97316', '#06b6d4'];
 
 function mapApiToCharts(apiData) {
   const cumulativeSeries = apiData?.cumulative || [];
@@ -42,7 +46,26 @@ function mapApiToCharts(apiData) {
   return { cumulative, recurringDonations, recurringDonors };
 }
 
-const FundraisingDashboard = ({ months = DEFAULT_MONTHS }) => {
+/**
+ * Shared fundraising charts dashboard.
+ * Optional props keep the existing Fund Raising Dashboard behavior unchanged.
+ */
+const FundraisingDashboard = ({
+  months = DEFAULT_MONTHS,
+  apiEndpoint = '/dashboard/fundraising-overview',
+  storageKeyPrefix = 'fundraising-dashboard',
+  cardsTitle = 'Fundraising overview',
+  cardKeys = null,
+  forbiddenMessage = 'You do not have permission to view fundraising dashboard.',
+  cumulativeTitle = 'Cumulative Donations',
+  cumulativeSubtitle = 'Cumulative total of completed donations over time',
+  showCumulative = true,
+  showOverviewComparison = true,
+  showRecurringAnalyticsDoughnuts = false,
+  cardLinks = null,
+  /** When provided (with PageHeader filter toggle), controls collapsible filters panel. */
+  filtersOpen = true,
+}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isForbidden, setIsForbidden] = useState(false);
@@ -58,8 +81,14 @@ const FundraisingDashboard = ({ months = DEFAULT_MONTHS }) => {
     values: [],
     monthly: [],
   });
-  const [tempFilters, setTempFilters] = usePersistedFilters('fundraising-dashboard:temp', EMPTY_FILTERS);
-  const [appliedFilters, setAppliedFilters, clearAppliedFilters] = usePersistedFilters('fundraising-dashboard:applied', EMPTY_FILTERS);
+  const [tempFilters, setTempFilters] = usePersistedFilters(
+    `${storageKeyPrefix}:temp`,
+    EMPTY_FILTERS,
+  );
+  const [appliedFilters, setAppliedFilters, clearAppliedFilters] = usePersistedFilters(
+    `${storageKeyPrefix}:applied`,
+    EMPTY_FILTERS,
+  );
 
   const handleFilterChange = (key, value) => {
     setTempFilters((prev) => ({ ...prev, [key]: value }));
@@ -105,6 +134,32 @@ const FundraisingDashboard = ({ months = DEFAULT_MONTHS }) => {
     return { labels, values };
   }, [cards]);
 
+  /** Donors mix from card KPIs (paid vs outstanding subscriptions). */
+  const recurringDonorsDoughnut = useMemo(() => {
+    if (!cards) return null;
+    const active = Number(cards.recurring_donors_count ?? 0);
+    const outstanding = Number(cards.outstanding_donors_count ?? 0);
+    if (active <= 0 && outstanding <= 0) return null;
+    return {
+      labels: ['Active (paid installments)', 'Due (not completed)'],
+      values: [active, outstanding],
+      colors: DONOR_DOUGHNUT_COLORS,
+    };
+  }, [cards]);
+
+  /** Donations mix from card KPIs (collected vs outstanding — no overlapping slices). */
+  const recurringDonationsDoughnut = useMemo(() => {
+    if (!cards) return null;
+    const collected = Number(cards.total_recurring_collection ?? 0);
+    const outstanding = Number(cards.total_pending_installments_amount ?? 0);
+    if (collected <= 0 && outstanding <= 0) return null;
+    return {
+      labels: ['Collected (period)', 'Due installments'],
+      values: [collected, outstanding],
+      colors: DONATION_DOUGHNUT_COLORS,
+    };
+  }, [cards]);
+
   const recurringDonationsMonthlyChart = useMemo(() => {
     if (!recurringDonationsData.labels?.length) {
       return { labels: [], datasets: [] };
@@ -143,7 +198,7 @@ const FundraisingDashboard = ({ months = DEFAULT_MONTHS }) => {
     setError(null);
     setIsForbidden(false);
     axiosInstance
-      .get('/dashboard/fundraising-overview', { params: apiParams })
+      .get(apiEndpoint, { params: apiParams })
       .then((res) => {
         if (cancelled) return;
         const raw = res?.data?.data;
@@ -172,32 +227,33 @@ const FundraisingDashboard = ({ months = DEFAULT_MONTHS }) => {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [apiParams]);
+  }, [apiParams, apiEndpoint]);
 
   return (
     <div className="fundraising-charts-demo">
-      {/* Filters Section */}
-      {!isForbidden &&
-      <div className="fundraising-charts-demo__filters">
-        <DateFilter
-          filterKey="date"
-          label="Specific Date"
-          filters={tempFilters}
-          onFilterChange={handleFilterChange}
-        />
-        <DateRangeFilter
-          startKey="start_date"
-          endKey="end_date"
-          label="Date Range"
-          filters={tempFilters}
-          onFilterChange={handleFilterChange}
-        />
-        <div className="fundraising-filters__actions" style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-          <SearchButton onClick={handleApplyFilters} text="Apply" loading={loading} />
-          <ClearButton onClick={handleClearFilters} text="Clear" />
-        </div>
-      </div>
-}
+      {!isForbidden && (
+        <CollapsibleFilters open={filtersOpen} className="fundraising-charts-demo__filters-collapse">
+          <div className="fundraising-charts-demo__filters">
+            <DateFilter
+              filterKey="date"
+              label="Specific Date"
+              filters={tempFilters}
+              onFilterChange={handleFilterChange}
+            />
+            <DateRangeFilter
+              startKey="start_date"
+              endKey="end_date"
+              label="Date Range"
+              filters={tempFilters}
+              onFilterChange={handleFilterChange}
+            />
+            <div className="fundraising-filters__actions" style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+              <SearchButton onClick={handleApplyFilters} text="Apply" loading={loading} />
+              <ClearButton onClick={handleClearFilters} text="Clear" />
+            </div>
+          </div>
+        </CollapsibleFilters>
+      )}
 
       {loading ? (
         <div className="fundraising-charts-demo__loading">
@@ -206,30 +262,80 @@ const FundraisingDashboard = ({ months = DEFAULT_MONTHS }) => {
         ) : !error ? (
         <>
           <div className="fundraising-charts-demo__cards">
-            <FundraisingCards cards={cards} title="Fundraising overview" />
+            <FundraisingCards
+              cards={cards}
+              title={cardsTitle}
+              cardKeys={cardKeys}
+              cardLinks={cardLinks}
+            />
           </div>
 
-          <div className="fundraising-charts-demo__charts-row fundraising-charts-demo__charts-row--single">
-            <div className="fundraising-charts-demo__chart">
-              <CumulativeChart
-                title="Cumulative Donations"
-                subtitle="Cumulative total of completed donations over time"
-                data={cumulativeData}
-                height={280}
-              />
+          {showRecurringAnalyticsDoughnuts && (
+            <div className="fundraising-charts-demo__charts-row fundraising-charts-demo__charts-row--recurring">
+              <div className="fundraising-charts-demo__chart">
+                {recurringDonorsDoughnut ? (
+                  <DoughnutChart
+                    title="Recurring Donors"
+                    data={recurringDonorsDoughnut}
+                    height={260}
+                    downloadFileName="recurring-donors-analytics"
+                  />
+                ) : (
+                  <div className="fundraising-charts-demo__chart-empty">
+                    <h2 className="fundraising-charts-demo__chart-empty-title">Recurring Donors</h2>
+                    <p>No recurring donor mix available.</p>
+                  </div>
+                )}
+              </div>
+              <div className="fundraising-charts-demo__chart">
+                {recurringDonationsDoughnut ? (
+                  <DoughnutChart
+                    title="Recurring Donations"
+                    data={recurringDonationsDoughnut}
+                    height={260}
+                    downloadFileName="recurring-donations-analytics"
+                    valuePrefix="PKR "
+                    formatTooltipLabel={(ctx) => {
+                      const label = ctx?.label || '';
+                      const v = Number(ctx?.raw ?? 0);
+                      return `${label}: PKR ${Number.isFinite(v) ? v.toLocaleString() : 0}`;
+                    }}
+                  />
+                ) : (
+                  <div className="fundraising-charts-demo__chart-empty">
+                    <h2 className="fundraising-charts-demo__chart-empty-title">Recurring Donations</h2>
+                    <p>No recurring donation mix available.</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="fundraising-charts-demo__charts-row fundraising-charts-demo__charts-row--single">
-            <div className="fundraising-charts-demo__chart">
-              <OverviewComparisonChart
-                title="Overview Comparison"
-                subtitle="Comparison of key counts"
-                data={overviewComparisonData}
-                height={280}
-              />
+          {showCumulative && (
+            <div className="fundraising-charts-demo__charts-row fundraising-charts-demo__charts-row--single">
+              <div className="fundraising-charts-demo__chart">
+                <CumulativeChart
+                  title={cumulativeTitle}
+                  subtitle={cumulativeSubtitle}
+                  data={cumulativeData}
+                  height={280}
+                />
+              </div>
             </div>
-          </div>
+          )}
+
+          {showOverviewComparison && (
+            <div className="fundraising-charts-demo__charts-row fundraising-charts-demo__charts-row--single">
+              <div className="fundraising-charts-demo__chart">
+                <OverviewComparisonChart
+                  title="Overview Comparison"
+                  subtitle="Comparison of key counts"
+                  data={overviewComparisonData}
+                  height={280}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="fundraising-charts-demo__charts-row fundraising-charts-demo__charts-row--recurring">
             <div className="fundraising-charts-demo__chart">
@@ -267,7 +373,7 @@ const FundraisingDashboard = ({ months = DEFAULT_MONTHS }) => {
         ) : (
         <div className="fundraising-charts-demo__error">
           {isForbidden
-            ? 'You do not have permission to view fundraising dashboard.'
+            ? forbiddenMessage
             : (error || 'Failed to load fundraising data.')}
         </div>
         )}

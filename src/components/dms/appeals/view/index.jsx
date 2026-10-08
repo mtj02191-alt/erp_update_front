@@ -6,6 +6,7 @@ import PageHeader from '../../../common/PageHeader';
 import Card from '../../../common/Card';
 import FormInput from '../../../common/FormInput';
 import FormTextarea from '../../../common/FormTextarea';
+import { formatAuditActor } from '../../../common/audit/auditHistoryLabels';
 
 const ViewAppeal = () => {
   const navigate = useNavigate();
@@ -137,6 +138,10 @@ const ViewAppeal = () => {
             <p><strong>Slug:</strong> {appeal.slug}</p>
             <p><strong>Category:</strong> {appeal.category}</p>
             <p><strong>Status:</strong> {appeal.status}</p>
+            <p>
+              <strong>Created by:</strong>{' '}
+              {appeal.created_by ? formatAuditActor(appeal.created_by) : '—'}
+            </p>
           </Card>
 
           <Card title="Beneficiary">

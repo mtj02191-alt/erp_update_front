@@ -5,6 +5,7 @@ import FormInput from '../../../../common/FormInput';
 import FormSelect from '../../../../common/FormSelect';
 import Navbar from '../../../../Navbar';
 import PageHeader from '../../../../common/PageHeader';
+import { IN_KIND_CATEGORY_OPTIONS } from '../../../../../utils/inKindCategories';
 
 const AddInKindItem = () => {
   const navigate = useNavigate();
@@ -48,18 +49,7 @@ const AddInKindItem = () => {
     navigate('/dms/in-kind-items/list');
   };
 
-  const categoryOptions = [
-    { value: 'clothing', label: 'Clothing' },
-    { value: 'food', label: 'Food' },
-    { value: 'medical', label: 'Medical' },
-    { value: 'educational', label: 'Educational' },
-    { value: 'electronics', label: 'Electronics' },
-    { value: 'furniture', label: 'Furniture' },
-    { value: 'books', label: 'Books' },
-    { value: 'toys', label: 'Toys' },
-    { value: 'household', label: 'Household' },
-    { value: 'other', label: 'Other' }
-  ];
+  const categoryOptions = IN_KIND_CATEGORY_OPTIONS;
 
   return (
     <>

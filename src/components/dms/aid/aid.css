@@ -48,10 +48,21 @@
   padding: 0.45rem 0;
   border-bottom: 1px solid #f1f5f9;
   font-size: 0.875rem;
+  min-width: 0;
 }
 
-.aid-meta-row span { color: #64748b; }
-.aid-meta-row strong { color: #0f172a; text-align: right; }
+.aid-meta-row span {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.aid-meta-row strong {
+  color: #0f172a;
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 
 .aid-actions-strip {
   display: flex;

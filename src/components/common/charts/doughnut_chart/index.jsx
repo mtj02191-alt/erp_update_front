@@ -9,7 +9,7 @@ Chart.register(...registerables);
 const DEFAULT_COLORS = ['#22c55e', '#2563eb', '#f59e0b', '#7c3aed', '#06b6d4', '#f97316'];
 
 /**
- * Reusable DoughnutChart (Chart.js)
+ * Reusable DoughnutChart (Chart.js) — default hover tooltip behaviour.
  *
  * @param {string} [title]
  * @param {{ labels: string[], values: number[], colors?: string[] }} data
@@ -17,6 +17,7 @@ const DEFAULT_COLORS = ['#22c55e', '#2563eb', '#f59e0b', '#7c3aed', '#06b6d4', '
  * @param {boolean} [showDownload=true]
  * @param {string} [downloadFileName]
  * @param {(ctx: any) => string} [formatTooltipLabel]
+ * @param {string} [valuePrefix] Optional currency/prefix (e.g. "PKR ")
  */
 export default function DoughnutChart({
   title = 'Donation Mix',
@@ -25,6 +26,7 @@ export default function DoughnutChart({
   showDownload = true,
   downloadFileName,
   formatTooltipLabel,
+  valuePrefix = '',
 }) {
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
@@ -53,19 +55,21 @@ export default function DoughnutChart({
       plugins: {
         legend: { display: false },
         tooltip: {
+          enabled: true,
           callbacks: {
             label: (ctx) => {
               if (formatTooltipLabel) return formatTooltipLabel(ctx);
               const label = ctx?.label || '';
               const v = Number(ctx?.raw ?? 0);
-              return `${label}: ${Number.isFinite(v) ? v.toLocaleString() : 0}`;
+              const amount = Number.isFinite(v) ? v.toLocaleString() : 0;
+              return `${label}: ${valuePrefix}${amount}`;
             },
           },
         },
       },
       cutout: '68%',
     }),
-    [formatTooltipLabel],
+    [formatTooltipLabel, valuePrefix],
   );
 
   useEffect(() => {
@@ -115,6 +119,8 @@ export default function DoughnutChart({
   }
 
   const total = (data?.values || []).reduce((s, v) => s + Number(v || 0), 0);
+  const formatAmount = (n) =>
+    `${valuePrefix}${Number.isFinite(n) ? Number(n).toLocaleString() : '0'}`;
 
   return (
     <div className="doughnut-chart-container" ref={containerRef}>
@@ -131,7 +137,7 @@ export default function DoughnutChart({
       <div className="doughnut-chart-wrapper" style={{ height: `${height}px` }}>
         <div className="doughnut-chart-center">
           <div className="doughnut-chart-center__label">Total</div>
-          <div className="doughnut-chart-center__value">{Number(total || 0).toLocaleString()}</div>
+          <div className="doughnut-chart-center__value">{formatAmount(total || 0)}</div>
         </div>
         <canvas ref={chartRef} />
       </div>
@@ -139,13 +145,13 @@ export default function DoughnutChart({
         {(data.labels || []).map((lbl, i) => {
           const v = Number(data.values?.[i] ?? 0);
           const pct = total > 0 ? (v / total) * 100 : 0;
-          const color = (data.colors?.[i] || DEFAULT_COLORS[i % DEFAULT_COLORS.length]);
+          const color = data.colors?.[i] || DEFAULT_COLORS[i % DEFAULT_COLORS.length];
           return (
             <div key={lbl} className="doughnut-chart-legend__row">
               <span className="doughnut-chart-legend__dot" style={{ background: color }} />
               <span className="doughnut-chart-legend__label">{lbl}</span>
               <span className="doughnut-chart-legend__meta">
-                {pct.toFixed(1)}% ({Number.isFinite(v) ? v.toLocaleString() : '0'})
+                {pct.toFixed(1)}% ({formatAmount(v)})
               </span>
             </div>
           );
@@ -154,4 +160,3 @@ export default function DoughnutChart({
     </div>
   );
 }
-

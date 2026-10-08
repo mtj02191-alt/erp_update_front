@@ -108,6 +108,20 @@ const SocialPostsList = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, pageSize, sortField, sortOrder, appliedFilters]);
 
+  const handleSortChange = (field, order) => {
+    setSortField(field);
+    setSortOrder(order);
+    setCurrentPage(1);
+  };
+
+  const sortOptions = [
+    { value: 'created_at', label: 'Created Date' },
+    { value: 'updated_at', label: 'Updated Date' },
+    { value: 'scheduled_at', label: 'Scheduled At' },
+    { value: 'status', label: 'Status' },
+    { value: 'id', label: 'ID' },
+  ];
+
   const handleDeleteConfirm = async () => {
     if (!rowToDelete) return;
     try {
@@ -321,6 +335,10 @@ const SocialPostsList = () => {
             setPageSize(size);
             setCurrentPage(1);
           }}
+          onSortChange={handleSortChange}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          sortOptions={sortOptions}
         />
       </div>
 

@@ -7,11 +7,23 @@ import Navbar from '../../../../Navbar';
 import PageHeader from '../../../../common/PageHeader';
 import FormInput from '../../../../common/FormInput';
 import FormSelect from '../../../../common/FormSelect';
+import SearchableDropdown from '../../../../common/SearchableDropdown';
 import DonationPendingAttachments, {
   uploadPendingDonationAttachments,
 } from '../../shared/DonationPendingAttachments';
 import '../../shared/DonationPendingAttachments.css';
 import { toast } from 'react-toastify';
+import {
+  getDonationListRoutes,
+  donationViewPath,
+  resolveDonationListBackPath,
+} from '../../shared/donationListRoutes';
+import { useAuth } from '../../../../../context/AuthContext';
+import {
+  hasPermission,
+  canReconcileDonations,
+  donationStatusOptionsForUser,
+} from '../../../../../utils/permissions';
 import './index.css';
 
 const donationTypeOptions = [
@@ -92,14 +104,16 @@ function formatDateYmd(value) {
 }
 
 const UpdateOnlineDonation = () => {
-  const { id } = useParams();
+  const { id, csrDonorId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const isOfflineRoute = location.pathname.includes('/donations/offline_donations');
-  const donationsBasePath = isOfflineRoute
-    ? '/donations/offline_donations'
-    : '/donations/online_donations';
-  const listBackPath = location.state?.fromList || `${donationsBasePath}/list`;
+  const { permissions } = useAuth();
+  const donationRoutes = useMemo(
+    () => getDonationListRoutes(location, { csrDonorId }),
+    [location.pathname, csrDonorId],
+  );
+  const listBackPath = resolveDonationListBackPath(location, donationRoutes);
+  const pageTitle = `Update ${donationRoutes.pageLabel}`;
 
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -107,6 +121,7 @@ const UpdateOnlineDonation = () => {
   const [pendingAttachments, setPendingAttachments] = useState([]);
   const [existingAttachments, setExistingAttachments] = useState([]);
   const [removingAttachmentId, setRemovingAttachmentId] = useState(null);
+  const [initialStatus, setInitialStatus] = useState('pending');
   const attachmentsRef = useRef(null);
   const [form, setForm] = useState({
     amount: '',
@@ -129,7 +144,33 @@ const UpdateOnlineDonation = () => {
     bank_name: '',
     bank: '',
     transaction_id: '',
+    donor_id: '',
+    on_behalf_names: '',
   });
+  const [selectedDonor, setSelectedDonor] = useState(null);
+
+  const canReconcile = useMemo(
+    () =>
+      canReconcileDonations(permissions, {
+        channel: donationRoutes.channel,
+        donation_method: form.donation_method,
+        donation_source: form.donation_source,
+      }),
+    [
+      permissions,
+      donationRoutes.channel,
+      form.donation_method,
+      form.donation_source,
+    ],
+  );
+
+  const canCompleteInKind = useMemo(
+    () =>
+      canReconcile ||
+      hasPermission(permissions, 'fund_raising', 'in_kind_donations', 'completing') ||
+      hasPermission(permissions, 'fund_raising', 'in_kind_donations', 'reconciler'),
+    [permissions, canReconcile],
+  );
 
   useEffect(() => {
     const fetchDonation = async () => {
@@ -141,6 +182,7 @@ const UpdateOnlineDonation = () => {
           return;
         }
         const d = res.data.data;
+        setInitialStatus(d.status || 'pending');
         setForm({
           amount: d.amount != null ? String(d.amount) : '',
           paid_amount: d.paid_amount != null ? String(d.paid_amount) : '',
@@ -162,7 +204,26 @@ const UpdateOnlineDonation = () => {
           bank_name: d.bank_name ?? '',
           bank: d.bank ?? '',
           transaction_id: d.transaction_id ?? '',
+          donor_id: d.donor_id != null ? String(d.donor_id) : d.donor?.id != null ? String(d.donor.id) : '',
+          on_behalf_names: d.on_behalf_names ?? '',
         });
+        if (d.donor) {
+          setSelectedDonor({
+            id: d.donor.id,
+            name:
+              d.donor.name ||
+              [d.donor.first_name, d.donor.last_name].filter(Boolean).join(' ') ||
+              d.donor.email ||
+              `Donor #${d.donor.id}`,
+            email: d.donor.email,
+            phone: d.donor.phone,
+            first_name: d.donor.first_name,
+            last_name: d.donor.last_name,
+            donor_type: d.donor.donor_type,
+          });
+        } else {
+          setSelectedDonor(null);
+        }
         setExistingAttachments(Array.isArray(d.attachments) ? d.attachments : []);
       } catch (e) {
         setError(e.response?.data?.message || 'Failed to load donation');
@@ -190,6 +251,48 @@ const UpdateOnlineDonation = () => {
   const isInKind = form.donation_method === 'in_kind';
   const isCheque = form.donation_method === 'cheque';
 
+  const inKindStatusOptions = useMemo(() => {
+    const channelOpts = {
+      channel: donationRoutes.channel,
+      donation_method: form.donation_method,
+      donation_source: form.donation_source,
+    };
+    if (!isInKind) {
+      return donationStatusOptionsForUser(
+        permissions,
+        statusOptions,
+        form.status,
+        channelOpts,
+      );
+    }
+    const current = String(form.status || 'pending').toLowerCase();
+    const base = [{ value: 'pending', label: 'Pending' }];
+    if (canCompleteInKind || current === 'completed') {
+      base.push({ value: 'completed', label: 'Completed' });
+    }
+    if (canReconcile) {
+      ['failed', 'cancelled', 'registered'].forEach((v) => {
+        if (!base.some((o) => o.value === v)) {
+          const fromAll = statusOptions.find((o) => o.value === v);
+          if (fromAll) base.push(fromAll);
+        }
+      });
+    }
+    if (current && !base.some((o) => o.value === current)) {
+      base.push({ value: current, label: current });
+    }
+    return base;
+  }, [
+    isInKind,
+    canCompleteInKind,
+    canReconcile,
+    permissions,
+    form.status,
+    form.donation_method,
+    form.donation_source,
+    donationRoutes.channel,
+  ]);
+
   const methodOptions = useMemo(() => {
     const current = form.donation_method;
     if (!current) return donationMethodOptions;
@@ -212,13 +315,67 @@ const UpdateOnlineDonation = () => {
     if (error) setError('');
   };
 
+  const handleDonorSelect = (donor) => {
+    setSelectedDonor(donor);
+    setForm((prev) => ({
+      ...prev,
+      donor_id: donor?.id != null ? String(donor.id) : '',
+    }));
+    if (error) setError('');
+  };
+
+  const handleDonorClear = () => {
+    setSelectedDonor(null);
+    setForm((prev) => ({ ...prev, donor_id: '' }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
     try {
+      const nextStatus = String(form.status || '').toLowerCase();
+      const completingInKind =
+        isInKind &&
+        ['completed', 'paid', 'success'].includes(nextStatus) &&
+        !['completed', 'paid', 'success'].includes(
+          String(initialStatus || '').toLowerCase(),
+        );
+
+      if (completingInKind && !canCompleteInKind) {
+        setError('You do not have permission to mark in-kind donations as completed.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!form.donor_id) {
+        setError('Please select a donor.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const statusChanging =
+        String(form.status || '').toLowerCase() !==
+        String(initialStatus || '').toLowerCase();
+      const nextIsNonPending = !['pending', ''].includes(nextStatus);
+      if (
+        statusChanging &&
+        (nextIsNonPending ||
+          !['pending', ''].includes(String(initialStatus || '').toLowerCase())) &&
+        !canReconcile &&
+        !(completingInKind && canCompleteInKind)
+      ) {
+        setError('Only a reconciler can change donation status away from pending.');
+        setIsSubmitting(false);
+        return;
+      }
+
       const payload = {
-        amount: form.amount !== '' ? parseFloat(form.amount) : undefined,
+        amount: isInKind
+          ? undefined
+          : form.amount !== ''
+            ? parseFloat(form.amount)
+            : undefined,
         paid_amount: form.paid_amount !== '' ? parseFloat(form.paid_amount) : undefined,
         currency: form.currency || undefined,
         date: form.date || undefined,
@@ -235,6 +392,8 @@ const UpdateOnlineDonation = () => {
         bank_name: form.bank_name || undefined,
         bank: form.bank || undefined,
         transaction_id: form.transaction_id || undefined,
+        donor_id: form.donor_id ? Number(form.donor_id) : undefined,
+        on_behalf_names: String(form.on_behalf_names || '').trim() || null,
       };
 
       if (form.campaign_id.trim() === '') payload.campaign_id = null;
@@ -276,7 +435,9 @@ const UpdateOnlineDonation = () => {
         }
       }
 
-      navigate(`${donationsBasePath}/view/${id}`);
+      navigate(donationViewPath(donationRoutes, id), {
+        state: location.state?.fromList ? { fromList: location.state.fromList } : undefined,
+      });
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update donation');
     } finally {
@@ -299,26 +460,71 @@ const UpdateOnlineDonation = () => {
     <>
       <Navbar />
       <div className="form-content update-donation-wrapper">
-        <PageHeader title="Update Donation" showBackButton={true} backPath={listBackPath} />
+        <PageHeader title={pageTitle} showBackButton={true} backPath={listBackPath} />
         {isInKind && (
           <div className="status-message" style={{ marginBottom: '1rem' }}>
-            In-kind line items are not editable here; you can still update amounts, status, and other core fields.
+            In-kind line items are not editable here. Amount is calculated from estimated
+            values and cannot be changed. Only users with Completing permission can mark
+            the donation as completed.
           </div>
         )}
         <form onSubmit={handleSubmit} className="form">
           {error && <div className="status-message status-message--error">{error}</div>}
 
           <div className="form-section">
+            <h3 className="form-section-heading">Donor</h3>
+            <SearchableDropdown
+              label="Select Donor"
+              placeholder="Search donors by name, email, or phone..."
+              apiEndpoint="/donors/lookup"
+              apiParams={{ pageSize: 20 }}
+              onSelect={handleDonorSelect}
+              onClear={handleDonorClear}
+              value={selectedDonor}
+              displayKey="name"
+              debounceDelay={500}
+              minSearchLength={2}
+              allowResearch={true}
+              required
+              renderOption={(donor) => (
+                <div>
+                  <div style={{ fontWeight: 500, marginBottom: 4 }}>
+                    {donor.name ||
+                      [donor.first_name, donor.last_name].filter(Boolean).join(' ') ||
+                      `Donor #${donor.id}`}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#666' }}>
+                    {[donor.email, donor.phone].filter(Boolean).join(' • ') || `ID ${donor.id}`}
+                  </div>
+                </div>
+              )}
+            />
+          </div>
+
+          <div className="form-section">
+            <h3 className="form-section-heading">On behalf (optional)</h3>
+            <FormInput
+              label="On behalf name(s)"
+              type="text"
+              name="on_behalf_names"
+              value={form.on_behalf_names}
+              onChange={handleChange}
+              placeholder="Enter name(s) this donation is on behalf of"
+            />
+          </div>
+
+          <div className="form-section">
             <h3 className="form-section-heading">Donation details</h3>
             <div className="form-grid-2">
               <FormInput
-                label="Amount"
+                label={isInKind ? 'Amount (from estimated values)' : 'Amount'}
                 type="number"
                 name="amount"
                 value={form.amount}
                 onChange={handleChange}
                 step="0.01"
                 min="0"
+                disabled={isInKind}
               />
               <FormInput
                 label="Paid amount"
@@ -372,7 +578,8 @@ const UpdateOnlineDonation = () => {
                 name="status"
                 value={form.status}
                 onChange={handleChange}
-                options={statusOptions}
+                options={inKindStatusOptions}
+                disabled={!canReconcile && !(isInKind && canCompleteInKind)}
               />
             </div>
           </div>

@@ -21,6 +21,7 @@ import {
 } from '../../../../common/filters';
 import { ClearButton, SearchButton } from '../../../../common/filters/index';
 import FormInput from '../../../../common/FormInput';
+import SearchableDropdown from '../../../../common/SearchableDropdown';
 import useOfflineDataRefresh from '../../../../../hooks/useOfflineDataRefresh';
 import usePersistedFilters from '../../../../../hooks/usePersistedFilters';
 import useFiltersPanel from '../../../../../hooks/useFiltersPanel';
@@ -36,6 +37,8 @@ const EMPTY_FILTERS = {
   date: '',
   start_date: '',
   end_date: '',
+  region_id: '',
+  city_id: '',
   ...defaultTeamFilterState(),
 };
 
@@ -49,6 +52,10 @@ const DonationBoxDonationsList = () => {
   const [error, setError] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [donationToDelete, setDonationToDelete] = useState(null);
+  const [regionCatalog, setRegionCatalog] = useState([]);
+  const [cityCatalog, setCityCatalog] = useState([]);
+  const [selectedRegion, setSelectedRegion] = useState(null);
+  const [selectedCity, setSelectedCity] = useState(null);
   const { filtersOpen, toggleFilters } = useFiltersPanel();
 
   const paginationKey = donationBoxId
@@ -127,8 +134,89 @@ const DonationBoxDonationsList = () => {
     if (!filtersAreEmpty) {
       clearTempFilters();
       clearAppliedFilters();
+      setSelectedRegion(null);
+      setSelectedCity(null);
       setCurrentPage(1);
     }
+  };
+
+  useEffect(() => {
+    const loadGeoCatalogs = async () => {
+      try {
+        const [regionsRes, citiesRes] = await Promise.all([
+          axiosInstance.get('/regions', { params: { country_id: 1 } }),
+          axiosInstance.get('/cities', { params: { country_id: 1 } }),
+        ]);
+        if (regionsRes.data?.success) {
+          setRegionCatalog(regionsRes.data.data || []);
+        }
+        if (citiesRes.data?.success) {
+          setCityCatalog(citiesRes.data.data || []);
+        }
+      } catch (err) {
+        console.error('Error loading geographic catalogs:', err);
+      }
+    };
+    loadGeoCatalogs();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedRegion && tempFilters.region_id && regionCatalog.length) {
+      const match = regionCatalog.find(
+        (r) => String(r.id) === String(tempFilters.region_id),
+      );
+      if (match) setSelectedRegion(match);
+    }
+    if (!selectedCity && tempFilters.city_id && cityCatalog.length) {
+      const match = cityCatalog.find(
+        (c) => String(c.id) === String(tempFilters.city_id),
+      );
+      if (match) setSelectedCity(match);
+    }
+  }, [
+    regionCatalog,
+    cityCatalog,
+    tempFilters.region_id,
+    tempFilters.city_id,
+    selectedRegion,
+    selectedCity,
+  ]);
+
+  const filterByName = (rows, term) => {
+    const q = String(term || '').trim().toLowerCase();
+    if (!q) return rows.slice(0, 30);
+    return rows
+      .filter((row) => String(row.name || '').toLowerCase().includes(q))
+      .slice(0, 30);
+  };
+
+  const searchRegions = async (term) => filterByName(regionCatalog, term);
+  const searchCities = async (term) => filterByName(cityCatalog, term);
+
+  const handleRegionSelect = (region) => {
+    setSelectedRegion(region);
+    setTempFilters((prev) => ({
+      ...prev,
+      region_id: region?.id ? String(region.id) : '',
+    }));
+  };
+
+  const handleRegionClear = () => {
+    setSelectedRegion(null);
+    setTempFilters((prev) => ({ ...prev, region_id: '' }));
+  };
+
+  const handleCitySelect = (city) => {
+    setSelectedCity(city);
+    setTempFilters((prev) => ({
+      ...prev,
+      city_id: city?.id ? String(city.id) : '',
+    }));
+  };
+
+  const handleCityClear = () => {
+    setSelectedCity(null);
+    setTempFilters((prev) => ({ ...prev, city_id: '' }));
   };
 
   // Fetch donation box info if ID is present
@@ -378,6 +466,54 @@ const DonationBoxDonationsList = () => {
                 filters={tempFilters}
                 onFilterChange={handleFilterChange}
                 placeholder="All Status"
+              />
+
+              <SearchableDropdown
+                label="Region"
+                placeholder="Search region..."
+                onSearch={searchRegions}
+                onSelect={handleRegionSelect}
+                onClear={handleRegionClear}
+                value={selectedRegion}
+                displayKey="name"
+                debounceDelay={300}
+                minSearchLength={1}
+                allowResearch
+                renderOption={(region) => (
+                  <>
+                    <div style={{ fontWeight: 500 }}>{region.name}</div>
+                    {region.country?.name && (
+                      <div style={{ fontSize: 12, color: '#666' }}>
+                        {region.country.name}
+                      </div>
+                    )}
+                  </>
+                )}
+              />
+
+              <SearchableDropdown
+                label="City"
+                placeholder="Search city..."
+                onSearch={searchCities}
+                onSelect={handleCitySelect}
+                onClear={handleCityClear}
+                value={selectedCity}
+                displayKey="name"
+                debounceDelay={300}
+                minSearchLength={1}
+                allowResearch
+                renderOption={(city) => (
+                  <>
+                    <div style={{ fontWeight: 500 }}>{city.name}</div>
+                    {(city.region?.name || city.district?.name) && (
+                      <div style={{ fontSize: 12, color: '#666' }}>
+                        {[city.region?.name, city.district?.name]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </div>
+                    )}
+                  </>
+                )}
               />
 
               <TeamFilter
