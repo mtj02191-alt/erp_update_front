@@ -706,7 +706,7 @@ const ViewTask = ({
     canUpdate && !(isCurrentUserAssignee && Number(task?.created_by_id) !== Number(user?.id));
   const canView = taskPerms.canView === true;
   const canInteractWithNotes = canUpdate || canCreate || canView;
-  const canDeleteAttachment = canUpdate || canCreate;
+  const hasAttachmentDeletePermission = canUpdate || canCreate;
 
   const primaryAssigneeName =
     assignedUsers && assignedUsers.length > 0
@@ -731,6 +731,19 @@ const ViewTask = ({
     if (!user || !task) return false;
     return Number(task.created_by_id) === Number(user.id);
   }, [user, task]);
+
+  const canDeleteAttachment = (attachment) => {
+    if (!hasAttachmentDeletePermission) return false;
+    const taskCreatorId = Number(task?.created_by_id);
+    const uploadedById = Number(
+      attachment?.uploaded_by?.id ?? attachment?.uploaded_by_id ?? attachment?.uploaded_by,
+    );
+    return !(
+      isCurrentUserAssignee &&
+      !isCurrentUserCreator &&
+      uploadedById === taskCreatorId
+    );
+  };
 
   const assignmentUsersForDisplay = assignedUsers || [];
 
@@ -937,7 +950,10 @@ const ViewTask = ({
   };
 
   const handleRemoveAttachment = async (attachmentId) => {
-    if (!canDeleteAttachment) return;
+    const targetAttachment = (task?.attachments || []).find(
+      (item) => Number(item.id) === Number(attachmentId),
+    );
+    if (!canDeleteAttachment(targetAttachment)) return;
     if (!window.confirm('Are you sure you want to remove this attachment?')) {
       return;
     }
@@ -1664,7 +1680,7 @@ const ViewTask = ({
                                       >
                                         View
                                       </a>
-                                      {canDeleteAttachment && (
+                                      {canDeleteAttachment(a) && (
                                         <button
                                           type="button"
                                           className="attachment-remove-button"
@@ -2079,7 +2095,7 @@ const ViewTask = ({
                                           >
                                             View
                                           </a>
-                                          {canDeleteAttachment && (
+                                          {canDeleteAttachment(a) && (
                                             <button
                                               type="button"
                                               className="attachment-remove-button"

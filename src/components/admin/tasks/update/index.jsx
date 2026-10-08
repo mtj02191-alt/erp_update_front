@@ -770,7 +770,7 @@ const UpdateTask = ({
       };
       const res = await axiosInstance.patch(`/tasks/${id}`, payload);
       const updatedTask = res?.data?.data || null;
-      toast.success('Task updated. Email notification will be sent if configured.');
+      toast.success('Task updated.');
 
       const toUpload =
         attachmentsRef.current?.collectForSubmit?.() || pendingAttachments;
