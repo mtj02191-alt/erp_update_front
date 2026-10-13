@@ -447,9 +447,20 @@ const RecurringDonationView = () => {
                 <p>{subscription.status}</p>
               </div>
               <div>
-                <strong>Amount</strong>
+                <strong>Installment Amount</strong>
                 <p>
                   {formatAmount(subscription.amount, subscription.currency)}
+                </p>
+              </div>
+              <div>
+                <strong>Total Amount</strong>
+                <p>
+                  {subscription.total_amount != null
+                    ? formatAmount(
+                        subscription.total_amount,
+                        subscription.currency,
+                      )
+                    : '—'}
                 </p>
               </div>
               <div>

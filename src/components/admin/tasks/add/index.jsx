@@ -1,12 +1,17 @@
 import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FiAlignJustify, FiClipboard, FiGitBranch, FiPlus } from 'react-icons/fi';
+import {
+  FiCalendar,
+  FiClipboard,
+  FiClock,
+  FiFolder,
+  FiGitBranch,
+  FiPlus,
+} from 'react-icons/fi';
 import axiosInstance from '../../../../utils/axios';
 import { toast } from 'react-toastify';
 import Navbar from '../../../Navbar';
-import PageHeader from '../../../common/PageHeader';
 import FormInput from '../../../common/FormInput';
-import FormTextarea from '../../../common/FormTextarea';
 import SearchableMultiSelect from '../../../common/SearchableMultiSelect';
 import { useAuth } from '../../../../context/AuthContext';
 import { getTaskPermissions } from '../../../../utils/permissions';
@@ -17,6 +22,88 @@ import TaskPendingAttachments, {
 import MovAssignmentPicker from '../shared/MovAssignmentPicker';
 import '../../../../styles/variables.css';
 import './index.css';
+/* ------------------------------------------------------------------ */
+/* Small presentational helpers                                        */
+/* ------------------------------------------------------------------ */
+
+// The "=" icon used on the priority pill
+const EqualsIcon = ({ className = '' }) => (
+  <span className={`pill-equals-icon ${className}`} aria-hidden="true">=</span>
+);
+
+const formatPillDate = (value) => {
+  if (!value) return '';
+  const d = new Date(`${value}T00:00:00`);
+  if (isNaN(d.getTime())) return value;
+  return d.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const getInitials = (u) => {
+  const a = (u?.first_name || '').trim()[0] || '';
+  const b = (u?.last_name || '').trim()[0] || '';
+  const initials = `${a}${b}`.toUpperCase();
+  return initials || (u?.email || '?')[0].toUpperCase();
+};
+
+const userDisplayName = (u) =>
+  `${u?.first_name || ''} ${u?.last_name || ''}`.trim() || u?.email || `User #${u?.id}`;
+
+/* A pill that shows "Due date" / "Start date" text but is backed by a real
+   <input type="date"> (invisible, covers the pill) so values still work. */
+const DatePill = ({ name, value, onChange, icon: Icon, placeholder, title, showDot = false }) => {
+  const inputRef = useRef(null);
+
+  const openPicker = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    if (typeof el.showPicker === 'function') {
+      try {
+        el.showPicker();
+        return;
+      } catch (_) {
+        /* fall through */
+      }
+    }
+    el.focus();
+    el.click();
+  };
+
+  return (
+    <div
+      className={`pill-input-wrapper task-pill-date ${value ? 'is-filled' : 'is-empty'}`}
+      onClick={openPicker}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openPicker();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      title={title}
+    >
+      <Icon className="pill-icon" />
+      <span className={`pill-text ${value ? '' : 'is-placeholder'}`}>
+        {value ? formatPillDate(value) : placeholder}
+      </span>
+      {!value && showDot && <span className="pill-dot" />}
+      <input
+        ref={inputRef}
+        type="date"
+        name={name}
+        value={value}
+        onChange={onChange}
+        className="pill-native-date"
+        tabIndex={-1}
+        aria-label={title}
+      />
+    </div>
+  );
+};
 
 const TaskFormSelect = ({
   name,
@@ -68,10 +155,12 @@ const TaskFormSelect = ({
 
   return (
     <div className="form-group" ref={containerRef}>
-      <label className="form-label">
-        {label}
-        {required && <span className="required-mark">*</span>}
-      </label>
+      {label && (
+        <label className="form-label">
+          {label}
+          {required && <span className="required-mark">*</span>}
+        </label>
+      )}
       <div className="task-custom-select-container">
         <div
           className={`task-custom-select-display ${isOpen ? 'is-open' : ''} ${error ? 'has-error' : ''} ${disabled ? 'is-disabled' : ''}`}
@@ -202,34 +291,35 @@ const ProjectProgramSelect = ({ value, onChange, error }) => {
     setIsOpen(false);
   };
 
-  const getDisplayValue = () => {
-    if (value) {
-      const isProject = projects.includes(value);
-      return `${isProject ? '📁' : '📋'} ${value}`;
-    }
-    return '';
-  };
+  const isProgramValue = !!value && !projects.includes(value);
+  const LeadIcon = isProgramValue ? FiClipboard : FiFolder;
 
   return (
     <div className="form-group" ref={containerRef}>
-      <label className="form-label">
-        Project/Program <span className="required-mark">*</span>
-      </label>
       <div className="task-custom-select-container">
         <div
-          className={`task-custom-select-display ${isOpen ? 'is-open' : ''} ${error ? 'has-error' : ''}`}
+          className={`task-custom-select-display ${isOpen ? 'is-open' : ''} ${error ? 'has-error' : ''} ${value ? 'is-filled has-clear' : 'is-empty'}`}
           onClick={handleToggle}
         >
-          {value ? (
-            <span className="task-custom-select-value">{getDisplayValue()}</span>
-          ) : (
-            <span className="task-custom-select-placeholder">Select Project or Program</span>
-          )}
+          <span className="task-custom-select-leading">
+            <LeadIcon className="task-custom-select-field-icon" />
+            <span className={`task-custom-select-value ${!value ? 'is-placeholder' : ''}`}>
+              {value || 'Project'}
+            </span>
+          </span>
+          {!value && <span className="pill-dot" />}
           <span className="task-custom-select-arrow">▼</span>
         </div>
 
         {value && (
-          <button type="button" className="task-custom-select-clear-btn" onClick={handleClear}>✕</button>
+          <button
+            type="button"
+            className="task-custom-select-clear-btn"
+            onClick={handleClear}
+            aria-label="Clear project"
+          >
+            ✕
+          </button>
         )}
 
         {isOpen && (
@@ -249,11 +339,15 @@ const ProjectProgramSelect = ({ value, onChange, error }) => {
               {selectionStep === 'category' ? (
                 <>
                   <button type="button" className="task-custom-select-option" onClick={() => handleCategorySelect('Projects')}>
-                    <span><span className="task-custom-select-option-icon">📁</span> Projects</span>
+                    <span className="task-custom-select-option-label">
+                      <FiFolder className="task-custom-select-option-icon" /> Projects
+                    </span>
                     <span className="task-custom-select-option-arrow">›</span>
                   </button>
                   <button type="button" className="task-custom-select-option" onClick={() => handleCategorySelect('Programs')}>
-                    <span><span className="task-custom-select-option-icon">📋</span> Programs</span>
+                    <span className="task-custom-select-option-label">
+                      <FiClipboard className="task-custom-select-option-icon" /> Programs
+                    </span>
                     <span className="task-custom-select-option-arrow">›</span>
                   </button>
                 </>
@@ -278,6 +372,10 @@ const ProjectProgramSelect = ({ value, onChange, error }) => {
   );
 };
 
+/* ------------------------------------------------------------------ */
+/* Main component                                                      */
+/* ------------------------------------------------------------------ */
+
 const AddTask = ({
   isModal = false,
   onClose,
@@ -292,7 +390,7 @@ const AddTask = ({
   const defaultDept =
     defaultDepartment || location.state?.defaultDepartment || user?.department || '';
 
-  const [form, setForm] = useState({
+  const emptyForm = () => ({
     title: '',
     description: '',
     department: defaultDept,
@@ -312,6 +410,8 @@ const AddTask = ({
     approval_required: false
   });
 
+  const [form, setForm] = useState(emptyForm);
+
   const isAdmin = useMemo(() => {
     const r = String(user?.role || '').toLowerCase();
     return r === 'super_admin' || r === 'admin';
@@ -329,8 +429,8 @@ const AddTask = ({
     { value: 'marketing', label: 'Marketing' },
     { value: 'audio_video', label: 'Audio Video' },
     { value: 'meal', label: 'Meal' },
-
   ];
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [assignedUsers, setAssignedUsers] = useState([]);
@@ -338,7 +438,10 @@ const AddTask = ({
   const [approverUsers, setApproverUsers] = useState([]);
   const [movItems, setMovItems] = useState([{ text: '', user_id: null }]);
   const [pendingAttachments, setPendingAttachments] = useState([]);
+  const [createAnother, setCreateAnother] = useState(false);
   const attachmentsRef = useRef(null);
+  const formRef = useRef(null);
+  const titleRef = useRef(null);
 
   const taskPerms = useMemo(
     () => getTaskPermissions(permissions || {}, user?.department, user?.role),
@@ -347,7 +450,21 @@ const AddTask = ({
 
   const multiSelectParams = useMemo(() => ({ active: true }), []);
 
-  // Custom search function for assignees - excludes the logged-in user (task creator)
+  // Ctrl/Cmd + Enter submits the form (matches the "Ctrl ↵" hint on the button)
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (!submitting && taskPerms.canCreate) {
+          formRef.current?.requestSubmit();
+        }
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [submitting, taskPerms.canCreate]);
+
+  // Custom search function for assignees
   const searchAssignees = useMemo(() => {
     return async (searchTerm) => {
       try {
@@ -369,10 +486,7 @@ const AddTask = ({
   };
 
   const createTitle = taskPerms.canCreate ? 'Create Task' : 'You do not have permission to create tasks';
-  const userDisplayName = (u) => {
-    const name = `${u?.first_name || ''} ${u?.last_name || ''}`.trim();
-    return name || u?.email || '';
-  };
+
   const formatDepartment = (dept) => {
     if (!dept) return '';
     return String(dept)
@@ -380,6 +494,15 @@ const AddTask = ({
       .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ''))
       .join(' ');
   };
+
+  // Department shown in the header chip (same rule used on submit)
+  const currentDepartment = isAdmin
+    ? (form.department || 'admin')
+    : (user?.department || 'admin');
+  const currentDepartmentLabel =
+    departmentOptions.find((d) => d.value === currentDepartment)?.label ||
+    formatDepartment(currentDepartment);
+
   const handleMovChange = (index, value) => {
     setMovItems((prev) => {
       const next = [...prev];
@@ -523,10 +646,22 @@ const AddTask = ({
     }
   };
 
+  // Used by "Create another after this"
+  const resetForm = () => {
+    setForm(emptyForm());
+    setError('');
+    setAssignedUsers([]);
+    setAssignedUserDepartments({});
+    setApproverUsers([]);
+    setMovItems([{ text: '', user_id: null }]);
+    setPendingAttachments([]);
+    setTimeout(() => titleRef.current?.focus(), 0);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    // For admins, use the department selected in the form. 
+    // For admins, use the department selected in the form.
     // For regular users, use their own department.
     const department = isAdmin ? (form.department || 'admin') : (user?.department || 'admin');
     const validationErrors = [];
@@ -582,7 +717,7 @@ const AddTask = ({
     try {
       const movItemsClean = movItemsCleanForValidation;
 
-      // FIXED: Do NOT encode MOV into description - send it separately via mov_checklist field
+      // Do NOT encode MOV into description - send it separately via mov_checklist field
       const titleTrimmed = String(form.title || '').trim();
       const descriptionTrimmed = String(form.description || '').trim();
       const payload = {
@@ -671,6 +806,16 @@ const AddTask = ({
         await new Promise((resolve) => setTimeout(resolve, 4000 - elapsed));
       }
       setSubmitting(false);
+
+      // "Create another after this" → keep the form open with a clean slate
+      if (createdTaskId && createAnother) {
+        if (isModal) {
+          onSaved?.(createdTaskData || { id: createdTaskId });
+        }
+        resetForm();
+        return;
+      }
+
       if (createdTaskId && isModal) {
         onSaved?.(createdTaskData || { id: createdTaskId });
         onClose?.();
@@ -685,68 +830,76 @@ const AddTask = ({
   return (
     <>
       {!isModal && <Navbar />}
-      <div className="add-task-page">
-        <div className={`add-task-card${isModal ? ' add-task-card--modal' : ''}`}>
-          {isModal ? (
-            <div className="task-form-modal-header">
-              <h2 className="task-form-modal-title">Add Task</h2>
-              <button
-                type="button"
-                className="task-form-modal-close"
-                onClick={handleBack}
-                aria-label="Close"
-              >
-                ×
-              </button>
+      <div className={isModal ? 'add-task-modal-backdrop' : 'add-task-page'}>
+        <div className="add-task-card add-task-card--popup">
+
+          {/* Header: [Department chip] › New task                    ✕ */}
+          <div className="task-form-modal-header">
+            <div className="task-form-breadcrumb">
+              <span className="task-form-dept-chip">{currentDepartmentLabel} Department</span>
+              <span className="task-form-breadcrumb-sep">›</span>
+              <h2 className="task-form-modal-title">
+                {isModal ? 'New task' : 'Add Task'}
+              </h2>
             </div>
-          ) : (
-            <PageHeader title="Add Task" showBackButton={true} onBackClick={handleBack} />
-          )}
-          {error && <div className="status-message status-message--error">{error}</div>}
+            <button
+              type="button"
+              className="task-form-modal-close"
+              onClick={handleBack}
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+
+          {error && <div className="add-task-error">{error}</div>}
+
           {submitting && (
             <div className="add-task-submitting-overlay">
               Creating task, please wait...
             </div>
           )}
-          <form onSubmit={handleSubmit}>
-            <div className="add-task-section add-task-section--compact">
-              <div className="add-task-section-title">1. Basic Details</div>
-              <div className="add-task-grid-2">
-                <ProjectProgramSelect
-                  value={form.project_name}
-                  onChange={handleProjectChange}
-                />
-                <FormInput
+
+          <form ref={formRef} onSubmit={handleSubmit} className="add-task-form">
+            <div className="add-task-body">
+
+              {/* Main Title & Description */}
+              <div className="task-title-section">
+                <input
+                  ref={titleRef}
+                  type="text"
                   name="title"
-                  label="Task Title"
+                  className="task-title-input"
+                  placeholder="What needs to be done?"
                   value={form.title}
                   onChange={handleChange}
-                  placeholder="Enter task title"
                   required
+                  autoFocus
                 />
-              </div>
-              <div className="add-task-description-wrap">
-                <FormTextarea
+                <textarea
                   name="description"
-                  label="Description"
+                  className="task-desc-input"
+                  placeholder="Add details, links or instructions for the assignee..."
                   value={form.description}
                   onChange={handleChange}
-                  placeholder="Enter task description"
-                  rows={3}
-                  maxLength={500}
+                  rows={2}
                 />
-                <div className="add-task-char-count">
-                  {(form.description || '').length}/500
-                </div>
               </div>
-            </div>
 
-            <div className="add-task-section add-task-section--compact" style={{ marginBottom: '0.85rem' }}>
-              <div className="add-task-section-title">2. Task Setup</div>
-              <div className="add-task-setup-grid">
-                <div className="add-task-setup-assignees">
+              {/* Meta Pills Row */}
+              <div className="task-meta-pills">
+                <div className={`task-pill-assignee task-popup-assignee-field ${assignedUsers.length > 0 ? 'is-filled' : 'is-empty'}`}>
+                  {assignedUsers.length > 0 && (
+                    <span
+                      className="assignee-avatar"
+                      aria-hidden="true"
+                      title={assignedUsers.map((u) => `${u.first_name || ''} ${u.last_name || ''}`.trim()).join(', ')}
+                    >
+                      {assignedUsers.length === 1 ? getInitials(assignedUsers[0]) : assignedUsers.length}
+                    </span>
+                  )}
                   <SearchableMultiSelect
-                    label="Assigned Users"
+                    label=""
                     onSearch={searchAssignees}
                     onSelect={(users) => setAssignedUsers(users)}
                     onClear={() => setAssignedUsers([])}
@@ -756,252 +909,198 @@ const AddTask = ({
                     allowResearch={true}
                     debounceDelay={500}
                     minSearchLength={2}
-                    required
-                    placeholder="Select users..."
+                    placeholder="Assignee"
                     renderOption={(user) => (
                       <div className="assign-user-option">
-                        <div className="assign-user-name">
-                          {user.first_name} {user.last_name}
-                        </div>
-                        <div className="assign-user-email">
-                          {user.email}
-                        </div>
-                        {user.department && (
-                          <div className="assign-user-meta">
-                            {user.department} • {user.role || 'User'}
-                          </div>
-                        )}
+                        <div className="assign-user-name">{user.first_name} {user.last_name}</div>
+                        <div className="assign-user-email">{user.email}</div>
                       </div>
                     )}
                   />
                 </div>
+                <ProjectProgramSelect
+                  value={form.project_name}
+                  onChange={handleProjectChange}
+                />
+
+                <div className={`task-pill-priority priority-${form.priority || 'medium'}`}>
+                  <TaskFormSelect
+                    name="priority"
+                    label=""
+                    value={form.priority}
+                    onChange={handleSelectChange}
+                    icon={EqualsIcon}
+                    defaultOptionText="Priority"
+                    options={['low', 'medium', 'high', 'critical'].map((p) => ({
+                      value: p,
+                      label: p[0].toUpperCase() + p.slice(1)
+                    }))}
+                  />
+                </div>
+
+                 <DatePill
+                  name="start_date"
+                  value={form.start_date}
+                  onChange={handleChange}
+                  icon={FiClock}
+                  placeholder="Start date"
+                  title="Start Date"
+                />
+
+                <DatePill
+                  name="due_date"
+                  value={form.due_date}
+                  onChange={handleChange}
+                  icon={FiCalendar}
+                  placeholder="Due date"
+                  title="Due Date"
+                  showDot
+                />
+
+
+
+                <TaskFormSelect
+                  name="task_type"
+                  label=""
+                  value={form.task_type}
+                  onChange={handleSelectChange}
+                  icon={FiPlus}
+                  defaultOptionText="Task Type"
+                  options={[
+                    { value: 'one_time', label: 'One-time' },
+                    { value: 'recurring', label: 'Recurring' },
+                    { value: 'project_linked', label: 'Project-linked' }
+                  ]}
+                />
+
                 <TaskFormSelect
                   name="workflow_type"
-                  label="Workflow Type"
+                  label=""
                   value={form.workflow_type}
                   onChange={handleSelectChange}
                   icon={FiGitBranch}
-                  iconClassName="task-custom-select-field-icon--workflow"
-                  options={['standard', 'approval_required'].map((w) => ({
-                    value: w,
-                    label: w
-                      .split('_')
-                      .map((x) => x[0].toUpperCase() + x.slice(1))
-                      .join(' ')
-                  }))}
-                  required
-                />
-                {form.workflow_type === 'approval_required' && (
-                  <div className="add-task-conditional-block">
-                    <SearchableMultiSelect
-                      label="Approvers"
-                      apiEndpoint="/users/options"
-                      apiParams={multiSelectParams}
-                      onSelect={(users) => setApproverUsers(users)}
-                      onClear={() => setApproverUsers([])}
-                      value={approverUsers}
-                      displayKey="first_name"
-                      valueKey="id"
-                      allowResearch={true}
-                      debounceDelay={500}
-                      minSearchLength={2}
-                      renderOption={(user) => (
-                        <div className="assign-user-option">
-                          <div className="assign-user-name">
-                            {user.first_name} {user.last_name}
-                          </div>
-                          <div className="assign-user-email">
-                            {user.email}
-                          </div>
-                          {user.department && (
-                            <div className="assign-user-meta">
-                              {user.department} • {user.role || 'User'}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    />
-                  </div>
-                )}
-                <TaskFormSelect
-                  name="priority"
-                  label="Priority"
-                  value={form.priority}
-                  onChange={handleSelectChange}
-                  icon={FiAlignJustify}
-                  iconClassName="task-custom-select-field-icon--priority"
-                  options={['low', 'medium', 'high', 'critical'].map((p) => ({
-                    value: p,
-                    label: p[0].toUpperCase() + p.slice(1)
-                  }))}
-                  required
-                />
-                <TaskFormSelect
-                  name="task_type"
-                  label="Task Type"
-                  value={form.task_type}
-                  onChange={handleSelectChange}
-                  icon={FiClipboard}
-                  iconClassName="task-custom-select-field-icon--task-type"
+                  defaultOptionText="Workflow"
                   options={[
-                    { value: 'one_time', label: 'One-time task' },
-                    { value: 'recurring', label: 'Recurring task' },
-                    { value: 'project_linked', label: 'Project-linked task' }
+                    { value: 'standard', label: 'Standard workflow' },
+                    { value: 'approval_required', label: 'Approval required' },
                   ]}
-                  required
                 />
+
               </div>
+
+              {assignedUsers.length > 1 && (
+                <div className="popup-assignee-summary">
+                  <span className="popup-assignee-count">
+                    {'\u2713'} {assignedUsers.length} users selected
+                  </span>
+                  {assignedUsers.map((u) => (
+                    <span key={u.id} className="popup-assignee-chip">
+                      <span className="chip-avatar">{getInitials(u)}</span>
+                      <span className="chip-name">{userDisplayName(u)}</span>
+                      <span className="chip-dept">
+                        {formatDepartment(
+                          assignedUserDepartments[u.id] || u.department || form.department || ''
+                        )}
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Recurring Conditional Block */}
               {form.task_type === 'recurring' && (
                 <div className="add-task-conditional-block">
-                  <div className="add-task-grid-2">
-                    <TaskFormSelect
-                      name="recurrence_frequency"
-                      label="Recurring Frequency"
-                      value={form.recurrence_frequency}
-                      onChange={handleSelectChange}
-                      showDefaultOption
-                      options={['daily', 'weekly', 'monthly', 'quarterly', 'annually', 'other'].map(
-                        (f) => ({
-                          value: f,
-                          label: f[0].toUpperCase() + f.slice(1)
-                        })
-                      )}
-                      required
-                    />
-                    {form.recurrence_frequency === 'other' && (
-                      <FormInput
-                        name="custom_recurrence_days"
-                        label="Custom Recurrence Days"
-                        type="number"
-                        min="1"
-                        value={form.custom_recurrence_days}
-                        onChange={handleChange}
-                        placeholder="Enter number of days"
-                        required
-                      />
-                    )}
-                  </div>
-
-                  <div className="recurrence-end-section" style={{ marginTop: '0.75rem' }}>
-                    <div className="add-task-conditional-label">End Condition</div>
-                    <div className="add-task-grid-2">
-                      <TaskFormSelect
-                        name="recurrence_end_type"
-                        label="End After"
-                        value={form.recurrence_end_type}
-                        onChange={handleSelectChange}
-                        options={[
-                          { value: 'never', label: 'Indefinitely (No end date)' },
-                          { value: 'on_date', label: 'On specific date' },
-                          { value: 'after_occurrences', label: 'After number of occurrences' }
-                        ]}
-                      />
-                      {form.recurrence_end_type === 'on_date' && (
-                        <FormInput
-                          name="recurrence_end_date"
-                          label="End Date"
-                          type="date"
-                          value={form.recurrence_end_date}
-                          onChange={handleChange}
-                          required
-                        />
-                      )}
-                      {form.recurrence_end_type === 'after_occurrences' && (
-                        <FormInput
-                          name="recurrence_end_occurrences"
-                          label="Number of Occurrences"
-                          type="number"
-                          min="1"
-                          value={form.recurrence_end_occurrences}
-                          onChange={handleChange}
-                          required
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {assignedUsers.length > 0 && (
-                <div className="add-task-assignees-summary-compact">
-                  <div className="assign-users-hint">
-                    {'\u2713'} {assignedUsers.length}{' '}
-                    {assignedUsers.length === 1 ? 'user selected' : 'users selected'}
-                  </div>
-                  <div className="assign-users-summary">
-                    <div className="assign-users-summary-label">
-                      Selected Assignees:
-                    </div>
-                    {assignedUsers.map((u) => (
-                      <div
-                        key={u.id}
-                        className="assign-users-row"
-                      >
-                        <div className="assign-users-row-col">
-                          <FormInput
-                            name={`user_${u.id}_label`}
-                            label=""
-                            value={userDisplayName(u)}
-                            onChange={() => { }}
-                            disabled
-                          />
-                        </div>
-                        <div className="assign-users-row-col">
-                          <FormInput
-                            name={`dept_${u.id}`}
-                            label=""
-                            value={formatDepartment(
-                              assignedUserDepartments[u.id] ||
-                              u.department ||
-                              user?.department ||
-                              ''
-                            )}
-                            onChange={() => { }}
-                            disabled
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="add-task-split-row">
-              <div className="add-task-section add-task-section--compact add-task-section--schedule">
-                <div className="add-task-section-title">3. Schedule</div>
-                <div className="add-task-grid-1">
-                  <FormInput
-                    name="start_date"
-                    label="Start Date"
-                    type="date"
-                    value={form.start_date}
-                    onChange={handleChange}
-                    required
+                  <TaskFormSelect
+                    name="recurrence_frequency"
+                    label="Frequency"
+                    value={form.recurrence_frequency}
+                    onChange={handleSelectChange}
+                    showDefaultOption
+                    options={['daily', 'weekly', 'monthly', 'quarterly', 'annually', 'other'].map(f => ({ value: f, label: f[0].toUpperCase() + f.slice(1) }))}
                   />
-                  <FormInput
-                    name="due_date"
-                    label={form.task_type === 'recurring' ? 'Due Date (of first task) - Auto-calculated' : 'Due Date'}
-                    type="date"
-                    value={form.due_date}
-                    onChange={handleChange}
-                    disabled={form.task_type === 'recurring' && form.recurrence_frequency}
-                    required
-                    placeholder={form.task_type === 'recurring' ? 'Select frequency to auto-calculate' : undefined}
-                  />
-                </div>
-              </div>
-
-              <div className="add-task-section add-task-section--compact add-task-section--mov">
-                <div className="add-task-section-title">4. Means of Verification (MOV)</div>
-                {movItems.map((item, index) => (
-                  <div key={index} className="mov-item-row">
+                  {form.recurrence_frequency === 'other' && (
                     <FormInput
-                      name={`mov_item_${index}`}
-                      label={index === 0 ? 'MOV Item' : ''}
+                      name="custom_recurrence_days"
+                      label="Days"
+                      type="number"
+                      min="1"
+                      value={form.custom_recurrence_days}
+                      onChange={handleChange}
+                    />
+                  )}
+                  <TaskFormSelect
+                    name="recurrence_end_type"
+                    label="End After"
+                    value={form.recurrence_end_type}
+                    onChange={handleSelectChange}
+                    options={[
+                      { value: 'never', label: 'Indefinitely' },
+                      { value: 'on_date', label: 'On specific date' },
+                      { value: 'after_occurrences', label: 'After occurrences' }
+                    ]}
+                  />
+                  {form.recurrence_end_type === 'on_date' && (
+                    <FormInput
+                      name="recurrence_end_date"
+                      label="End Date"
+                      type="date"
+                      value={form.recurrence_end_date}
+                      onChange={handleChange}
+                    />
+                  )}
+                  {form.recurrence_end_type === 'after_occurrences' && (
+                    <FormInput
+                      name="recurrence_end_occurrences"
+                      label="Occurrences"
+                      type="number"
+                      min="1"
+                      value={form.recurrence_end_occurrences}
+                      onChange={handleChange}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Approver Conditional Block */}
+              {form.workflow_type === 'approval_required' && (
+                <div className="add-task-conditional-block add-task-conditional-block--full">
+                  <SearchableMultiSelect
+                    label="Approvers"
+                    apiEndpoint="/users/options"
+                    apiParams={multiSelectParams}
+                    onSelect={(users) => setApproverUsers(users)}
+                    onClear={() => setApproverUsers([])}
+                    value={approverUsers}
+                    displayKey="first_name"
+                    valueKey="id"
+                    allowResearch={true}
+                    debounceDelay={500}
+                    minSearchLength={2}
+                    placeholder="Select approvers..."
+                    renderOption={(user) => (
+                      <div className="assign-user-option">
+                        <div className="assign-user-name">{user.first_name} {user.last_name}</div>
+                        <div className="assign-user-email">{user.email}</div>
+                      </div>
+                    )}
+                  />
+                </div>
+              )}
+
+              {/* Done When Section (MOV) */}
+              <div className="done-when-section">
+                <div className="done-when-header">
+                  Done when... <span>Means of verification the assignee must tick off</span>
+                </div>
+
+                {movItems.map((item, index) => (
+                  <div key={index} className="done-when-input-wrapper">
+                    <span className="done-when-checkbox" aria-hidden="true" />
+                    <input
+                      type="text"
                       value={item.text}
                       onChange={(e) => handleMovChange(index, e.target.value)}
-                      placeholder="Define a clear, specific, and measurable verification point"
+                      placeholder="e.g. Photo of all cameras live on the DVR uploaded"
                     />
                     {assignedUsers.length > 1 && (
                       <MovAssignmentPicker
@@ -1015,53 +1114,63 @@ const AddTask = ({
                     {movItems.length > 1 && (
                       <button
                         type="button"
-                        className="mov-item-remove-button"
+                        className="done-when-remove-btn"
                         onClick={() => handleMovRemove(index)}
+                        title="Remove"
+                        aria-label="Remove condition"
                       >
-                        Remove
+                        ✕
                       </button>
                     )}
                   </div>
                 ))}
-                <div className="mov-actions">
-                  <button
-                    type="button"
-                    className="mov-item-add-button"
-                    onClick={handleMovAdd}
-                  >
-                    <FiPlus /> Add MOV Item
-                  </button>
-                </div>
+
+                <button type="button" className="done-when-add-btn" onClick={handleMovAdd}>
+                  <FiPlus /> Add condition
+                </button>
+              </div>
+
+              {/* Attachments */}
+              <div className="attachment-dropzone">
+                <TaskPendingAttachments
+                  ref={attachmentsRef}
+                  items={pendingAttachments}
+                  onChange={setPendingAttachments}
+                  disabled={submitting || !taskPerms.canCreate}
+                />
               </div>
             </div>
 
-            <div className="add-task-section add-task-section--compact" style={{ marginBottom: '0.85rem' }}>
-              <TaskPendingAttachments
-                ref={attachmentsRef}
-                items={pendingAttachments}
-                onChange={setPendingAttachments}
-                disabled={submitting || !taskPerms.canCreate}
-              />
+            {/* Footer */}
+            <div className="add-task-footer">
+              <label className="footer-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={createAnother}
+                  onChange={(e) => setCreateAnother(e.target.checked)}
+                />
+                Create another after this
+              </label>
+
+              <div className="footer-actions">
+                <button
+                  type="button"
+                  className="add-task-cancel-btn"
+                  onClick={handleBack}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="add-task-submit"
+                  type="submit"
+                  disabled={submitting || !taskPerms.canCreate}
+                  title={createTitle}
+                >
+                  {submitting ? 'Submitting...' : 'Create task'}
+                </button>
+              </div>
             </div>
 
-            <div className="add-task-footer add-task-footer--actions">
-              <button
-                type="button"
-                className="add-task-cancel-btn"
-                onClick={handleBack}
-              >
-                Cancel
-              </button>
-              <button
-                className="add-task-submit primary-button"
-                type="submit"
-                disabled={submitting || !taskPerms.canCreate}
-                title={createTitle}
-              >
-                <FiPlus />
-                {submitting ? 'Submitting....' : 'Create Task'}
-              </button>
-            </div>
           </form>
         </div>
       </div>

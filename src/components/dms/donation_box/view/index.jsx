@@ -50,6 +50,7 @@ const ViewDonationBox = () => {
       'removed': { class: 'status-cancelled', text: 'Removed' },
       'broken': { class: 'status-failed', text: 'Broken' },
       'snr': { class: 'status-pending', text: 'SNR' },
+      'misplaced_stolen': { class: 'status-failed', text: 'Misplaced/Stolen' },
     };
     
     const statusInfo = statusMap[status] || { class: 'status-pending', text: status };
@@ -151,6 +152,14 @@ const ViewDonationBox = () => {
                 <span className="view-item-label">Status</span>
                 <span className="view-item-value">{getStatusBadge(donationBox.status)}</span>
               </div>
+              {donationBox.status === 'removed' && (
+                <div className="view-item">
+                  <span className="view-item-label">Donation Box Removal Date</span>
+                  <span className="view-item-value">
+                    {formatDate(donationBox.removal_date) || '-'}
+                  </span>
+                </div>
+              )}
               <div className="view-item">
                 <span className="view-item-label">Active Since</span>
                 <span className="view-item-value">{formatDate(donationBox.active_since)}</span>

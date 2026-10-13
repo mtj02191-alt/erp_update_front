@@ -21,7 +21,7 @@ export default function TaskViewModeSwitch({ value = 'kanban', onChange }) {
         aria-pressed={value === 'kanban'}
       >
         <FiGrid />
-        <span>Kanban</span>
+        <span>Board</span>
       </button>
     </div>
   );

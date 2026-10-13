@@ -229,11 +229,9 @@ const TasksBoard = ({ viewMode = 'kanban', onViewModeChange, refreshNonce = 0 })
 
   const canChangeStatus = useCallback(
     (task) => {
-      const canUpdate = taskPerms.canUpdate === true;
       const isAssignee = isTaskAssignedToCurrentUser(task);
-      const canChangeAsAssignee =
-        isAssignee && (taskPerms.canUpdate === true || taskPerms.canComplete === true);
-      return canUpdate || canChangeAsAssignee;
+      // Creators may view cards, but only assignees can drag them between columns.
+      return isAssignee && (taskPerms.canUpdate === true || taskPerms.canComplete === true);
     },
     [taskPerms, isTaskAssignedToCurrentUser],
   );

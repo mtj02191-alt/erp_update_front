@@ -1,5 +1,26 @@
 /* Donation view — communication & status actions (theme-aware) */
 
+/* Review Approve/Reject in details grid — full row, no button collision */
+.donation-review-item {
+  overflow: visible;
+  align-items: center;
+}
+
+.donation-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  overflow: visible;
+}
+
+.donation-review-actions .donation-comm-btn {
+  flex: 0 0 auto;
+  min-width: auto;
+  width: auto;
+}
+
 .donation-view-actions-panel {
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);

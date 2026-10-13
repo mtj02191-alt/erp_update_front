@@ -59,6 +59,7 @@ const DONATION_TYPE_OPTIONS = [
 const emptyForm = {
   donor_id: '',
   amount: '',
+  total_amount: '',
   currency: 'PKR',
   billing_interval: 'month',
   billing_interval_count: '1',
@@ -70,7 +71,6 @@ const emptyForm = {
   campaign_id: '',
   donation_type: 'general',
   on_behalf_names: '',
-  prepaid_periods: '',
   initial_donation_id: '',
   status: 'active',
   installment_status: 'pending',
@@ -138,12 +138,21 @@ const RecurringDonationForm = ({ mode = 'add' }) => {
         }
         if (cancelled) return;
         setIsStripe(!!sub.stripe_subscription_id);
+        const prepaidCount = Number(
+          sub.prepaid_periods || sub.prepaid_months || 0,
+        );
+        const installmentCount =
+          Number.isFinite(prepaidCount) && prepaidCount >= 2
+            ? prepaidCount
+            : Number(sub.billing_interval_count) || 1;
         setForm({
           donor_id: sub.donor_id ? String(sub.donor_id) : '',
           amount: sub.amount != null ? String(sub.amount) : '',
+          total_amount:
+            sub.total_amount != null ? String(sub.total_amount) : '',
           currency: sub.currency || 'PKR',
           billing_interval: sub.billing_interval || 'month',
-          billing_interval_count: String(sub.billing_interval_count || 1),
+          billing_interval_count: String(installmentCount),
           start_date_mode: sub.start_date_mode || 'same_date',
           start_date: sub.start_date ? String(sub.start_date).slice(0, 10) : '',
           consent: sub.consent !== false,
@@ -152,8 +161,6 @@ const RecurringDonationForm = ({ mode = 'add' }) => {
           campaign_id: sub.campaign_id != null ? String(sub.campaign_id) : '',
           donation_type: sub.donation_type || '',
           on_behalf_names: sub.on_behalf_names || '',
-          prepaid_periods:
-            sub.prepaid_periods != null ? String(sub.prepaid_periods) : '',
           initial_donation_id:
             sub.initial_donation_id != null
               ? String(sub.initial_donation_id)
@@ -207,7 +214,7 @@ const RecurringDonationForm = ({ mode = 'add' }) => {
       return;
     }
     if (!form.amount || Number(form.amount) <= 0) {
-      setError('Amount must be greater than 0');
+      setError('Installment amount must be greater than 0');
       return;
     }
 
@@ -219,6 +226,9 @@ const RecurringDonationForm = ({ mode = 'add' }) => {
         : {
             donor_id: Number(form.donor_id),
             amount: Number(form.amount),
+            total_amount: form.total_amount
+              ? Number(form.total_amount)
+              : null,
             currency: form.currency || 'PKR',
             billing_interval: form.billing_interval,
             billing_interval_count: Number(form.billing_interval_count) || 1,
@@ -232,9 +242,11 @@ const RecurringDonationForm = ({ mode = 'add' }) => {
               : undefined,
             donation_type: form.donation_type || undefined,
             on_behalf_names: String(form.on_behalf_names || '').trim() || null,
-            prepaid_periods: form.prepaid_periods
-              ? Number(form.prepaid_periods)
-              : undefined,
+            // Drive prepaid from Interval count (>1 = N paid installments)
+            prepaid_periods:
+              Number(form.billing_interval_count) >= 2
+                ? Number(form.billing_interval_count)
+                : undefined,
             initial_donation_id: form.initial_donation_id
               ? Number(form.initial_donation_id)
               : undefined,
@@ -334,6 +346,16 @@ const RecurringDonationForm = ({ mode = 'add' }) => {
   }
 
   const fieldsDisabled = isStripe && isEdit;
+  const installmentCount = Math.max(
+    1,
+    Math.floor(Number(form.billing_interval_count) || 1),
+  );
+  const installmentAmount = Number(form.amount) || 0;
+  const totalAmountEntered = Number(form.total_amount) || 0;
+  const impliedTotal =
+    installmentCount >= 2 && installmentAmount > 0
+      ? installmentAmount * installmentCount
+      : null;
 
   return (
     <>
@@ -391,7 +413,7 @@ const RecurringDonationForm = ({ mode = 'add' }) => {
           <div className="form-section">
             <div className="form-grid-2">
               <FormInput
-                label="Amount"
+                label="Installment Amount"
                 name="amount"
                 type="number"
                 min="1"
@@ -399,6 +421,16 @@ const RecurringDonationForm = ({ mode = 'add' }) => {
                 onChange={handleChange}
                 required
                 disabled={fieldsDisabled}
+              />
+              <FormInput
+                label="Total Amount"
+                name="total_amount"
+                type="number"
+                min="1"
+                value={form.total_amount}
+                onChange={handleChange}
+                disabled={fieldsDisabled}
+                placeholder="Optional (prepaid lump sum)"
               />
               <FormInput
                 label="Currency"
@@ -415,15 +447,39 @@ const RecurringDonationForm = ({ mode = 'add' }) => {
                 options={INTERVAL_OPTIONS}
                 disabled={fieldsDisabled}
               />
-              <FormInput
-                label="Interval count"
-                name="billing_interval_count"
-                type="number"
-                min="1"
-                value={form.billing_interval_count}
-                onChange={handleChange}
-                disabled={fieldsDisabled}
-              />
+              <div>
+                <FormInput
+                  label="Installments count"
+                  name="billing_interval_count"
+                  type="number"
+                  min="1"
+                  value={form.billing_interval_count}
+                  onChange={handleChange}
+                  disabled={fieldsDisabled}
+                />
+                <small style={{ color: '#6b7280', display: 'block', marginTop: 4 }}>
+                  Set &gt; 1 when donor paid multiple periods upfront (e.g. 12 =
+                  one year). Creates paid installments and skips reminders for
+                  that many periods.
+                </small>
+                {impliedTotal != null && (
+                  <small
+                    style={{
+                      color: '#059669',
+                      display: 'block',
+                      marginTop: 4,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {form.currency || 'PKR'}{' '}
+                    {installmentAmount.toLocaleString('en-PK')} ×{' '}
+                    {installmentCount}
+                    {totalAmountEntered > 0
+                      ? ` (total entered: ${form.currency || 'PKR'} ${totalAmountEntered.toLocaleString('en-PK')})`
+                      : ` = ${form.currency || 'PKR'} ${impliedTotal.toLocaleString('en-PK')}`}
+                  </small>
+                )}
+              </div>
               <FormInput
                 label="First billing date"
                 name="start_date"
@@ -473,15 +529,6 @@ const RecurringDonationForm = ({ mode = 'add' }) => {
                 disabled={fieldsDisabled}
               />
               <FormInput
-                label="Prepaid periods (optional)"
-                name="prepaid_periods"
-                type="number"
-                min="1"
-                value={form.prepaid_periods}
-                onChange={handleChange}
-                disabled={fieldsDisabled}
-              />
-              <FormInput
                 label="Initial donation ID (optional)"
                 name="initial_donation_id"
                 type="number"
@@ -509,7 +556,7 @@ const RecurringDonationForm = ({ mode = 'add' }) => {
                 onChange={handleChange}
                 options={STATUS_OPTIONS}
               />
-              {!isEdit && (
+              {!isEdit && installmentCount < 2 && (
                 <FormSelect
                   label="Installment status"
                   name="installment_status"
@@ -518,6 +565,11 @@ const RecurringDonationForm = ({ mode = 'add' }) => {
                   options={installmentStatusOptions}
                   disabled={!canReconcile}
                 />
+              )}
+              {!isEdit && installmentCount >= 2 && (
+                <div style={{ alignSelf: 'center', color: '#059669', fontSize: 13 }}>
+                  {installmentCount} paid installments will be created automatically.
+                </div>
               )}
             </div>
           </div>

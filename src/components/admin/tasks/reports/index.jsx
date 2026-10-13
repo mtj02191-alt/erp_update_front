@@ -9,6 +9,8 @@ import { departments } from '../../../../utils/admin';
 import { useAuth } from '../../../../context/AuthContext';
 import { getTaskPermissions, isSuperAdmin } from '../../../../utils/permissions';
 import ReloadButton from '../../../common/buttons/reload';
+import useNotificationListRefresh from '../../../../hooks/useNotificationListRefresh';
+import { NotificationRefreshPresets } from '../../../../utils/notifications/events';
 import '../../../../styles/components.css';
 import './index.css';
 import TeamPerformance from './team-performance';
@@ -825,6 +827,15 @@ const ProjectProgramWiseReport = React.memo(({ projects }) => {
 
 const TaskReports = () => {
   const { user, permissions } = useAuth();
+  const [dashboardRefreshNonce, setDashboardRefreshNonce] = useState(0);
+  const bumpDashboardRefresh = useCallback(() => {
+    setDashboardRefreshNonce((nonce) => nonce + 1);
+  }, []);
+  // Task notifications cover status and assignment changes that invalidate dashboard totals.
+  useNotificationListRefresh(bumpDashboardRefresh, {
+    ...NotificationRefreshPresets.tasks,
+  });
+
   const role = user?.role || 'user';
   const [duration, setDuration] = useState('this_year');
   const [viewType, setViewType] = useState("assigned"); // Initial view: current user's assigned tasks
@@ -1409,23 +1420,14 @@ const TaskReports = () => {
     try {
       const range = getDateRangeForDuration(duration);
 
-      // Department for stats: from user context (tasksDepartmentFromUser), not from URL.
-      // Org-wide when super admin / admin dept / permission super_admin; otherwise lock to user's routed department.
-      const department = isGeneralAdminDashboard ? (selectedDepartment || undefined) : (tasksDepartmentFromUser || selectedDepartment || undefined);
-
       let statsDepartment;
       if (isGeneralAdminDashboard) {
         statsDepartment = selectedDepartment || undefined;
       } else if (showTeamPerformance) {
         statsDepartment = selectedDepartment || undefined;
-      } else if (tasksDepartmentFromUser) {
-        statsDepartment = tasksDepartmentFromUser;
-      } else if (rolePerms.scope === 'org') {
-        statsDepartment = department;
-      } else if (rolePerms.scope === 'department' || rolePerms.scope === 'team') {
-        statsDepartment = user?.department;
       } else {
-        statsDepartment = user?.department;
+        // Personal dashboard results are scoped by backend role permissions, not department.
+        statsDepartment = undefined;
       }
 
       // view_type scopes the dashboard to the logged-in user (from JWT via @CurrentUser).
@@ -1437,8 +1439,8 @@ const TaskReports = () => {
       } else if (!rolePerms.isAdmin && viewType !== 'all') {
         effectiveViewType = viewType;
       } else if (!rolePerms.isAdmin && viewType === 'all') {
-        // "All" still means personal involvement; leave undefined so role filters apply
-        effectiveViewType = undefined;
+        // Let the backend apply the authenticated user's full report scope for All Tasks.
+        effectiveViewType = 'all';
       } else if (rolePerms.isAdmin && viewType !== 'all') {
         effectiveViewType = viewType;
       } else {
@@ -1480,9 +1482,10 @@ const TaskReports = () => {
     }
   }, [duration, selectedDepartment, rolePerms.scope, rolePerms.isAdmin, user, user?.department, user?.id, tasksDepartmentFromUser, isGeneralAdminDashboard, permissions, viewType, showTeamPerformance, taskScopeCaps.isSelfOnly, getDateRangeForDuration]);
 
+  // A notification nonce change reruns the fetch after task mutations.
   useEffect(() => {
     fetchTaskReports();
-  }, [fetchTaskReports]);
+  }, [fetchTaskReports, dashboardRefreshNonce]);
 
   useEffect(() => {
     const palette = (n) => {
@@ -2443,8 +2446,8 @@ const TaskReports = () => {
           <option value="last_year">Last Year</option>
         </select>
       </div>
-
-      {taskScopeCaps.showTasksDropdown && (
+{/* tasks dropdown  should be hidden when the team performance view is active */}
+      {taskScopeCaps.showTasksDropdown && !showTeamPerformance && (
         <div className="task-filter-group">
           <span className="task-filter-label">Tasks</span>
           <select

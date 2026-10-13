@@ -2034,14 +2034,17 @@ const ViewTask = ({
                     </div>
 
                     <div className="tv-column tv-column--side">
-                      <TaskActivityTimeline activities={task.activities || []} />
+                      {/* Hide the full history panel unless the dedicated permission is granted. */}
+                      {taskPerms.canViewProgressHistory && (
+                        <TaskActivityTimeline activities={task.activities || []} />
+                      )}
 
-                      {!isApproverView && (
+                      {/* {!isApproverView && (
                         <div className="task-view-section tv-time-card">
                           <h3 className="task-task-view-section-title">Time Tracking</h3>
                           <TimeTracker taskId={task.id} taskStatus={task.status} />
                         </div>
-                      )}
+                      )} */}
 
                       <div className="task-notes-panel">
                         <div
@@ -2170,15 +2173,19 @@ const ViewTask = ({
                             >
                               Comments
                             </button>
-                            <button
-                              type="button"
-                              className={`tv-comments-tab${commentsTab === 'activity' ? ' tv-comments-tab--active' : ''}`}
-                              onClick={() => setCommentsTab('activity')}
-                            >
-                              Activity
-                            </button>
+                            {/* Activity uses the same permission as the Progress History panel. */}
+                            {taskPerms.canViewProgressHistory && (
+                              <button
+                                type="button"
+                                className={`tv-comments-tab${commentsTab === 'activity' ? ' tv-comments-tab--active' : ''}`}
+                                onClick={() => setCommentsTab('activity')}
+                              >
+                                Activity
+                              </button>
+                            )}
                           </div>
-                          {commentsTab === 'comments' ? (
+                          {/* If access is removed while Activity is selected, fall back to Comments. */}
+                          {commentsTab === 'comments' || !taskPerms.canViewProgressHistory ? (
                             <>
                               <div className="task-view-grid">
                                 <div className="task-view-item task-comments-item">
@@ -2237,7 +2244,9 @@ const ViewTask = ({
                               )}
                             </>
                           ) : (
-                            <TaskActivityTimeline activities={task.activities || []} compact />
+                            taskPerms.canViewProgressHistory && (
+                              <TaskActivityTimeline activities={task.activities || []} compact />
+                            )
                           )}
                         </div>
 

@@ -30,6 +30,7 @@ const EditDonationBox = () => {
     key_no: '',
     box_type: 'medium',
     status: 'active',
+    removal_date: '',
     collection_frequency: 'weekly',
     landmark_marketplace: '',
     location_radius_value: String(DEFAULT_COLLECTION_RADIUS_METERS),
@@ -124,6 +125,9 @@ const EditDonationBox = () => {
         key_no: box.key_no || '',
         box_type: box.box_type || 'medium',
         status: box.status || 'active',
+        removal_date: box.removal_date
+          ? String(box.removal_date).slice(0, 10)
+          : '',
         collection_frequency: box.collection_frequency || box.frequency || 'weekly',
         landmark_marketplace: box.landmark_marketplace || '',
         location_radius_value: String(radiusForm.value),
@@ -155,7 +159,16 @@ const EditDonationBox = () => {
   const handleSettingsChange = (e) => {
     const { name, value, type, checked } = e.target;
     const nextValue = type === 'checkbox' ? checked : value;
-    setSettingsForm((prev) => ({ ...prev, [name]: nextValue }));
+    setSettingsForm((prev) => {
+      const next = { ...prev, [name]: nextValue };
+      if (name === 'status' && nextValue === 'removed' && !prev.removal_date) {
+        next.removal_date = new Date().toISOString().split('T')[0];
+      }
+      if (name === 'status' && nextValue !== 'removed') {
+        next.removal_date = '';
+      }
+      return next;
+    });
     if (error) setError('');
     if (success) setSuccess('');
   };
@@ -216,10 +229,18 @@ const EditDonationBox = () => {
         return;
       }
 
+      if (settingsForm.status === 'removed' && !settingsForm.removal_date) {
+        setError('Removal date is required when status is Removed.');
+        setSavingSettings(false);
+        return;
+      }
+
       const payload = {
         key_no: settingsForm.key_no || null,
         box_type: settingsForm.box_type,
         status: settingsForm.status,
+        removal_date:
+          settingsForm.status === 'removed' ? settingsForm.removal_date : null,
         frequency: settingsForm.collection_frequency,
         landmark_marketplace: settingsForm.landmark_marketplace?.trim() || null,
         require_collection_location: hasCoords,
@@ -229,7 +250,15 @@ const EditDonationBox = () => {
       if (!response.data?.success) {
         throw new Error(response.data?.message || 'Failed to update donation box');
       }
-      setDonationBox(response.data.data);
+      const updated = response.data.data;
+      setDonationBox(updated);
+      setSettingsForm((prev) => ({
+        ...prev,
+        status: updated.status || prev.status,
+        removal_date: updated.removal_date
+          ? String(updated.removal_date).slice(0, 10)
+          : '',
+      }));
       setSuccess('Box settings updated successfully.');
       setAuditRefreshKey((k) => k + 1);
     } catch (err) {
@@ -317,6 +346,7 @@ const EditDonationBox = () => {
     { value: 'removed', label: 'Removed' },
     { value: 'broken', label: 'Broken' },
     { value: 'snr', label: 'SNR' },
+    { value: 'misplaced_stolen', label: 'Misplaced/Stolen' },
   ];
 
   const collectionFrequencyOptions = [
@@ -595,6 +625,17 @@ const EditDonationBox = () => {
                 options={statusOptions}
                 required
               />
+
+              {settingsForm.status === 'removed' && (
+                <FormInput
+                  label="Donation Box Removal Date"
+                  type="date"
+                  name="removal_date"
+                  value={settingsForm.removal_date}
+                  onChange={handleSettingsChange}
+                  required
+                />
+              )}
 
               <FormSelect
                 label="Collection frequency"

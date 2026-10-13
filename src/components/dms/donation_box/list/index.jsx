@@ -310,6 +310,7 @@ const DonationBoxList = () => {
       'removed': { class: 'status-cancelled', text: 'Removed' },
       'broken': { class: 'status-failed', text: 'Broken' },
       'snr': { class: 'status-pending', text: 'SNR' },
+      'misplaced_stolen': { class: 'status-failed', text: 'Misplaced/Stolen' },
     };
     
     const statusInfo = statusMap[status] || { class: 'status-pending', text: status };
@@ -401,6 +402,7 @@ const DonationBoxList = () => {
     { value: 'removed', label: 'Removed' },
     { value: 'broken', label: 'Broken' },
     { value: 'snr', label: 'SNR' },
+    { value: 'misplaced_stolen', label: 'Misplaced/Stolen' },
   ];
 
   const boxTypeOptions = [

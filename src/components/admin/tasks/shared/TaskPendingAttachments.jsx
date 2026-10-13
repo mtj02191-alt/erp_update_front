@@ -1,11 +1,11 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { FiPaperclip, FiPlus, FiTrash2 } from 'react-icons/fi';
-import FormInput from '../../../common/FormInput';
-import { SecondaryButton } from '../../../common/buttons';
+import { FiPaperclip } from 'react-icons/fi';
 import './TaskPendingAttachments.css';
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
+// Keep the attachment queue simple: each selected file gets a generated id and
+// is stored with its original name so it can be displayed and removed later.
 function makeItem(name, file) {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -54,35 +54,39 @@ const TaskPendingAttachments = forwardRef(function TaskPendingAttachments(
 
   const handleFileChange = (e) => {
     const next = e.target.files?.[0] || null;
-    if (next && next.size > MAX_FILE_BYTES) {
+    if (!next) return;
+
+    // The reference UI limits attachments to 10MB, so we guard here before any
+    // file is added to the queued list to match the product requirement.
+    if (next.size > MAX_FILE_BYTES) {
       setError('File must be 10MB or smaller');
       setFile(null);
       e.target.value = '';
       return;
     }
+
+    // The mockup shows a visible selected-file row with a remove control, so we
+    // add the file immediately to the pending list instead of hiding it behind the
+    // old hidden form fields that were previously used.
+    const nextItem = makeItem(next.name, next);
+    const exists = items.some(
+      (item) =>
+        item.file?.name === next.name &&
+        item.file?.size === next.size &&
+        item.file?.lastModified === next.lastModified,
+    );
+
+    if (!exists) {
+      onChange?.([...items, nextItem]);
+    }
+
     setError('');
     setFile(next);
+    e.target.value = '';
   };
 
-  const handleAdd = () => {
-    const trimmed = String(name || '').trim();
-    if (!trimmed) {
-      setError('Attachment name is required');
-      return;
-    }
-    if (!file) {
-      setError('Please select a file');
-      return;
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      setError('File must be 10MB or smaller');
-      return;
-    }
-
-    onChange?.([...items, makeItem(trimmed, file)]);
-    clearDraft();
-  };
-
+  // Keep the remove action simple and explicit: delete the chosen item from the
+  // queue so the UI matches the reference design's row-based attachment list.
   const handleRemove = (id) => {
     onChange?.(items.filter((item) => item.id !== id));
   };
@@ -90,52 +94,24 @@ const TaskPendingAttachments = forwardRef(function TaskPendingAttachments(
   return (
     <div className="task-pending-attachments">
       <div className="add-task-section-title">{title}</div>
-      <p className="task-pending-attachments__hint">
-        Enter a name and choose a file, then create the task (or click Add attachment to queue several files). Max 10MB each.
-      </p>
 
-      <div className="task-pending-attachments__form">
-        <FormInput
-          name="attachment_name"
-          label="Attachment name"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            if (error) setError('');
-          }}
-          placeholder="e.g. Proposal draft, Site photo, Checklist"
+      <div className="task-pending-attachments__form task-pending-attachments__form--dropzone">
+        <label htmlFor={fileInputId} className="task-pending-attachments__dropzone-label">
+          <FiPaperclip className="task-pending-attachments__dropzone-icon" />
+          <span>
+            Drop files or <span className="task-pending-attachments__browse-link">browse</span>
+            <span className="task-pending-attachments__meta"> • up to 10 MB each</span>
+          </span>
+        </label>
+
+        <input
+          id={fileInputId}
+          type="file"
+          className="task-pending-attachments__file-input"
+          onChange={handleFileChange}
           disabled={disabled}
+          accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.txt,application/pdf,image/*"
         />
-
-        <div className="form-group">
-          <label className="form-label" htmlFor={fileInputId}>
-            File
-          </label>
-          <input
-            id={fileInputId}
-            type="file"
-            className="form-input"
-            onChange={handleFileChange}
-            disabled={disabled}
-            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.txt,application/pdf,image/*"
-          />
-          {file && (
-            <div className="task-pending-attachments__selected">
-              <FiPaperclip /> Selected: {file.name}
-            </div>
-          )}
-        </div>
-
-        {error && <div className="form-error">{error}</div>}
-
-        <SecondaryButton
-          type="button"
-          onClick={handleAdd}
-          disabled={disabled}
-          icon={<FiPlus />}
-        >
-          Add attachment
-        </SecondaryButton>
       </div>
 
       {items.length > 0 && (
@@ -143,8 +119,7 @@ const TaskPendingAttachments = forwardRef(function TaskPendingAttachments(
           {items.map((item) => (
             <li key={item.id} className="task-pending-attachments__item">
               <div className="task-pending-attachments__item-main">
-                <strong>{item.name}</strong>
-                <span>{item.file?.name}</span>
+                <span className="task-pending-attachments__file-name">{item.file?.name || item.name}</span>
               </div>
               <button
                 type="button"
@@ -152,13 +127,16 @@ const TaskPendingAttachments = forwardRef(function TaskPendingAttachments(
                 onClick={() => handleRemove(item.id)}
                 disabled={disabled}
                 title="Remove"
+                aria-label={`Remove ${item.file?.name || item.name}`}
               >
-                <FiTrash2 />
+                ×
               </button>
             </li>
           ))}
         </ul>
       )}
+
+      {error && <div className="form-error task-pending-attachments__error">{error}</div>}
     </div>
   );
 });

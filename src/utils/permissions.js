@@ -436,6 +436,8 @@ export const getTaskPermissions = (permissions, department, userRole) => {
     canApprove: canApproveBase || canApproveByRole,
     canComplete: actions.complete === true || isAdmin,
     canEditCompleted,
+    // Admins retain history access; other users need this explicit task action.
+    canViewProgressHistory: actions.view_progress_history === true || isAdmin,
     reportScope: scope
   };
 

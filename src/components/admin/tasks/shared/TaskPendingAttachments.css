@@ -1,21 +1,66 @@
 .task-pending-attachments {
-  margin-top: 0.75rem;
+  margin-top: 0;
 }
 
+/* The old attachment helper text/title were removed so the section can match the
+   reference mockup, which keeps the upload area minimal and visually cleaner. */
+.task-pending-attachments .add-task-section-title,
 .task-pending-attachments__hint {
-  margin: 0 0 0.85rem;
-  font-size: 0.85rem;
-  color: #64748b;
+  display: none;
 }
 
 .task-pending-attachments__form {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.9rem;
-  border: 1px dashed #cbd5e1;
-  border-radius: 10px;
-  background: #f8fafc;
+  gap: 0;
+  padding: 0;
+  /* The dashed border and neutral background mirror the reference design and keep
+     the upload area visually distinct without adding extra form fields. */
+  border: 1px dashed #cfd3da;
+  border-radius: 12px;
+  background: transparent;
+}
+
+.task-pending-attachments__form--dropzone {
+  min-height: 60px;
+}
+
+.task-pending-attachments__dropzone-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 54px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  color: #4b5563;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.task-pending-attachments__dropzone-icon {
+  width: 18px;
+  height: 18px;
+  color: #5b3df5;
+  flex-shrink: 0;
+}
+
+.task-pending-attachments__browse-link {
+  color: #5b3df5;
+  font-weight: 700;
+}
+
+.task-pending-attachments__meta {
+  color: #6b7280;
+}
+
+.task-pending-attachments__file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .task-pending-attachments__selected {
@@ -29,58 +74,72 @@
 
 .task-pending-attachments__list {
   list-style: none;
-  margin: 0.85rem 0 0;
+  margin: 12px 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 8px;
 }
+
+/* The selected file needs to be readable as its own item in the reference UI,
+   so each queued attachment is presented in a compact row with a clear remove control. */
 
 .task-pending-attachments__item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.65rem 0.8rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: #fff;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
 }
 
 .task-pending-attachments__item-main {
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
+  flex: 1;
 }
 
-.task-pending-attachments__item-main strong {
-  font-size: 0.9rem;
-  color: #0f172a;
-}
-
-.task-pending-attachments__item-main span {
-  font-size: 0.78rem;
-  color: #64748b;
+.task-pending-attachments__file-name {
+  font-size: 14px;
+  color: #374151;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .task-pending-attachments__remove {
-  border: none;
-  background: #fee2e2;
-  color: #b91c1c;
-  border-radius: 6px;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #dfe3ea;
+  background: #ffffff;
+  color: #6b7280;
+  border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.task-pending-attachments__remove:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  color: #374151;
+  background: #f9fafb;
 }
 
 .task-pending-attachments__remove:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.task-pending-attachments__error {
+  margin-top: 8px;
 }

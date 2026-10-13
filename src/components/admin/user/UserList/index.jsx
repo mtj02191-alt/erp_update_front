@@ -281,11 +281,20 @@ const UserList = () => {
   };
 
   const handleDeleteConfirm = async () => {
-    if (userToDelete) {
-      setUsers(users.filter((user) => user.id !== userToDelete.id));
+    if (!userToDelete) {
+      setShowDeleteModal(false);
+      return;
     }
-    setShowDeleteModal(false);
-    setUserToDelete(null);
+    try {
+      await axiosInstance.delete(`/users/${userToDelete.id}`);
+      setUsers((prev) => prev.filter((user) => user.id !== userToDelete.id));
+    } catch (err) {
+      console.error('Failed to archive user:', err);
+      alert(err.response?.data?.message || 'Failed to archive user');
+    } finally {
+      setShowDeleteModal(false);
+      setUserToDelete(null);
+    }
   };
 
   const handleDeleteCancel = () => {
@@ -333,7 +342,7 @@ const UserList = () => {
     },
     {
       icon: <FiTrash2 />,
-      label: 'Delete',
+      label: 'Archive',
       color: '#f44336',
       onClick: () => handleDeleteClick(user),
       visible: true,
@@ -489,7 +498,7 @@ const UserList = () => {
 
       <ConfirmationModal
         isOpen={showDeleteModal}
-        text={`Are you sure you want to delete ${userToDelete?.first_name} ${userToDelete?.last_name}?`}
+        text={`Archive ${userToDelete?.first_name} ${userToDelete?.last_name}? The user record is kept (not hard-deleted).`}
         delete={true}
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}

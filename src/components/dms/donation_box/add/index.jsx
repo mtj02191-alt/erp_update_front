@@ -250,6 +250,7 @@ const AddDonationBox = () => {
     { value: 'removed', label: 'Removed' },
     { value: 'broken', label: 'Broken' },
     { value: 'snr', label: 'SNR' },
+    { value: 'misplaced_stolen', label: 'Misplaced/Stolen' },
   ];
 
   const collectionFrequencyOptions = [

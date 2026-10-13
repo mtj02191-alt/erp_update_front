@@ -36,10 +36,9 @@ const INTERVAL_OPTIONS = [
 ];
 
 const INSTALLMENT_STATUS_OPTIONS = [
-  { value: 'pending', label: 'Pending / arrears' },
-  { value: 'pending_dues', label: 'Has missing installments' },
-  { value: 'pending_initial', label: 'Pending initial donation' },
-  { value: 'completed', label: 'Has paid installments' },
+  { value: 'installments', label: 'Installments' },
+  { value: 'paid_installments', label: 'Paid Installments' },
+  { value: 'pending_installments', label: 'Pending Installments' },
 ];
 
 const SOURCE_OPTIONS = [
@@ -427,11 +426,11 @@ const RecurringDonationsList = () => {
             />
             <DropdownFilter
               filterKey="installment_status"
-              label="Payment / installments"
+              label="Installments"
               data={INSTALLMENT_STATUS_OPTIONS}
               filters={tempFilters}
               onFilterChange={handleFilterChange}
-              placeholder="All payments"
+              placeholder="All installments"
             />
             <DropdownFilter
               filterKey="source"
@@ -565,7 +564,7 @@ const RecurringDonationsList = () => {
           deleteTarget
             ? `Delete subscription #${deleteTarget.id}${
                 deleteTarget.donor_name ? ` (${deleteTarget.donor_name})` : ''
-              }? Installments will be archived. Donors and donations are not deleted.`
+              }? Subscription and installments will be archived (records kept). Donors and donations are not deleted.`
             : ''
         }
         delete

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import axiosInstance from '../../../../utils/axios';
 import { toast } from 'react-toastify';
+import Loader from '../../../common/loader/Loader';
 
 const ProgressUpdate = ({
   taskId,
@@ -349,28 +350,31 @@ const ProgressUpdate = ({
   }
 
   return (
-    <div className="task-progress">
-      <div className="task-progress-header">
-        <div className="task-progress-main">
-          <div className="task-progress-label">Task Verification Checklist</div>
-          <div className="task-progress-value">
-            <span className="task-progress-percentage">{clampedProgress}%</span>
-            <span className="task-progress-separator">·</span>
-            <span>
-              {completedCount}/{totalCount} completed
-            </span>
+    <>
+      {/* Show the shared overlay while the MOV check is being saved. */}
+      <Loader loading={loading} />
+      <div className="task-progress">
+        <div className="task-progress-header">
+          <div className="task-progress-main">
+            <div className="task-progress-label">Task Verification Checklist</div>
+            <div className="task-progress-value">
+              <span className="task-progress-percentage">{clampedProgress}%</span>
+              <span className="task-progress-separator">·</span>
+              <span>
+                {completedCount}/{totalCount} completed
+              </span>
+            </div>
+          </div>
+          <div className="task-progress-bar">
+            <div 
+              className="task-progress-bar-fill"
+              style={{ width: `${clampedProgress}%` }}
+            />
           </div>
         </div>
-        <div className="task-progress-bar">
-          <div 
-            className="task-progress-bar-fill"
-            style={{ width: `${clampedProgress}%` }}
-          />
-        </div>
-      </div>
-      {error && <div className="task-progress-error">{error}</div>}
-      <ul className="mov-checklist-list">
-        {items.map((item, index) => {
+        {error && <div className="task-progress-error">{error}</div>}
+        <ul className="mov-checklist-list">
+          {items.map((item, index) => {
           const isChecked = isStructured ? item.checked : item.completed;
           const checkedById = isStructured ? item.checked_by_id : item.completed_by_id;
           const isCheckedByOther = isChecked && checkedById && Number(checkedById) !== Number(currentUser?.id);
@@ -394,34 +398,35 @@ const ProgressUpdate = ({
             disabledTooltip = 'Updating...';
           }
 
-          return (
-            <li key={`${item.text}-${index}`} className={`mov-checklist-item${isCheckedByOther ? ' mov-checklist-item--locked' : ''}`}>
-              <button
-                type="button"
-                className={`mov-checklist-button${
-                  isChecked ? ' mov-checklist-button--checked' : ''
-                }${isCheckedByOther ? ' mov-checklist-button--readonly' : ''}${
-                  isCheckedByCurrentUser ? ' mov-checklist-button--owned' : ''
-                }`}
-                onClick={() => handleToggle(index)}
-                disabled={isDisabled}
-                title={disabledTooltip}
-              >
-                <span className="mov-checklist-checkbox">
-                  {isChecked ? '✓' : ''}
-                </span>
-                <span className="mov-checklist-label">{item.text}</span>
-                {showMovAssignee && 'assigned_user_id' in item && (
-                  <span className="mov-checklist-assignee">
-                    {getAssignedUserName(item.assigned_user_id)}
+            return (
+              <li key={`${item.text}-${index}`} className={`mov-checklist-item${isCheckedByOther ? ' mov-checklist-item--locked' : ''}`}>
+                <button
+                  type="button"
+                  className={`mov-checklist-button${
+                    isChecked ? ' mov-checklist-button--checked' : ''
+                  }${isCheckedByOther ? ' mov-checklist-button--readonly' : ''}${
+                    isCheckedByCurrentUser ? ' mov-checklist-button--owned' : ''
+                  }`}
+                  onClick={() => handleToggle(index)}
+                  disabled={isDisabled}
+                  title={disabledTooltip}
+                >
+                  <span className="mov-checklist-checkbox">
+                    {isChecked ? '✓' : ''}
                   </span>
-                )}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+                  <span className="mov-checklist-label">{item.text}</span>
+                  {showMovAssignee && 'assigned_user_id' in item && (
+                    <span className="mov-checklist-assignee">
+                      {getAssignedUserName(item.assigned_user_id)}
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </>
   );
 };
 

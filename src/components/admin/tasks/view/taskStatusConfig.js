@@ -147,29 +147,41 @@ export const isStatusActionAvailable = (action, context) => {
     case 'BLOCK':
     case 'REOPEN':
     case 'REOPEN_IN_PROGRESS':
-      return perms.canUpdate && sameDeptOrOrg;
+      return isAssignee && perms.canUpdate && sameDeptOrOrg;
     case 'COMPLETE':
       return isAssignee && sameDeptOrOrg;
-    case 'CLOSE':
-      const isCreator = context.currentUserId != null && context.createdByUserId != null && Number(context.currentUserId) === Number(context.createdByUserId);
-      const isReporter = context.currentUserId != null && context.reportedById != null && Number(context.currentUserId) === Number(context.reportedById);
+    case 'CLOSE': {
+      // Preserve creator/reporter closure after completion or approval; other changes require assignment.
+      const isCreator =
+        context.currentUserId != null &&
+        context.createdByUserId != null &&
+        Number(context.currentUserId) === Number(context.createdByUserId);
+      const isReporter =
+        context.currentUserId != null &&
+        context.reportedById != null &&
+        Number(context.currentUserId) === Number(context.reportedById);
       const isCreatorOrReporter = isCreator || isReporter;
 
-      // If task is already approved or completed (in standard workflow), only creator/reporter can close it
-      if (currentStatusRaw === 'approved' || (currentStatusRaw === 'completed' && workflowRaw !== 'APPROVAL_REQUIRED')) {
+      if (
+        currentStatusRaw === 'approved' ||
+        (currentStatusRaw === 'completed' && workflowRaw !== 'APPROVAL_REQUIRED')
+      ) {
         return isCreatorOrReporter && sameDeptOrOrg;
       }
 
       if (workflowRaw === 'APPROVAL_REQUIRED') {
-        // While in approval flow, allow closing only if all approvals are done AND user is creator/reporter
         if (allApprovalsCompleted) {
           return isCreatorOrReporter && sameDeptOrOrg;
         }
-        // If not all approvals done, still only creator/reporter can close (if they have approve perms)
         return perms.canApprove === true && isCreatorOrReporter && sameDeptOrOrg;
       }
-      
-      return perms.canUpdate && isCreatorOrReporter && sameDeptOrOrg;
+
+      return (
+        isAssignee &&
+        (perms.canUpdate || perms.canComplete) &&
+        sameDeptOrOrg
+      );
+    }
     case 'SUBMIT_APPROVAL':
       return isAssignee && (perms.canUpdate || perms.canView) && !isAdminRole;
     case 'APPROVE':

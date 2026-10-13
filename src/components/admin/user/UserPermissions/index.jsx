@@ -478,7 +478,8 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
       submodules: {
         tasks: {
           label: 'Tasks',
-          actions: ['create','list_view', 'view', 'update', 'delete']
+          // Keep history visibility independently grantable from general task viewing.
+          actions: ['create', 'list_view', 'view', 'update', 'delete', 'view_progress_history']
         },
         dashboard: {
           label: 'Dashboard',
@@ -566,6 +567,8 @@ const UserPermissions = ({ user, onSave, onCancel, isOpen }) => {
     create: 'Create',
     update: 'Update',
     delete: 'Delete',
+    // Display the dedicated permission as access to both history views.
+    view_progress_history: 'View Progress History / Activity',
     send:'Send',
     receive:'Receive',
     csv_xport:'CSV Export',

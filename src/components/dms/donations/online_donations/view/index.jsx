@@ -1182,59 +1182,6 @@ const ViewOnlineDonation = () => {
                 <span className="view-item-label">Status</span>
                 <span className="view-item-value">{getStatusBadge(donation.status)}</span>
               </div>
-              {showApproveRejectInDetails && !isDonationCompleted && !isDonationFailed && (
-                <div className="view-item">
-                  <span className="view-item-label">Review</span>
-                  <span className="view-item-value" style={{ display: 'inline-flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {showMarkCompleted && (
-                      <button
-                        type="button"
-                        className="donation-comm-btn donation-comm-btn--completed donation-comm-btn--inline"
-                        onClick={markAsCompleted}
-                        disabled={markingCompleted || markingFailed}
-                      >
-                        <span className="donation-comm-btn__icon">
-                          <FiCheckCircle />
-                        </span>
-                        <span className="donation-comm-btn__label">
-                          {markingCompleted ? 'Approving…' : 'Approve'}
-                        </span>
-                      </button>
-                    )}
-                    {showMarkFailed && (
-                      <button
-                        type="button"
-                        className="donation-comm-btn donation-comm-btn--failed donation-comm-btn--inline"
-                        onClick={markAsFailed}
-                        disabled={markingCompleted || markingFailed}
-                      >
-                        <span className="donation-comm-btn__icon">
-                          <FiXCircle />
-                        </span>
-                        <span className="donation-comm-btn__label">
-                          {markingFailed ? 'Rejecting…' : 'Reject'}
-                        </span>
-                      </button>
-                    )}
-                  </span>
-                </div>
-              )}
-              {showApproveRejectInDetails && isDonationCompleted && (
-                <div className="view-item">
-                  <span className="view-item-label">Review</span>
-                  <span className="view-item-value">
-                    <span className="status-badge status-completed">Approved</span>
-                  </span>
-                </div>
-              )}
-              {showApproveRejectInDetails && isDonationFailed && (
-                <div className="view-item">
-                  <span className="view-item-label">Review</span>
-                  <span className="view-item-value">
-                    <span className="status-badge status-failed">Rejected</span>
-                  </span>
-                </div>
-              )}
               <div className="view-item">
                 <span className="view-item-label">Amount</span>
                 <span className="view-item-value">{formatAmount(donation.amount, donation.currency)}</span>
@@ -1273,6 +1220,59 @@ const ViewOnlineDonation = () => {
                   {donation.created_by ? formatAuditActor(donation.created_by) : '—'}
                 </span>
               </div>
+              {showApproveRejectInDetails && !isDonationCompleted && !isDonationFailed && (
+                <div className="view-item view-item--full donation-review-item">
+                  <span className="view-item-label">Review</span>
+                  <span className="view-item-value donation-review-actions">
+                    {showMarkCompleted && (
+                      <button
+                        type="button"
+                        className="donation-comm-btn donation-comm-btn--completed donation-comm-btn--inline"
+                        onClick={markAsCompleted}
+                        disabled={markingCompleted || markingFailed}
+                      >
+                        <span className="donation-comm-btn__icon">
+                          <FiCheckCircle />
+                        </span>
+                        <span className="donation-comm-btn__label">
+                          {markingCompleted ? 'Approving…' : 'Approve'}
+                        </span>
+                      </button>
+                    )}
+                    {showMarkFailed && (
+                      <button
+                        type="button"
+                        className="donation-comm-btn donation-comm-btn--failed donation-comm-btn--inline"
+                        onClick={markAsFailed}
+                        disabled={markingCompleted || markingFailed}
+                      >
+                        <span className="donation-comm-btn__icon">
+                          <FiXCircle />
+                        </span>
+                        <span className="donation-comm-btn__label">
+                          {markingFailed ? 'Rejecting…' : 'Reject'}
+                        </span>
+                      </button>
+                    )}
+                  </span>
+                </div>
+              )}
+              {showApproveRejectInDetails && isDonationCompleted && (
+                <div className="view-item view-item--full donation-review-item">
+                  <span className="view-item-label">Review</span>
+                  <span className="view-item-value donation-review-actions">
+                    <span className="status-badge status-completed">Approved</span>
+                  </span>
+                </div>
+              )}
+              {showApproveRejectInDetails && isDonationFailed && (
+                <div className="view-item view-item--full donation-review-item">
+                  <span className="view-item-label">Review</span>
+                  <span className="view-item-value donation-review-actions">
+                    <span className="status-badge status-failed">Rejected</span>
+                  </span>
+                </div>
+              )}
               { donation?.donation_method && donation.donation_method == "cheque" &&( 
               <div className="view-item">
                 <span className="view-item-label">Cheque Number</span>
